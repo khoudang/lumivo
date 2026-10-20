@@ -743,6 +743,16 @@ class _AddDeviceSheetState extends State<AddDeviceSheet>
         return Icons.mode_fan_off_outlined;
       case DeviceType.security:
         return Icons.shield_outlined;
+      case DeviceType.ac:
+        return Icons.ac_unit_rounded;
+      case DeviceType.socket:
+        return Icons.power_rounded;
+      case DeviceType.curtain:
+        return Icons.curtains_rounded;
+      case DeviceType.lock:
+        return Icons.lock_rounded;
+      case DeviceType.sensor:
+        return Icons.sensors_rounded;
     }
   }
 }

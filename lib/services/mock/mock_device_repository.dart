@@ -182,6 +182,21 @@ class MockDeviceRepository implements DeviceRepository {
         final level = (command.value as int).clamp(0, 100);
         next = current.copyWith(brightness: level, isOn: level > 0);
         break;
+      case DeviceCommandType.setTargetTemperature:
+        final temp = (command.value as num).toDouble().clamp(16.0, 30.0);
+        next = current.copyWith(targetTemperature: temp);
+        break;
+      case DeviceCommandType.setPosition:
+        final pos = (command.value as int).clamp(0, 100);
+        next = current.copyWith(position: pos);
+        break;
+      case DeviceCommandType.setLock:
+        final locked = command.value as bool;
+        next = current.copyWith(isLocked: locked);
+        break;
+      case DeviceCommandType.toggleLock:
+        next = current.copyWith(isLocked: !current.isLocked);
+        break;
     }
     _devices[index] = next;
     _notifyListeners();

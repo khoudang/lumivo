@@ -30,6 +30,16 @@ class DeviceCard extends StatelessWidget {
         return Icons.mode_fan_off_outlined;
       case DeviceType.security:
         return device.isOn ? Icons.shield_rounded : Icons.shield_outlined;
+      case DeviceType.ac:
+        return Icons.ac_unit_rounded;
+      case DeviceType.socket:
+        return Icons.power_rounded;
+      case DeviceType.curtain:
+        return Icons.curtains_rounded;
+      case DeviceType.lock:
+        return device.isLocked ? Icons.lock_rounded : Icons.lock_open_rounded;
+      case DeviceType.sensor:
+        return Icons.sensors_rounded;
     }
   }
 
@@ -43,6 +53,16 @@ class DeviceCard extends StatelessWidget {
         return AppColors.cyan;
       case DeviceType.security:
         return AppColors.green;
+      case DeviceType.ac:
+        return AppColors.cyan;
+      case DeviceType.socket:
+        return AppColors.green;
+      case DeviceType.curtain:
+        return AppColors.primary;
+      case DeviceType.lock:
+        return const Color(0xFFFF9E79);
+      case DeviceType.sensor:
+        return const Color(0xFF72D2FF);
     }
   }
 
