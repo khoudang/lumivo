@@ -395,10 +395,11 @@ void main() {
       notificationsNotifier.setNotifications(demoState.notifications);
 
       // 3. Verify restored default home state
-      expect(demoState.schemaVersion, 2);
+      expect(demoState.schemaVersion, HomePersistenceManager.schemaVersion);
 
       // 7 devices across 3+ rooms
-      expect(repository.devices.length, 7);
+      expect(repository.devices.length,
+          HomePersistenceManager.allDemoDevices.length);
       expect(
         repository.devices.any((d) => d.id == 'temp-dev-1'),
         isFalse,
@@ -422,7 +423,8 @@ void main() {
 
       // Reloading persistence verifies persistent storage matches demo state
       final reloadedState = await persistence.loadHomeState();
-      expect(reloadedState.devices.length, 7);
+      expect(reloadedState.devices.length,
+          HomePersistenceManager.allDemoDevices.length);
       expect(reloadedState.rooms.length, greaterThanOrEqualTo(4));
     });
   });
