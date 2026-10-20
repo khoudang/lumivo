@@ -1,3 +1,5 @@
+import '../../profile/presentation/profile_screen.dart';
+import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
@@ -290,13 +292,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(width: 14),
-                const CircleAvatar(
-                  radius: 16,
-                  backgroundColor: AppColors.surfaceElevated,
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    color: Colors.white,
-                    size: 18,
+                InkWell(
+                  key: const Key('dashboard_profile_button'),
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreen(),
+                      ),
+                    );
+                  },
+                  child: const CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppColors.surfaceElevated,
+                    child: Icon(
+                      Icons.person_outline_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ],
@@ -609,12 +622,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       statusBadge: 'Comfort',
     );
 
-    final energyCard = MetricCard(
-      icon: Icons.bolt_rounded,
-      tint: AppColors.green,
-      value: '2.4 kWh',
-      label: 'Energy Today',
-      statusBadge: 'Eco',
+    final energyCard = InkWell(
+      key: const Key('dashboard_energy_metric_card'),
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const EnergyScreen(),
+          ),
+        );
+      },
+      child: MetricCard(
+        icon: Icons.bolt_rounded,
+        tint: AppColors.green,
+        value: '2.4 kWh',
+        label: 'Energy Today',
+        statusBadge: 'Eco',
+      ),
     );
 
     if (screenWidth >= 640) {

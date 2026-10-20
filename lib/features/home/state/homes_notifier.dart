@@ -126,7 +126,17 @@ final homesProvider = StateNotifierProvider<HomesNotifier, HomesState>((ref) {
   );
 });
 
-final currentHomeProvider = Provider<Home?>((ref) {
+final currentHomeProvider = Provider<Home>((ref) {
   final homesState = ref.watch(homesProvider);
-  return homesState.currentHome;
+  return homesState.currentHome ??
+      (homesState.homes.isNotEmpty
+          ? homesState.homes.first
+          : const Home(
+              id: 'home-default',
+              name: 'Downtown Penthouse',
+              address: '104 Lumivo Way',
+              role: 'Owner',
+              isCurrent: true,
+              tariffRate: 0.16,
+            ));
 });

@@ -177,8 +177,8 @@ final energySummaryProvider =
   final period = ref.watch(energyPeriodProvider);
   final currentHome = ref.watch(currentHomeProvider);
   final persistence = ref.watch(homePersistenceProvider);
-  final tariff = currentHome?.tariffRate ?? 0.16;
-  final currency = currentHome?.currency ?? 'USD';
+  final tariff = currentHome.tariffRate;
+  final currency = currentHome.currency;
   final samples = persistence.cachedState?.energySamples ??
       HomePersistenceManager.createDefaultEnergySamples();
 

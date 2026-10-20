@@ -4,7 +4,6 @@ import '../../../app/providers.dart';
 import '../../../core/models/energy_sample.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../home/presentation/home_selector_sheet.dart';
 
 final energyTariffProvider = StateProvider<double>((ref) => 0.160);
 

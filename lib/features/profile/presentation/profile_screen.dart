@@ -3,41 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../energy/presentation/energy_screen.dart';
-import '../../home/presentation/home_selector_sheet.dart';
-
-class UserProfileNotifier extends StateNotifier<UserProfile> {
-  UserProfileNotifier([UserProfile? initialProfile])
-      : super(initialProfile ?? const UserProfile());
-
-  void updateLanguage(String lang) {
-    state = state.copyWith(language: lang);
-  }
-
-  void updateTheme(String theme) {
-    state = state.copyWith(themeMode: theme);
-  }
-
-  void setReducedMotion(bool val) {
-    state = state.copyWith(reducedMotion: val);
-  }
-
-  void updateTemperatureUnit(String unit) {
-    state = state.copyWith(temperatureUnit: unit);
-  }
-
-  void updateName(String name) {
-    state = state.copyWith(name: name);
-  }
-
-  void updateEmail(String email) {
-    state = state.copyWith(email: email);
-  }
-}
-
-final userProfileProvider =
-    StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
-  return UserProfileNotifier();
-});
+import '../../home/state/homes_notifier.dart';
+import '../state/user_profile_notifier.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});

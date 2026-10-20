@@ -1,3 +1,5 @@
+import '../../profile/presentation/profile_screen.dart';
+import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
@@ -169,6 +171,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   },
                 ),
               ),
+            ),
+            const SizedBox(height: 22),
+
+            // Profile & Energy Intelligence
+            _buildSection(
+              title: 'Consumer Experience & Intelligence',
+              icon: Icons.auto_graph_rounded,
+              children: [
+                ListTile(
+                  key: const Key('open_profile_screen_tile'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_outline_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  title: const Text(
+                    'User Profile & Preferences',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Language, theme mode, accessibility & tariffs',
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.surfaceBorder, height: 16),
+                ListTile(
+                  key: const Key('open_energy_screen_tile'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.bolt_rounded,
+                      color: AppColors.green,
+                      size: 22,
+                    ),
+                  ),
+                  title: const Text(
+                    'Energy Telemetry & Analytics',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Virtual consumption, device breakdown & cost projections',
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const EnergyScreen()),
+                    );
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 22),
 

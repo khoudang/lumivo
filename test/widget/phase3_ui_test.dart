@@ -1,3 +1,4 @@
+import 'package:lumivo/core/models/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,21 +76,20 @@ void main() {
       // 1. Verify sheet header & active home banner
       expect(find.text('Switch Home'), findsOneWidget);
       expect(find.byKey(const Key('active_home_banner')), findsOneWidget);
-      expect(find.text('Main Residence'), findsWidgets);
+      expect(find.text('Downtown Penthouse'), findsWidgets);
       expect(find.text('Owner'), findsWidgets);
 
       // 2. Verify available homes list items
-      expect(find.text('Lake Tahoe Cabin'), findsOneWidget);
-      expect(find.text('Downtown Studio'), findsOneWidget);
-
+      expect(find.text('Suburban Villa'), findsOneWidget);
+      
       // 3. Switch active home to Lake Tahoe Cabin
-      await tester.tap(find.text('Lake Tahoe Cabin'));
+      await tester.tap(find.text('Suburban Villa'));
       await tester.pumpAndSettle();
 
       // Verify active home indicator updated
       final banner = find.byKey(const Key('active_home_banner'));
       expect(
-        find.descendant(of: banner, matching: find.text('Lake Tahoe Cabin')),
+        find.descendant(of: banner, matching: find.text('Suburban Villa')),
         findsOneWidget,
       );
 
@@ -142,7 +142,7 @@ void main() {
       expect(
           find.byKey(const Key('home_app_bar_title_button')), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
-      expect(find.text('Main Residence'), findsOneWidget);
+      expect(find.text('Downtown Penthouse'), findsOneWidget);
 
       // Tap HomeAppBarTitle opens HomeSelectorSheet
       await tester.tap(find.byKey(const Key('home_app_bar_title_button')));

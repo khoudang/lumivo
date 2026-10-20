@@ -20,10 +20,14 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     _persist();
   }
 
+  void updateLanguage(String lang) => setLanguage(lang);
+
   void setThemeMode(String mode) {
     state = state.copyWith(themeMode: mode);
     _persist();
   }
+
+  void updateTheme(String mode) => setThemeMode(mode);
 
   void setReducedMotion(bool reduced) {
     state = state.copyWith(reducedMotion: reduced);
@@ -32,6 +36,18 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
 
   void setTemperatureUnit(String unit) {
     state = state.copyWith(temperatureUnit: unit);
+    _persist();
+  }
+
+  void updateTemperatureUnit(String unit) => setTemperatureUnit(unit);
+
+  void updateName(String name) {
+    state = state.copyWith(name: name);
+    _persist();
+  }
+
+  void updateEmail(String email) {
+    state = state.copyWith(email: email);
     _persist();
   }
 

@@ -1,75 +1,8 @@
+import '../state/homes_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/home.dart';
 import '../../../core/theme/app_theme.dart';
-
-class HomesNotifier extends StateNotifier<List<Home>> {
-  HomesNotifier([List<Home>? initialHomes])
-      : super(initialHomes ?? defaultHomes);
-
-  static const List<Home> defaultHomes = [
-    Home(
-      id: 'home-default',
-      name: 'Main Residence',
-      address: '104 Lumivo Way, Silicon Valley',
-      role: 'Owner',
-      isCurrent: true,
-      tariffRate: 0.16,
-    ),
-    Home(
-      id: 'home-2',
-      name: 'Lake Tahoe Cabin',
-      address: '42 Pine Needles Dr, Lake Tahoe',
-      role: 'Owner',
-      isCurrent: false,
-      tariffRate: 0.22,
-    ),
-    Home(
-      id: 'home-3',
-      name: 'Downtown Studio',
-      address: '742 Evergreen Terrace, Apt 4B',
-      role: 'Member',
-      isCurrent: false,
-      tariffRate: 0.18,
-    ),
-  ];
-
-  void switchHome(String homeId) {
-    state = [
-      for (final h in state) h.copyWith(isCurrent: h.id == homeId),
-    ];
-  }
-
-  void addHome(Home home) {
-    state = [...state, home];
-  }
-
-  void updateHome(Home home) {
-    state = [
-      for (final h in state)
-        if (h.id == home.id) home else h,
-    ];
-  }
-
-  void deleteHome(String homeId) {
-    if (state.length <= 1) return;
-    final wasCurrent = state.any((h) => h.id == homeId && h.isCurrent);
-    final remaining = state.where((h) => h.id != homeId).toList();
-    if (wasCurrent && remaining.isNotEmpty) {
-      remaining[0] = remaining[0].copyWith(isCurrent: true);
-    }
-    state = remaining;
-  }
-}
-
-final homesProvider = StateNotifierProvider<HomesNotifier, List<Home>>((ref) {
-  return HomesNotifier();
-});
-
-final currentHomeProvider = Provider<Home>((ref) {
-  final homes = ref.watch(homesProvider);
-  return homes.firstWhere((h) => h.isCurrent, orElse: () => homes.first);
-});
 
 class HomeSelectorSheet extends ConsumerWidget {
   const HomeSelectorSheet({super.key});
@@ -497,7 +430,8 @@ class HomeSelectorSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final homes = ref.watch(homesProvider);
+    final homesState = ref.watch(homesProvider);
+    final homes = homesState.homes;
     final currentHome = ref.watch(currentHomeProvider);
 
     return Container(

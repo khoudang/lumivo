@@ -286,14 +286,14 @@ final homeServiceProvider = Provider<HomeService>((ref) {
 });
 
 /// Riverpod stream provider for current active [Home].
-final currentHomeProvider = StreamProvider<Home>((ref) {
+final currentHomeStreamProvider = StreamProvider<Home>((ref) {
   final service = ref.watch(homeServiceProvider);
   return Stream.value(service.getCurrentHome())
       .concatWith(service.currentHomeStream);
 });
 
 /// Riverpod stream provider for the list of homes.
-final homesListProvider = StreamProvider<List<Home>>((ref) {
+final homesListStreamProvider = StreamProvider<List<Home>>((ref) {
   final service = ref.watch(homeServiceProvider);
   return Stream.value(service.getHomes()).concatWith(service.homesStream);
 });
