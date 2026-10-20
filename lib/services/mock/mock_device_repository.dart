@@ -122,6 +122,14 @@ class MockDeviceRepository implements DeviceRepository {
     _persist();
   }
 
+  void removeDevice(String deviceId) {
+    _devices.removeWhere((d) => d.id == deviceId);
+    _notifyListeners();
+    _persist();
+  }
+
+  void deleteDevice(String deviceId) => removeDevice(deviceId);
+
   void updateDevice(SmartDevice device) {
     final index = _devices.indexWhere((d) => d.id == device.id);
     if (index >= 0) {

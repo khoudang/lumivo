@@ -7,6 +7,7 @@ import '../../../core/models/device_command.dart';
 import '../../../core/theme/app_theme.dart';
 import '../state/automation_providers.dart';
 import 'create_automation_screen.dart';
+import 'scene_editor_sheet.dart';
 
 class AutomationScreen extends ConsumerStatefulWidget {
   const AutomationScreen({super.key});
@@ -393,74 +394,128 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
   Widget _buildScenesTab() {
     final scenes = ref.watch(scenesProvider);
 
-    return ListView.separated(
+    return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 80),
-      itemCount: scenes.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 14),
-      itemBuilder: (context, index) {
-        final scene = scenes[index];
-        final icon = _sceneIcon(scene.iconName);
+      children: [
+        // Header with + Add Scene button
+        Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ambiance Scenes',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  '${scenes.length} coordinated presets',
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
+              ],
+            ),
+            const Spacer(),
+            ElevatedButton.icon(
+              key: const Key('add_scene_button'),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('+ Add Scene'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () => SceneEditorSheet.show(context),
+            ),
+          ],
+        ),
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
+        const SizedBox(height: 16),
+
+        for (final scene in scenes) ...[
+          InkWell(
+            key: Key('scene_card_${scene.id}'),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.surfaceBorder),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: AppColors.primary, size: 26),
+            onLongPress: () => SceneEditorSheet.show(context, scene: scene),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppColors.surfaceBorder),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      scene.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(_sceneIcon(scene.iconName),
+                        color: AppColors.primary, size: 26),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          scene.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${scene.actions.length} automated steps',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    key: Key('edit_scene_${scene.id}'),
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 20, color: AppColors.muted),
+                    tooltip: 'Edit Scene',
+                    onPressed: () =>
+                        SceneEditorSheet.show(context, scene: scene),
+                  ),
+                  const SizedBox(width: 6),
+                  ElevatedButton.icon(
+                    key: Key('run_scene_${scene.id}'),
+                    onPressed: () => _runScene(scene),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                    label: const Text('Run Scene'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${scene.actions.length} automated steps',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton.icon(
-                key: Key('run_scene_${scene.id}'),
-                onPressed: () => _runScene(scene),
-                icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                label: const Text('Run Scene'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 14),
+        ],
+      ],
     );
   }
 
