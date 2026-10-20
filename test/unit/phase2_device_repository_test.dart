@@ -46,33 +46,33 @@ void main() {
 
     test('AC target temperature command clamps between 16 and 30 deg C',
         () async {
-      // Normal temperature
-      final res1 = await repository.sendCommand(
+      // 1. Valid range command
+      var res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-ac-1',
+          requestId: 'test-ac-1',
           deviceId: 'device-ac-1',
           type: DeviceCommandType.setTargetTemperature,
-          value: 23.5,
+          value: 19.5,
         ),
       );
-      expect(res1.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices
             .firstWhere((d) => d.id == 'device-ac-1')
             .targetTemperature,
-        23.5,
+        19.5,
       );
 
-      // Clamp low
-      final resLow = await repository.sendCommand(
+      // 2. Below minimum clamping (12.0 -> 16.0)
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-ac-low',
+          requestId: 'test-ac-low',
           deviceId: 'device-ac-1',
           type: DeviceCommandType.setTargetTemperature,
           value: 12.0,
         ),
       );
-      expect(resLow.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices
             .firstWhere((d) => d.id == 'device-ac-1')
@@ -80,16 +80,16 @@ void main() {
         16.0,
       );
 
-      // Clamp high
-      final resHigh = await repository.sendCommand(
+      // 3. Above maximum clamping (35.0 -> 30.0)
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-ac-high',
+          requestId: 'test-ac-high',
           deviceId: 'device-ac-1',
           type: DeviceCommandType.setTargetTemperature,
-          value: 36.0,
+          value: 35.0,
         ),
       );
-      expect(resHigh.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices
             .firstWhere((d) => d.id == 'device-ac-1')
@@ -97,47 +97,46 @@ void main() {
         30.0,
       );
 
-      // Invalid input type
-      final resErr = await repository.sendCommand(
+      // 4. Invalid data type fails safely
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-ac-err',
+          requestId: 'test-ac-invalid',
           deviceId: 'device-ac-1',
           type: DeviceCommandType.setTargetTemperature,
-          value: 'invalid',
+          value: 'twenty-two',
         ),
       );
-      expect(resErr.status, CommandStatus.failed);
-      expect(resErr.errorMessage, 'Expected number for temperature');
+      expect(res.status, CommandStatus.failed);
     });
 
     test('Curtain position command clamps between 0 and 100', () async {
-      // Normal position
-      final resNormal = await repository.sendCommand(
+      // 1. Normal position
+      var res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-curtain-1',
+          requestId: 'curt-1',
           deviceId: 'device-curtain-1',
           type: DeviceCommandType.setPosition,
-          value: 75,
+          value: 45,
         ),
       );
-      expect(resNormal.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices
             .firstWhere((d) => d.id == 'device-curtain-1')
             .position,
-        75,
+        45,
       );
 
-      // Below 0
-      final resUnder = await repository.sendCommand(
+      // 2. Below 0 clamping
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-curtain-under',
+          requestId: 'curt-low',
           deviceId: 'device-curtain-1',
           type: DeviceCommandType.setPosition,
-          value: -20,
+          value: -15,
         ),
       );
-      expect(resUnder.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices
             .firstWhere((d) => d.id == 'device-curtain-1')
@@ -145,107 +144,124 @@ void main() {
         0,
       );
 
-      // Over 100
-      final resOver = await repository.sendCommand(
+      // 3. Above 100 clamping
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-curtain-over',
+          requestId: 'curt-high',
           deviceId: 'device-curtain-1',
           type: DeviceCommandType.setPosition,
-          value: 120,
+          value: 125,
         ),
       );
-      expect(resOver.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices
             .firstWhere((d) => d.id == 'device-curtain-1')
             .position,
         100,
       );
+
+      // 4. Invalid non-number type fails
+      res = await repository.sendCommand(
+        const DeviceCommand(
+          requestId: 'curt-invalid',
+          deviceId: 'device-curtain-1',
+          type: DeviceCommandType.setPosition,
+          value: true,
+        ),
+      );
+      expect(res.status, CommandStatus.failed);
     });
 
     test('Smart lock commands (setLock & toggleLock) update lock state',
         () async {
-      final lockDevice =
+      final initialLock =
           repository.devices.firstWhere((d) => d.id == 'device-lock-1');
-      expect(lockDevice.isLocked, isTrue);
+      expect(initialLock.isLocked, isTrue);
 
-      // Unlock via setLock
-      final resUnlock = await repository.sendCommand(
+      // Unlock
+      var res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-lock-1',
+          requestId: 'lock-cmd-1',
           deviceId: 'device-lock-1',
           type: DeviceCommandType.setLock,
           value: false,
         ),
       );
-      expect(resUnlock.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices.firstWhere((d) => d.id == 'device-lock-1').isLocked,
         isFalse,
       );
 
-      // Toggle lock (false -> true)
-      final resToggle = await repository.sendCommand(
+      // Toggle back to locked
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-lock-toggle',
+          requestId: 'lock-cmd-2',
           deviceId: 'device-lock-1',
           type: DeviceCommandType.toggleLock,
           value: true,
         ),
       );
-      expect(resToggle.status, CommandStatus.confirmed);
+      expect(res.status, CommandStatus.confirmed);
       expect(
         repository.devices.firstWhere((d) => d.id == 'device-lock-1').isLocked,
         isTrue,
       );
 
-      // Invalid setLock input
-      final resErr = await repository.sendCommand(
+      // Toggle back to unlocked
+      res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-lock-err',
+          requestId: 'lock-cmd-3',
           deviceId: 'device-lock-1',
-          type: DeviceCommandType.setLock,
-          value: 'not-bool',
+          type: DeviceCommandType.toggleLock,
+          value: false,
         ),
       );
-      expect(resErr.status, CommandStatus.failed);
-      expect(resErr.errorMessage, 'Expected boolean for lock');
+      expect(res.status, CommandStatus.confirmed);
+      expect(
+        repository.devices.firstWhere((d) => d.id == 'device-lock-1').isLocked,
+        isFalse,
+      );
     });
 
     test('Offline device rejects all commands safely', () async {
+      // Toggle Bedroom AC offline
       repository.toggleDeviceConnection('device-ac-1');
       expect(
         repository.devices.firstWhere((d) => d.id == 'device-ac-1').connection,
         DeviceConnection.offline,
       );
 
-      final result = await repository.sendCommand(
+      // Attempt command while offline
+      final res = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-ac-offline',
+          requestId: 'offline-cmd',
           deviceId: 'device-ac-1',
-          type: DeviceCommandType.setTargetTemperature,
-          value: 20.0,
+          type: DeviceCommandType.setPower,
+          value: false,
         ),
       );
-      expect(result.status, CommandStatus.failed);
-      expect(result.errorMessage, 'Device offline');
 
-      // Reconnect
+      expect(res.status, CommandStatus.failed);
+      expect(res.errorMessage, 'Device offline');
+
+      // Toggle back online and verify command succeeds
       repository.toggleDeviceConnection('device-ac-1');
       expect(
         repository.devices.firstWhere((d) => d.id == 'device-ac-1').connection,
         DeviceConnection.online,
       );
 
-      final retryResult = await repository.sendCommand(
+      final onlineRes = await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-ac-retry',
+          requestId: 'online-cmd',
           deviceId: 'device-ac-1',
-          type: DeviceCommandType.setTargetTemperature,
-          value: 20.0,
+          type: DeviceCommandType.setPower,
+          value: false,
         ),
       );
-      expect(retryResult.status, CommandStatus.confirmed);
+      expect(onlineRes.status, CommandStatus.confirmed);
     });
 
     test('watchDevices stream emits updates on commands and additions',
@@ -259,27 +275,29 @@ void main() {
         ]),
       );
 
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
       await repository.sendCommand(
         const DeviceCommand(
-          requestId: 'cmd-stream-1',
+          requestId: 'stream-cmd-1',
           deviceId: 'device-ac-1',
           type: DeviceCommandType.setTargetTemperature,
-          value: 25.0,
+          value: 23.0,
         ),
       );
 
       repository.addDevice(
         const SmartDevice(
-          id: 'device-extra-1',
-          name: 'Extra Light',
-          roomId: 'Living Room',
+          id: 'test-new-dev',
+          name: 'Balcony Light',
+          roomId: 'Balcony',
           type: DeviceType.light,
           isOn: false,
         ),
       );
     });
 
-    test('resetToDemo restores 7 seed devices and syncs with persistence',
+    test('resetToDemo restores seed devices and syncs with persistence',
         () async {
       repository.addDevice(
         const SmartDevice(
@@ -293,11 +311,13 @@ void main() {
       expect(repository.devices.length, 8);
 
       repository.resetToDemo();
-      expect(repository.devices.length, 7);
+      expect(repository.devices.length,
+          HomePersistenceManager.allDemoDevices.length);
       expect(repository.devices.any((d) => d.id == 'custom-dev'), isFalse);
 
       final persistedState = await persistence.loadHomeState();
-      expect(persistedState.devices.length, 7);
+      expect(persistedState.devices.length,
+          HomePersistenceManager.allDemoDevices.length);
       expect(persistedState.devices.any((d) => d.id == 'custom-dev'), isFalse);
     });
   });

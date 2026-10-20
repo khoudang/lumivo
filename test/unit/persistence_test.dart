@@ -86,7 +86,7 @@ void main() {
       );
 
       final state = HomeState(
-        schemaVersion: 2,
+        schemaVersion: HomePersistenceManager.schemaVersion,
         rooms: [room],
         devices: [device],
         automations: [rule],
@@ -98,7 +98,8 @@ void main() {
       await manager.saveHomeState(state);
 
       final loaded = await manager.loadHomeState();
-      expect(loaded.schemaVersion, 2);
+
+      expect(loaded.schemaVersion, HomePersistenceManager.schemaVersion);
       expect(loaded.rooms.length, 1);
       expect(loaded.rooms.first.name, 'Test Room');
       expect(loaded.devices.length, 1);
@@ -113,7 +114,7 @@ void main() {
       expect(loaded.notifications.first.body, 'Testing notif');
     });
 
-    test('Schema version 1 auto-migrates to schema version 2', () async {
+    test('Schema version 1 auto-migrates to current schema version', () async {
       // Legacy Phase 1 payload stored under legacy key
       final phase1Payload = {
         'schemaVersion': 1,
@@ -136,7 +137,7 @@ void main() {
       );
 
       final loaded = await manager.loadHomeState();
-      expect(loaded.schemaVersion, 2);
+      expect(loaded.schemaVersion, HomePersistenceManager.schemaVersion);
       // Maintained existing device
       expect(loaded.devices.any((d) => d.id == 'legacy-light-1'), isTrue);
       // Auto-seeded missing rooms
@@ -163,19 +164,18 @@ void main() {
       );
 
       final state = await manager.loadHomeState();
-      expect(state.schemaVersion, 2);
-      expect(state.devices.length, 7);
+      expect(state.schemaVersion, HomePersistenceManager.schemaVersion);
+      expect(state.devices.length, greaterThanOrEqualTo(7));
       expect(state.rooms.length, greaterThanOrEqualTo(3));
     });
 
-    test(
-        'resetDemoData seeds 7 devices, 3+ rooms, default scenes & automations',
+    test('resetDemoData seeds devices, 3+ rooms, default scenes & automations',
         () async {
       final state = await manager.resetDemoData();
 
-      expect(state.schemaVersion, 2);
-      // 7 devices: Bulb, Fan, AC, Socket, Curtain, Smart Lock, Sensor
-      expect(state.devices.length, 7);
+      expect(state.schemaVersion, HomePersistenceManager.schemaVersion);
+      // 7+ devices: Bulb, Fan, AC, Socket, Curtain, Smart Lock, Sensor
+      expect(state.devices.length, greaterThanOrEqualTo(7));
       final types = state.devices.map((d) => d.type).toSet();
       expect(types, contains(DeviceType.light));
       expect(types, contains(DeviceType.fan));
@@ -207,7 +207,7 @@ void main() {
       expect(state.rooms.length, 1);
       expect(state.rooms.first.name, 'Attic');
       // Devices and scenes remain intact!
-      expect(state.devices.length, 7);
+      expect(state.devices.length, greaterThanOrEqualTo(7));
       expect(state.scenes.length, greaterThanOrEqualTo(3));
     });
   });

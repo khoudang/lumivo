@@ -18,6 +18,16 @@ export '../features/automation/state/scenes_notifier.dart' show scenesProvider;
 export '../features/notifications/state/notifications_notifier.dart'
     show notificationsProvider;
 export '../features/rooms/state/rooms_notifier.dart' show roomsProvider;
+export '../features/home/state/homes_notifier.dart'
+    show homesProvider, currentHomeProvider, HomesNotifier, HomesState;
+export '../features/profile/state/user_profile_notifier.dart'
+    show userProfileProvider, UserProfileNotifier;
+export '../features/energy/state/energy_notifier.dart'
+    show
+        energyPeriodProvider,
+        energySummaryProvider,
+        EnergyPeriodNotifier,
+        EnergySummaryNotifier;
 export '../services/storage/home_persistence_manager.dart'
     show homePersistenceProvider, HomePersistenceManager, HomeState;
 
