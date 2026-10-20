@@ -2,19 +2,27 @@ import 'dart:async';
 import '../../core/models/device_command.dart';
 import '../../core/models/smart_device.dart';
 import '../../core/repositories/device_repository.dart';
+import '../storage/home_persistence_manager.dart';
 
 class MockDeviceRepository implements DeviceRepository {
   MockDeviceRepository({
     this.responseDelay = const Duration(milliseconds: 380),
     List<SmartDevice>? initialDevices,
+    this.persistenceManager,
   }) {
     if (initialDevices != null) {
       _devices.clear();
       _devices.addAll(initialDevices);
+    } else if (persistenceManager != null &&
+        persistenceManager!.cachedState != null &&
+        persistenceManager!.cachedState!.devices.isNotEmpty) {
+      _devices.clear();
+      _devices.addAll(persistenceManager!.cachedState!.devices);
     }
   }
 
   final Duration responseDelay;
+  final HomePersistenceManager? persistenceManager;
   final StreamController<List<SmartDevice>> _updates =
       StreamController<List<SmartDevice>>.broadcast();
 
@@ -111,6 +119,16 @@ class MockDeviceRepository implements DeviceRepository {
       _devices.add(device);
     }
     _notifyListeners();
+    _persist();
+  }
+
+  void updateDevice(SmartDevice device) {
+    final index = _devices.indexWhere((d) => d.id == device.id);
+    if (index >= 0) {
+      _devices[index] = device;
+      _notifyListeners();
+      _persist();
+    }
   }
 
   void toggleDeviceConnection(String deviceId) {
@@ -122,6 +140,7 @@ class MockDeviceRepository implements DeviceRepository {
           : DeviceConnection.online;
       _devices[index] = current.copyWith(connection: nextStatus);
       _notifyListeners();
+      _persist();
     }
   }
 
@@ -129,6 +148,29 @@ class MockDeviceRepository implements DeviceRepository {
     _devices.clear();
     _devices.addAll(_defaultDevices);
     _notifyListeners();
+    _persist();
+  }
+
+  void resetToDemo() {
+    _devices.clear();
+    _devices.addAll(HomePersistenceManager.defaultDemoDevices);
+    _notifyListeners();
+    _persist();
+  }
+
+  Future<void> loadFromPersistence() async {
+    if (persistenceManager != null) {
+      final homeState = await persistenceManager!.loadHomeState();
+      if (homeState.devices.isNotEmpty) {
+        _devices.clear();
+        _devices.addAll(homeState.devices);
+        _notifyListeners();
+      }
+    }
+  }
+
+  void _persist() {
+    persistenceManager?.saveDevices(List.of(_devices));
   }
 
   void _notifyListeners() {
@@ -171,6 +213,7 @@ class MockDeviceRepository implements DeviceRepository {
         }
         next = current.copyWith(isOn: command.value as bool);
         break;
+
       case DeviceCommandType.setBrightness:
         if (current.type != DeviceType.light || command.value is! int) {
           return CommandResult(
@@ -182,24 +225,52 @@ class MockDeviceRepository implements DeviceRepository {
         final level = (command.value as int).clamp(0, 100);
         next = current.copyWith(brightness: level, isOn: level > 0);
         break;
+
       case DeviceCommandType.setTargetTemperature:
+        if (command.value is! num) {
+          return CommandResult(
+            requestId: command.requestId,
+            status: CommandStatus.failed,
+            errorMessage: 'Expected number for temperature',
+          );
+        }
         final temp = (command.value as num).toDouble().clamp(16.0, 30.0);
         next = current.copyWith(targetTemperature: temp);
         break;
+
       case DeviceCommandType.setPosition:
-        final pos = (command.value as int).clamp(0, 100);
+        if (command.value is! num) {
+          return CommandResult(
+            requestId: command.requestId,
+            status: CommandStatus.failed,
+            errorMessage: 'Expected number for position',
+          );
+        }
+        final pos = (command.value as num).toInt().clamp(0, 100);
         next = current.copyWith(position: pos);
         break;
+
       case DeviceCommandType.setLock:
+        if (command.value is! bool) {
+          return CommandResult(
+            requestId: command.requestId,
+            status: CommandStatus.failed,
+            errorMessage: 'Expected boolean for lock',
+          );
+        }
         final locked = command.value as bool;
         next = current.copyWith(isLocked: locked);
         break;
+
       case DeviceCommandType.toggleLock:
         next = current.copyWith(isLocked: !current.isLocked);
         break;
     }
+
     _devices[index] = next;
     _notifyListeners();
+    _persist();
+
     return CommandResult(
       requestId: command.requestId,
       status: CommandStatus.confirmed,
