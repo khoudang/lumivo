@@ -27,6 +27,10 @@ class SmartDevice {
     this.isLocked = true,
     this.powerUsageWatts = 0.0,
     this.customData = const {},
+    this.homeId = 'home-default',
+    this.isFavorite = false,
+    this.favoriteOrder = 0,
+    this.customIcon,
   });
 
   final String id;
@@ -43,6 +47,10 @@ class SmartDevice {
   final bool isLocked;
   final double powerUsageWatts;
   final Map<String, dynamic> customData;
+  final String homeId;
+  final bool isFavorite;
+  final int favoriteOrder;
+  final String? customIcon;
 
   SmartDevice copyWith({
     bool? isOn,
@@ -58,6 +66,10 @@ class SmartDevice {
     String? roomId,
     DeviceType? type,
     Map<String, dynamic>? customData,
+    String? homeId,
+    bool? isFavorite,
+    int? favoriteOrder,
+    String? customIcon,
   }) =>
       SmartDevice(
         id: id,
@@ -74,6 +86,10 @@ class SmartDevice {
         isLocked: isLocked ?? this.isLocked,
         powerUsageWatts: powerUsageWatts ?? this.powerUsageWatts,
         customData: customData ?? this.customData,
+        homeId: homeId ?? this.homeId,
+        isFavorite: isFavorite ?? this.isFavorite,
+        favoriteOrder: favoriteOrder ?? this.favoriteOrder,
+        customIcon: customIcon ?? this.customIcon,
       );
 
   Map<String, dynamic> toJson() => {
@@ -91,6 +107,10 @@ class SmartDevice {
         'isLocked': isLocked,
         'powerUsageWatts': powerUsageWatts,
         'customData': customData,
+        'homeId': homeId,
+        'isFavorite': isFavorite,
+        'favoriteOrder': favoriteOrder,
+        'customIcon': customIcon,
       };
 
   factory SmartDevice.fromJson(Map<String, dynamic> json) => SmartDevice(
@@ -118,5 +138,9 @@ class SmartDevice {
         customData: json['customData'] is Map
             ? Map<String, dynamic>.from(json['customData'] as Map)
             : const {},
+        homeId: json['homeId'] as String? ?? 'home-default',
+        isFavorite: json['isFavorite'] as bool? ?? false,
+        favoriteOrder: json['favoriteOrder'] as int? ?? 0,
+        customIcon: json['customIcon'] as String?,
       );
 }
