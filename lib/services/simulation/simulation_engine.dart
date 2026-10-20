@@ -386,6 +386,16 @@ class SimulationEngine {
     }
   }
 
+  /// Resets the simulation state to initial defaults.
+  void reset() {
+    _forcedAmbientTemperature = null;
+    _forcedAmbientHumidity = null;
+    _forcedOfflineDeviceIds.clear();
+    clock.setTime(DateTime(2026, 10, 20, 8, 30));
+    clock.setMultiplier(1.0);
+    _emitUpdatedSnapshot();
+  }
+
   /// Cleans up resources, timers, and stream controllers.
   void dispose() {
     if (_isDisposed) return;

@@ -25,6 +25,10 @@ class ActivityNotifier extends StateNotifier<List<ActivityEvent>> {
     _persist();
   }
 
+  void reset() {
+    setEvents(HomePersistenceManager.defaultActivityEvents);
+  }
+
   void _persist() {
     _persistenceManager?.saveActivityEvents(state);
   }

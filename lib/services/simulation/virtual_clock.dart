@@ -9,7 +9,7 @@ class VirtualClock {
     double initialMultiplier = 1.0,
     Duration realTickInterval = const Duration(seconds: 1),
     bool autoStart = false,
-  })  : _now = initialTime ?? DateTime.now(),
+  })  : _now = initialTime ?? DateTime(2026, 10, 20, 8, 30),
         _timeMultiplier = initialMultiplier > 0 ? initialMultiplier : 1.0,
         _realTickInterval = realTickInterval {
     _tickController = StreamController<DateTime>.broadcast();

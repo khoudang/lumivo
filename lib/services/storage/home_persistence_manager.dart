@@ -127,6 +127,18 @@ class HomePersistenceManager {
       iconName: 'work',
       description: 'Workspace and study room',
     ),
+    Room(
+      id: 'Bathroom',
+      name: 'Bathroom',
+      iconName: 'bathroom',
+      description: 'Master bathroom and shower',
+    ),
+    Room(
+      id: 'Balcony',
+      name: 'Balcony',
+      iconName: 'balcony',
+      description: 'Outdoor patio and balcony',
+    ),
   ];
 
   static const List<SmartDevice> defaultDemoDevices = [
@@ -194,7 +206,7 @@ class HomePersistenceManager {
 
   static const List<Scene> defaultScenes = [
     Scene(
-      id: 'scene-good-morning',
+      id: 'scene-1',
       name: 'Good Morning',
       iconName: 'wb_sunny_rounded',
       actions: [
@@ -216,8 +228,25 @@ class HomePersistenceManager {
       ],
     ),
     Scene(
-      id: 'scene-good-night',
-      name: 'Good Night',
+      id: 'scene-2',
+      name: 'Away',
+      iconName: 'logout_rounded',
+      actions: [
+        DeviceAction(
+          deviceId: 'device-bulb-1',
+          commandType: DeviceCommandType.setPower,
+          value: false,
+        ),
+        DeviceAction(
+          deviceId: 'device-lock-1',
+          commandType: DeviceCommandType.setLock,
+          value: true,
+        ),
+      ],
+    ),
+    Scene(
+      id: 'scene-3',
+      name: 'Night',
       iconName: 'nightlight_round',
       actions: [
         DeviceAction(
@@ -248,7 +277,7 @@ class HomePersistenceManager {
       ],
     ),
     Scene(
-      id: 'scene-movie',
+      id: 'scene-4',
       name: 'Movie Time',
       iconName: 'movie_rounded',
       actions: [
@@ -269,7 +298,7 @@ class HomePersistenceManager {
   static const List<AutomationRule> defaultAutomations = [
     AutomationRule(
       id: 'rule-temp-trigger',
-      name: 'Auto Cool on High Temp',
+      name: 'Auto Cool Living Room',
       isEnabled: true,
       triggerType: TriggerType.sensorThreshold,
       sensorDeviceId: 'device-sensor-1',

@@ -5,7 +5,6 @@ import '../../../core/models/activity_event.dart';
 import '../../../core/models/device_command.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../activity/state/activity_providers.dart';
 
 class DeviceDetailScreen extends ConsumerStatefulWidget {
   const DeviceDetailScreen({

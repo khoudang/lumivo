@@ -24,9 +24,25 @@ class NotificationsNotifier extends StateNotifier<List<InAppNotification>> {
     _persist();
   }
 
+  void markAllAsRead() {
+    state = [
+      for (final n in state) n.copyWith(isRead: true),
+    ];
+    _persist();
+  }
+
+  void dismissNotification(String id) {
+    state = state.where((n) => n.id != id).toList();
+    _persist();
+  }
+
   void clearAll() {
     state = const [];
     _persist();
+  }
+
+  void reset() {
+    setNotifications(HomePersistenceManager.defaultNotifications);
   }
 
   void setNotifications(List<InAppNotification> notifications) {
@@ -46,4 +62,9 @@ final notificationsProvider =
   final initial = persistence.cachedState?.notifications ??
       HomePersistenceManager.defaultNotifications;
   return NotificationsNotifier(initial, persistence);
+});
+
+final unreadNotificationsCountProvider = Provider<int>((ref) {
+  final notifs = ref.watch(notificationsProvider);
+  return notifs.where((n) => !n.isRead).length;
 });

@@ -53,6 +53,10 @@ class AutomationNotifier extends StateNotifier<List<AutomationRule>> {
     _persist();
   }
 
+  void reset() {
+    setRules(HomePersistenceManager.defaultAutomations);
+  }
+
   Future<void> executeRule(
     AutomationRule rule,
     DeviceRepository repo, [

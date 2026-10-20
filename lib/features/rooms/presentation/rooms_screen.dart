@@ -4,7 +4,6 @@ import '../../../app/providers.dart';
 import '../../../core/models/room.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
-import '../state/rooms_providers.dart';
 
 class RoomsScreen extends ConsumerStatefulWidget {
   const RoomsScreen({

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../services/simulation/simulation_engine.dart';
 
 class DemoLabState {
   const DemoLabState({
@@ -33,36 +34,42 @@ class DemoLabState {
 }
 
 class DemoLabNotifier extends StateNotifier<DemoLabState> {
-  DemoLabNotifier()
-      : super(
+  DemoLabNotifier([SimulationEngine? simEngine])
+      : _simEngine = simEngine,
+        super(
           DemoLabState(
             virtualTime: DateTime(2026, 10, 20, 8, 30),
           ),
         );
 
+  final SimulationEngine? _simEngine;
+
   void setSpeedMultiplier(int mult) {
     state = state.copyWith(speedMultiplier: mult);
+    _simEngine?.setMultiplier(mult.toDouble());
   }
 
   void advanceHour() {
-    state = state.copyWith(
-      virtualTime: state.virtualTime.add(const Duration(hours: 1)),
-    );
+    final next = state.virtualTime.add(const Duration(hours: 1));
+    state = state.copyWith(virtualTime: next);
+    _simEngine?.advanceTime(const Duration(hours: 1));
   }
 
   void jumpToTime(int hour, int minute) {
     final now = state.virtualTime;
-    state = state.copyWith(
-      virtualTime: DateTime(now.year, now.month, now.day, hour, minute),
-    );
+    final next = DateTime(now.year, now.month, now.day, hour, minute);
+    state = state.copyWith(virtualTime: next);
+    _simEngine?.setVirtualTime(next);
   }
 
   void setAmbientTemperature(double temp) {
     state = state.copyWith(ambientTemperature: temp);
+    _simEngine?.forceAmbientTemperature(temp);
   }
 
   void setAmbientHumidity(double hum) {
     state = state.copyWith(ambientHumidity: hum);
+    _simEngine?.forceAmbientHumidity(hum);
   }
 
   void toggleMqttConnection() {
@@ -73,6 +80,7 @@ class DemoLabNotifier extends StateNotifier<DemoLabState> {
     state = DemoLabState(
       virtualTime: DateTime(2026, 10, 20, 8, 30),
     );
+    _simEngine?.reset();
   }
 }
 

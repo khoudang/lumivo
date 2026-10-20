@@ -3,12 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/mock/mock_device_repository.dart';
-import '../../activity/state/activity_providers.dart';
 import '../../automation/state/automation_providers.dart';
 import '../../demo_lab/presentation/demo_lab_screen.dart';
 import '../../demo_lab/state/demo_lab_providers.dart';
-import '../../notifications/state/notifications_providers.dart';
-import '../../rooms/state/rooms_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

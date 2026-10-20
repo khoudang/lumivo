@@ -11,7 +11,8 @@ class RoomsNotifier extends StateNotifier<List<Room>> {
   final HomePersistenceManager? _persistenceManager;
 
   Future<void> addRoom(Room room) async {
-    final index = state.indexWhere((r) => r.id == room.id);
+    final index = state.indexWhere((r) =>
+        r.id == room.id || r.name.toLowerCase() == room.name.toLowerCase());
     if (index >= 0) {
       state = [
         for (int i = 0; i < state.length; i++)
@@ -28,6 +29,8 @@ class RoomsNotifier extends StateNotifier<List<Room>> {
     await _persist();
   }
 
+  Future<void> removeRoom(String id) => deleteRoom(id);
+
   Future<void> updateRoom(Room room) async {
     state = [
       for (final r in state)
@@ -38,6 +41,11 @@ class RoomsNotifier extends StateNotifier<List<Room>> {
 
   Future<void> setRooms(List<Room> rooms) async {
     state = List.of(rooms);
+    await _persist();
+  }
+
+  Future<void> reset() async {
+    state = List.of(HomePersistenceManager.defaultRooms);
     await _persist();
   }
 

@@ -6,8 +6,6 @@ import '../../../core/models/in_app_notification.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/mock/mock_device_repository.dart';
-import '../../activity/state/activity_providers.dart';
-import '../../notifications/state/notifications_providers.dart';
 import '../state/demo_lab_providers.dart';
 
 class DemoLabScreen extends ConsumerWidget {
