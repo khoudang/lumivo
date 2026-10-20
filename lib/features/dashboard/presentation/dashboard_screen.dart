@@ -4,6 +4,11 @@ import '../../../app/providers.dart';
 import '../../../core/models/device_command.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../onboarding/presentation/add_device_sheet.dart';
+import '../widgets/brightness_slider_card.dart';
+import '../widgets/device_card.dart';
+import '../widgets/metric_card.dart';
+import '../widgets/room_selector.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -19,194 +24,552 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int serial = 0;
   final Map<String, double> brightnessDraft = {};
 
-  Future<void> _send(SmartDevice device, DeviceCommandType type, Object value) async {
+  Future<void> _send(
+    SmartDevice device,
+    DeviceCommandType type,
+    Object value,
+  ) async {
     if (pending.contains(device.id)) return;
     setState(() => pending.add(device.id));
+
     final result = await ref.read(deviceRepositoryProvider).sendCommand(
-      DeviceCommand(requestId: 'local-${++serial}', deviceId: device.id, type: type, value: value),
-    );
+          DeviceCommand(
+            requestId: 'local-${++serial}',
+            deviceId: device.id,
+            type: type,
+            value: value,
+          ),
+        );
+
     if (!mounted) return;
     setState(() => pending.remove(device.id));
+
     if (result.status != CommandStatus.confirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.errorMessage ?? 'Command failed')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.errorMessage ?? 'Command failed'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
     }
+  }
+
+  void _openAddDeviceSheet() {
+    AddDeviceSheet.show(
+      context,
+      onDeviceAdded: (newDevice) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${newDevice.name} paired successfully!'),
+            backgroundColor: AppColors.green,
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final devices = ref.watch(devicesProvider);
+
     return Scaffold(
+      floatingActionButton: selectedTab == 0
+          ? FloatingActionButton(
+              onPressed: _openAddDeviceSheet,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              tooltip: 'Add Device',
+              child: const Icon(Icons.add_rounded, size: 28),
+            )
+          : null,
       body: SafeArea(
-        child: Column(children: [
-          Expanded(child: selectedTab == 0
-            ? devices.when(
-                data: (all) => _home(all),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text('Error: $error')),
-              )
-            : Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.construction_rounded, size: 50, color: AppColors.primary),
-                const SizedBox(height: 14),
-                Text(['', 'Activity', 'Automation', 'Settings'][selectedTab], style: const TextStyle(fontSize: 22)),
-                const SizedBox(height: 5),
-                const Text('Coming in a future milestone', style: TextStyle(color: AppColors.muted)),
-              ]))),
-          _navigation(),
-        ]),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1080),
+            child: Column(
+              children: [
+                Expanded(
+                  child: selectedTab == 0
+                      ? devices.when(
+                          data: (all) => _home(all),
+                          loading: () => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          error: (error, _) => Center(
+                            child: Text(
+                              'Error: $error',
+                              style: const TextStyle(color: AppColors.danger),
+                            ),
+                          ),
+                        )
+                      : _placeholderTab(),
+                ),
+                _navigation(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _home(List<SmartDevice> all) {
+    const rooms = ['Living Room', 'Bedroom', 'Kitchen'];
+
+    final roomCounts = <String, int>{};
+    for (final r in rooms) {
+      roomCounts[r] = all.where((d) => d.roomId == r).length;
+    }
+
     final visible = all.where((d) => d.roomId == room).toList();
     final lights = visible.where((d) => d.type == DeviceType.light).toList();
-    return ListView(padding: const EdgeInsets.fromLTRB(22, 16, 22, 16), children: [
-      Row(children: [
-        const Icon(Icons.home_rounded, color: AppColors.primary, size: 27),
-        const SizedBox(width: 8),
-        const Text('LUMIVO', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, letterSpacing: 1.5)),
-        const Spacer(),
-        const Icon(Icons.wifi_rounded, color: AppColors.green),
-        const SizedBox(width: 18),
-        const Icon(Icons.notifications_none_rounded, color: AppColors.muted),
-        const SizedBox(width: 16),
-        const CircleAvatar(radius: 16, backgroundColor: AppColors.surfaceElevated, child: Icon(Icons.person_outline_rounded, color: Colors.white, size: 20)),
-      ]),
-      const SizedBox(height: 32),
-      Text(_dateLabel(), style: TextStyle(color: AppColors.muted.withValues(alpha: .9), fontSize: 11, letterSpacing: 1.6)),
-      const SizedBox(height: 9),
-      const Text('Welcome home ✦', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 6),
-      const Text('Your smart home is looking good.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-      const SizedBox(height: 27),
-      Row(children: [
-        Expanded(child: _metric(Icons.thermostat_outlined, const Color(0xFFFFBE7C), '26.5°C', 'Temperature')),
-        const SizedBox(width: 12),
-        Expanded(child: _metric(Icons.water_drop_outlined, const Color(0xFF77CFFF), '65%', 'Humidity')),
-      ]),
-      const SizedBox(height: 30),
-      const Text('Rooms', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 13),
-      SizedBox(height: 42, child: ListView(scrollDirection: Axis.horizontal, children: [
-        for (final name in ['Living Room', 'Bedroom', 'Kitchen']) ...[
-          ChoiceChip(
-            label: Text(name), selected: room == name, onSelected: (_) => setState(() => room = name),
-            backgroundColor: AppColors.surface, selectedColor: AppColors.primary.withValues(alpha: .32),
-            side: BorderSide.none, labelStyle: TextStyle(color: room == name ? Colors.white : AppColors.muted),
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isCompact = screenWidth < 400;
+
+        return ListView(
+          padding: EdgeInsets.fromLTRB(
+            screenWidth > 600 ? 32 : 22,
+            16,
+            screenWidth > 600 ? 32 : 22,
+            24,
           ),
-          const SizedBox(width: 9),
-        ],
-      ])),
-      const SizedBox(height: 25),
-      Row(children: [
-        const Text('Devices', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-        const Spacer(),
-        Text('${visible.length} devices', style: const TextStyle(color: AppColors.primary, fontSize: 12)),
-      ]),
-      const SizedBox(height: 14),
-      LayoutBuilder(builder: (context, constraints) {
-        final width = (constraints.maxWidth - 12) / 2;
-        return Wrap(spacing: 12, runSpacing: 12, children: [
-          for (final device in visible) SizedBox(width: width, child: _deviceCard(device)),
-        ]);
-      }),
-      if (lights.isNotEmpty) ...[
-        const SizedBox(height: 17),
-        _brightnessCard(lights.first),
-      ],
-      const SizedBox(height: 15),
-      const Row(children: [Icon(Icons.check_circle_outline, color: AppColors.green, size: 14), SizedBox(width: 7), Text('Demo mode · Local mock devices', style: TextStyle(color: AppColors.muted, fontSize: 11))]),
-    ]);
-  }
+          children: [
+            // Top App Bar
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.home_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'LUMIVO',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                    letterSpacing: 1.5,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                const Icon(
+                  Icons.wifi_rounded,
+                  color: AppColors.green,
+                  size: 20,
+                ),
+                const SizedBox(width: 14),
+                IconButton(
+                  tooltip: 'Add Device',
+                  icon: const Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                  onPressed: _openAddDeviceSheet,
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  color: AppColors.muted,
+                  size: 22,
+                ),
+                const SizedBox(width: 14),
+                const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.surfaceElevated,
+                  child: Icon(
+                    Icons.person_outline_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
 
-  Widget _metric(IconData icon, Color tint, String value, String label) =>
-    Container(padding: const EdgeInsets.all(19), decoration: _decoration(AppColors.surface), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, color: tint, size: 26),
-      const SizedBox(height: 17),
-      Text(value, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 5),
-      Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-    ]));
+            const SizedBox(height: 28),
 
-  Widget _deviceCard(SmartDevice device) {
-    final busy = pending.contains(device.id);
-    final icon = switch (device.type) {
-      DeviceType.light => Icons.lightbulb_outline_rounded,
-      DeviceType.fan => Icons.mode_fan_off_outlined,
-      DeviceType.security => Icons.shield_outlined,
-    };
-    final activeColor = device.type == DeviceType.security ? const Color(0xFF174139) : const Color(0xFF493F85);
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: busy ? null : () => _send(device, DeviceCommandType.setPower, !device.isOn),
-      child: AnimatedContainer(duration: const Duration(milliseconds: 220), padding: const EdgeInsets.all(16),
-        decoration: _decoration(device.isOn ? activeColor : AppColors.surface),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(icon, color: device.isOn ? const Color(0xFFE8DEFF) : AppColors.muted, size: 26),
-            const Spacer(),
-            if (busy) const SizedBox(width: 21, height: 21, child: CircularProgressIndicator(strokeWidth: 2))
-            else Icon(device.isOn ? Icons.toggle_on : Icons.toggle_off, color: device.isOn ? AppColors.green : AppColors.muted, size: 28),
-          ]),
-          const SizedBox(height: 25),
-          Text(device.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 5),
-          Text('${device.isOn ? 'On' : 'Off'} · ${device.roomId}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-        ]),
-      ),
+            // Greeting & Date
+            Text(
+              _dateLabel(),
+              style: TextStyle(
+                color: AppColors.muted.withValues(alpha: .9),
+                fontSize: 11,
+                letterSpacing: 1.6,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Welcome home ✦',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Your smart home is looking good.',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 13,
+              ),
+            ),
+
+            const SizedBox(height: 26),
+
+            // Metrics Section (Responsive row / wrap)
+            _buildResponsiveMetrics(screenWidth, isCompact),
+
+            const SizedBox(height: 30),
+
+            // Room Filter Section
+            const Text(
+              'Rooms',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            RoomSelector(
+              rooms: rooms,
+              selectedRoom: room,
+              onRoomSelected: (selected) => setState(() => room = selected),
+              roomDeviceCounts: roomCounts,
+            ),
+
+            const SizedBox(height: 28),
+
+            // Devices Section Header
+            Row(
+              children: [
+                const Text(
+                  'Devices',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${visible.length} devices',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // Responsive Device Cards
+            _buildResponsiveDeviceGrid(visible, screenWidth),
+
+            // Brightness Control Section
+            if (lights.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              for (final light in lights) ...[
+                BrightnessSliderCard(
+                  device: light,
+                  brightness:
+                      brightnessDraft[light.id] ?? light.brightness.toDouble(),
+                  isBusy: pending.contains(light.id),
+                  onChanged: (value) =>
+                      setState(() => brightnessDraft[light.id] = value),
+                  onChangeEnd: (value) async {
+                    await _send(
+                      light,
+                      DeviceCommandType.setBrightness,
+                      value.round(),
+                    );
+                    if (mounted) {
+                      setState(() => brightnessDraft.remove(light.id));
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+            ],
+
+            const SizedBox(height: 18),
+
+            // Status footnote
+            const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: AppColors.green,
+                  size: 14,
+                ),
+                SizedBox(width: 7),
+                Text(
+                  'Demo mode · Local mock devices',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _brightnessCard(SmartDevice light) {
-    final level = brightnessDraft[light.id] ?? light.brightness.toDouble();
-    return Container(padding: const EdgeInsets.fromLTRB(17, 17, 17, 9), decoration: _decoration(AppColors.surface),
-      child: Column(children: [
-        Row(children: [
-          const Icon(Icons.wb_sunny_outlined, color: Color(0xFFE7C184), size: 23),
-          const SizedBox(width: 10),
-          const Text('Brightness', style: TextStyle(fontWeight: FontWeight.w600)),
-          const Spacer(),
-          Text('${level.round()}%', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-        ]),
-        Slider(value: level, min: 0, max: 100,
-          onChanged: pending.contains(light.id) ? null : (value) => setState(() => brightnessDraft[light.id] = value),
-          onChangeEnd: pending.contains(light.id) ? null : (value) async {
-            await _send(light, DeviceCommandType.setBrightness, value.round());
-            if (mounted) setState(() => brightnessDraft.remove(light.id));
-          },
-        ),
-      ]),
+  Widget _buildResponsiveMetrics(double screenWidth, bool isCompact) {
+    final tempCard = MetricCard(
+      icon: Icons.thermostat_outlined,
+      tint: AppColors.warning,
+      value: '26.5°C',
+      label: 'Temperature',
+      statusBadge: 'Optimal',
+    );
+
+    final humidityCard = MetricCard(
+      icon: Icons.water_drop_outlined,
+      tint: AppColors.blue,
+      value: '65%',
+      label: 'Humidity',
+      statusBadge: 'Comfort',
+    );
+
+    final energyCard = MetricCard(
+      icon: Icons.bolt_rounded,
+      tint: AppColors.green,
+      value: '2.4 kWh',
+      label: 'Energy Today',
+      statusBadge: 'Eco',
+    );
+
+    if (screenWidth >= 640) {
+      // Tablet / Desktop: 3 metrics in a row
+      return Row(
+        children: [
+          Expanded(child: tempCard),
+          const SizedBox(width: 14),
+          Expanded(child: humidityCard),
+          const SizedBox(width: 14),
+          Expanded(child: energyCard),
+        ],
+      );
+    } else {
+      // Mobile: 2 primary metrics in a row, energy below or responsive
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: tempCard),
+              const SizedBox(width: 12),
+              Expanded(child: humidityCard),
+            ],
+          ),
+          const SizedBox(height: 12),
+          energyCard,
+        ],
+      );
+    }
+  }
+
+  Widget _buildResponsiveDeviceGrid(
+    List<SmartDevice> devices,
+    double availableWidth,
+  ) {
+    final int crossAxisCount;
+    if (availableWidth >= 880) {
+      crossAxisCount = 4;
+    } else if (availableWidth >= 580) {
+      crossAxisCount = 3;
+    } else {
+      crossAxisCount = availableWidth < 340 ? 1 : 2;
+    }
+
+    const double spacing = 12;
+    final double itemWidth =
+        (availableWidth - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
+
+    return Wrap(
+      spacing: spacing,
+      runSpacing: spacing,
+      children: [
+        for (final device in devices)
+          SizedBox(
+            width: itemWidth,
+            child: DeviceCard(
+              device: device,
+              isBusy: pending.contains(device.id),
+              onToggle: () => _send(
+                device,
+                DeviceCommandType.setPower,
+                !device.isOn,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _navigation() => Container(
-    padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-    margin: const EdgeInsets.fromLTRB(18, 3, 18, 8),
-    decoration: _decoration(AppColors.surface),
-    child: Row(children: [
-      _tab(0, Icons.home_outlined, 'Home'),
-      _tab(1, Icons.bar_chart_outlined, 'Activity'),
-      _tab(2, Icons.hub_outlined, 'Automation'),
-      _tab(3, Icons.settings_outlined, 'Settings'),
-    ]),
-  );
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+        margin: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: AppColors.surfaceBorder.withValues(alpha: 0.8),
+          ),
+          boxShadow: AppShadows.cardGlow,
+        ),
+        child: Row(
+          children: [
+            _tab(0, Icons.home_outlined, Icons.home_rounded, 'Home'),
+            _tab(1, Icons.bar_chart_outlined, Icons.bar_chart_rounded,
+                'Activity'),
+            _tab(2, Icons.hub_outlined, Icons.hub_rounded, 'Automation'),
+            _tab(
+                3, Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
+          ],
+        ),
+      );
 
-  Widget _tab(int index, IconData icon, String label) => Expanded(child: InkWell(
-    borderRadius: BorderRadius.circular(15),
-    onTap: () => setState(() => selectedTab = index),
-    child: Container(padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(color: selectedTab == index ? const Color(0xFF2C2B48) : Colors.transparent, borderRadius: BorderRadius.circular(15)),
-      child: Column(children: [Icon(icon, size: 21, color: selectedTab == index ? AppColors.primary : AppColors.muted),
-        const SizedBox(height: 4), Text(label, style: TextStyle(fontSize: 10, color: selectedTab == index ? Colors.white : AppColors.muted))]),
-    ),
-  ));
+  Widget _tab(
+    int index,
+    IconData icon,
+    IconData activeIcon,
+    String label,
+  ) {
+    final isSelected = selectedTab == index;
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => setState(() => selectedTab = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.18)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.4)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
+                size: 21,
+                color: isSelected ? AppColors.primary : AppColors.muted,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? Colors.white : AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholderTab() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.construction_rounded,
+              size: 48,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            ['', 'Activity', 'Automation', 'Settings'][selectedTab],
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Coming in a future milestone',
+            style: TextStyle(
+              color: AppColors.muted,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _dateLabel() {
-    const weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-    const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    const weekdays = [
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY'
+    ];
+    const months = [
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER'
+    ];
     final now = DateTime.now();
     return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
-
-  BoxDecoration _decoration(Color color) => BoxDecoration(color: color, borderRadius: BorderRadius.circular(22));
 }
