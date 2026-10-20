@@ -5,7 +5,9 @@ import '../services/mock/mock_device_repository.dart';
 
 final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
   final repository = MockDeviceRepository();
-  ref.onDispose(() { repository.dispose(); });
+  ref.onDispose(() {
+    repository.dispose();
+  });
   return repository;
 });
 

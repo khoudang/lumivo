@@ -4,6 +4,7 @@ import '../../../app/providers.dart';
 import '../../../core/models/device_command.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../services/mock/mock_device_repository.dart';
 import '../../onboarding/presentation/add_device_sheet.dart';
 import '../widgets/brightness_slider_card.dart';
 import '../widgets/device_card.dart';
@@ -58,6 +59,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AddDeviceSheet.show(
       context,
       onDeviceAdded: (newDevice) {
+        final repo = ref.read(deviceRepositoryProvider);
+        if (repo is MockDeviceRepository) {
+          repo.addDevice(newDevice);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${newDevice.name} paired successfully!'),

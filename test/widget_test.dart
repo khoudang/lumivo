@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lumivo/app/app.dart';
 
 void main() {
-  testWidgets('LumivoApp smoke test renders dashboard and brand', (WidgetTester tester) async {
+  testWidgets('LumivoApp smoke test renders dashboard and brand',
+      (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: LumivoApp()));
     await tester.pumpAndSettle();
 

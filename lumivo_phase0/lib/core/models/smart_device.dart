@@ -1,4 +1,5 @@
 enum DeviceType { light, fan, security }
+
 enum DeviceConnection { online, offline }
 
 class SmartDevice {
@@ -20,7 +21,8 @@ class SmartDevice {
   final int brightness;
   final DeviceConnection connection;
 
-  SmartDevice copyWith({bool? isOn, int? brightness, DeviceConnection? connection}) =>
+  SmartDevice copyWith(
+          {bool? isOn, int? brightness, DeviceConnection? connection}) =>
       SmartDevice(
         id: id,
         name: name,

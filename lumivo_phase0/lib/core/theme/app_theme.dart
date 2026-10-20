@@ -27,7 +27,8 @@ abstract final class AppTheme {
         cardTheme: CardThemeData(
           color: AppColors.surface,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
         sliderTheme: const SliderThemeData(
           activeTrackColor: AppColors.primary,

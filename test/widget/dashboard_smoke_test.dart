@@ -63,7 +63,7 @@ void main() {
 
       expect(find.text('Smart Light'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Bedroom'));
+      await tester.tap(find.text('Bedroom'));
       await tester.pumpAndSettle();
 
       expect(find.text('2 devices'), findsOneWidget);
@@ -72,7 +72,7 @@ void main() {
       expect(find.text('Smart Light'), findsNothing);
       expect(find.text('Kitchen Light'), findsNothing);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Kitchen'));
+      await tester.tap(find.text('Kitchen'));
       await tester.pumpAndSettle();
 
       expect(find.text('1 devices'), findsOneWidget);
@@ -80,7 +80,7 @@ void main() {
       expect(find.text('Bedside Light'), findsNothing);
       expect(find.text('Smart Light'), findsNothing);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Living Room'));
+      await tester.tap(find.text('Living Room'));
       await tester.pumpAndSettle();
 
       expect(find.text('3 devices'), findsOneWidget);
@@ -94,8 +94,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Initially Smart Light and Home Security are On; Smart Fan is Off
-      expect(find.text('On · Living Room'), findsNWidgets(2));
-      expect(find.text('Off · Living Room'), findsOneWidget);
+      expect(find.byIcon(Icons.toggle_on_rounded), findsNWidgets(2));
+      expect(find.byIcon(Icons.toggle_off_rounded), findsOneWidget);
 
       // Tap Smart Light card to turn it off
       await tester.tap(find.text('Smart Light'));
@@ -103,8 +103,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Now only Home Security is On; Smart Light and Smart Fan are Off
-      expect(find.text('On · Living Room'), findsOneWidget);
-      expect(find.text('Off · Living Room'), findsNWidgets(2));
+      expect(find.byIcon(Icons.toggle_on_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.toggle_off_rounded), findsNWidgets(2));
       expect(
         repository.devices.firstWhere((d) => d.id == 'light-1').isOn,
         isFalse,
@@ -120,8 +120,8 @@ void main() {
         repository.devices.firstWhere((d) => d.id == 'light-1').isOn,
         isTrue,
       );
-      expect(find.text('On · Living Room'), findsNWidgets(2));
-      expect(find.text('Off · Living Room'), findsOneWidget);
+      expect(find.byIcon(Icons.toggle_on_rounded), findsNWidgets(2));
+      expect(find.byIcon(Icons.toggle_off_rounded), findsOneWidget);
     });
   });
 }

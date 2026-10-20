@@ -1,4 +1,5 @@
 enum DeviceCommandType { setPower, setBrightness }
+
 enum CommandStatus { confirmed, failed }
 
 class DeviceCommand {
@@ -16,7 +17,8 @@ class DeviceCommand {
 }
 
 class CommandResult {
-  const CommandResult({required this.requestId, required this.status, this.errorMessage});
+  const CommandResult(
+      {required this.requestId, required this.status, this.errorMessage});
   final String requestId;
   final CommandStatus status;
   final String? errorMessage;
