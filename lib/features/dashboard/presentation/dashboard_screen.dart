@@ -19,6 +19,8 @@ import '../widgets/brightness_slider_card.dart';
 import '../widgets/device_card.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/room_selector.dart';
+import '../widgets/favorites_section.dart';
+import '../../home/presentation/home_app_bar_title.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -232,6 +234,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     color: AppColors.textPrimary,
                   ),
                 ),
+                const SizedBox(width: 8),
+                const HomeAppBarTitle(),
                 const Spacer(),
                 const Icon(
                   Icons.wifi_rounded,
@@ -338,6 +342,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Quick Scenes Horizontal Scroll Bar
             _buildQuickScenesSection(),
+
+            const SizedBox(height: 28),
+
+            // Favorites Section
+            FavoritesSection(
+              favoriteDevices: all.where((d) => d.isFavorite).toList()
+                ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder)),
+              onReorder: (oldIndex, newIndex) {
+                final favorites = all.where((d) => d.isFavorite).toList()
+                  ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
+                if (oldIndex < newIndex) {
+                  newIndex -= 1;
+                }
+                final item = favorites.removeAt(oldIndex);
+                favorites.insert(newIndex, item);
+                final repo = ref.read(deviceRepositoryProvider);
+                if (repo is MockDeviceRepository) {
+                  for (int i = 0; i < favorites.length; i++) {
+                    repo.updateDevice(favorites[i].copyWith(favoriteOrder: i));
+                  }
+                }
+              },
+              onDeviceTap: (device) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => DeviceDetailScreen(device: device),
+                  ),
+                );
+              },
+              onDeviceToggle: (device) => _send(
+                device,
+                DeviceCommandType.setPower,
+                !device.isOn,
+              ),
+            ),
 
             const SizedBox(height: 28),
 

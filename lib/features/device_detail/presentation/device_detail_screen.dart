@@ -5,6 +5,8 @@ import '../../../core/models/activity_event.dart';
 import '../../../core/models/device_command.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../services/mock/mock_device_repository.dart';
+import 'device_settings_sheet.dart';
 
 class DeviceDetailScreen extends ConsumerStatefulWidget {
   const DeviceDetailScreen({
@@ -197,6 +199,31 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         ),
         title: Text(currentDevice.name),
         actions: [
+          // Favorite Star Toggle
+          IconButton(
+            key: const Key('device_detail_favorite_button'),
+            tooltip:
+                currentDevice.isFavorite ? 'Unpin Favorite' : 'Pin Favorite',
+            icon: Icon(
+              currentDevice.isFavorite
+                  ? Icons.star_rounded
+                  : Icons.star_border_rounded,
+              color: currentDevice.isFavorite
+                  ? const Color(0xFFFFD572)
+                  : AppColors.muted,
+              size: 24,
+            ),
+            onPressed: () {
+              final updated = currentDevice.copyWith(
+                isFavorite: !currentDevice.isFavorite,
+              );
+              final repo = ref.read(deviceRepositoryProvider);
+              if (repo is MockDeviceRepository) {
+                repo.updateDevice(updated);
+              }
+              setState(() => _localDevice = updated);
+            },
+          ),
           IconButton(
             icon: Icon(
               currentDevice.connection == DeviceConnection.online
@@ -211,6 +238,28 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                 ? 'Online'
                 : 'Offline',
             onPressed: () {},
+          ),
+          // Settings Gear Icon
+          IconButton(
+            key: const Key('device_detail_settings_button'),
+            tooltip: 'Device Settings',
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: AppColors.textPrimary,
+              size: 22,
+            ),
+            onPressed: () {
+              DeviceSettingsSheet.show(
+                context,
+                currentDevice,
+                onSave: (updated) {
+                  setState(() => _localDevice = updated);
+                },
+                onDelete: (_) {
+                  Navigator.of(context).pop();
+                },
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -1251,6 +1300,28 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
   }
 
   IconData _deviceIcon(SmartDevice device) {
+    if (device.customIcon != null) {
+      switch (device.customIcon) {
+        case 'bulb':
+          return Icons.lightbulb_rounded;
+        case 'desk_lamp':
+          return Icons.desk_rounded;
+        case 'ceiling_light':
+          return Icons.wb_incandescent_rounded;
+        case 'fan':
+          return Icons.mode_fan_off_outlined;
+        case 'ac_unit':
+          return Icons.ac_unit_rounded;
+        case 'power':
+          return Icons.power_rounded;
+        case 'lock':
+          return Icons.lock_rounded;
+        case 'window':
+          return Icons.curtains_rounded;
+        case 'sensor':
+          return Icons.sensors_rounded;
+      }
+    }
     switch (device.type) {
       case DeviceType.light:
         return Icons.lightbulb_rounded;
