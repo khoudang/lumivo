@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+import '../../../core/models/activity_event.dart';
+import '../../../core/models/automation_rule.dart';
 import '../../../core/models/device_command.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/mock/mock_device_repository.dart';
+import '../../activity/presentation/activity_screen.dart';
+import '../../activity/state/activity_providers.dart';
+import '../../automation/presentation/automation_screen.dart';
+import '../../automation/state/automation_providers.dart';
+import '../../device_detail/presentation/device_detail_screen.dart';
+import '../../notifications/presentation/notifications_sheet.dart';
+import '../../notifications/state/notifications_providers.dart';
 import '../../onboarding/presentation/add_device_sheet.dart';
+import '../../rooms/presentation/rooms_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../widgets/brightness_slider_card.dart';
 import '../widgets/device_card.dart';
 import '../widgets/metric_card.dart';
@@ -73,6 +84,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  void _runScene(Scene scene) async {
+    for (final action in scene.actions) {
+      await ref.read(deviceRepositoryProvider).sendCommand(
+            DeviceCommand(
+              requestId: 'scene-${DateTime.now().millisecondsSinceEpoch}',
+              deviceId: action.deviceId,
+              type: action.commandType,
+              value: action.value,
+            ),
+          );
+    }
+
+    ref.read(activityProvider.notifier).addEvent(
+          ActivityEvent(
+            id: 'act-${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Scene "${scene.name}" Triggered',
+            description: '${scene.actions.length} commands dispatched',
+            timestamp: DateTime.now(),
+            severity: ActivitySeverity.success,
+            source: 'automation',
+          ),
+        );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Scene "${scene.name}" executed!'),
+          backgroundColor: AppColors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final devices = ref.watch(devicesProvider);
@@ -80,6 +125,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       floatingActionButton: selectedTab == 0
           ? FloatingActionButton(
+              heroTag: 'dashboard_fab',
+              key: const Key('dashboard_add_device_fab'),
               onPressed: _openAddDeviceSheet,
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -94,20 +141,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: selectedTab == 0
-                      ? devices.when(
-                          data: (all) => _home(all),
-                          loading: () => const Center(
-                            child: CircularProgressIndicator(),
+                  child: IndexedStack(
+                    index: selectedTab,
+                    children: [
+                      // Tab 0: Home
+                      devices.when(
+                        data: (all) => _home(all),
+                        loading: () => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        error: (error, _) => Center(
+                          child: Text(
+                            'Error: $error',
+                            style: const TextStyle(color: AppColors.danger),
                           ),
-                          error: (error, _) => Center(
-                            child: Text(
-                              'Error: $error',
-                              style: const TextStyle(color: AppColors.danger),
-                            ),
-                          ),
-                        )
-                      : _placeholderTab(),
+                        ),
+                      ),
+                      // Tab 1: Rooms
+                      RoomsScreen(
+                        onRoomSelected: (selectedRoom) {
+                          setState(() {
+                            room = selectedRoom;
+                            selectedTab = 0;
+                          });
+                        },
+                      ),
+                      // Tab 2: Automation
+                      const AutomationScreen(),
+                      // Tab 3: Activity
+                      const ActivityScreen(),
+                      // Tab 4: Settings
+                      const SettingsScreen(),
+                    ],
+                  ),
                 ),
                 _navigation(),
               ],
@@ -128,6 +194,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final visible = all.where((d) => d.roomId == room).toList();
     final lights = visible.where((d) => d.type == DeviceType.light).toList();
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -184,10 +251,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   onPressed: _openAddDeviceSheet,
                 ),
                 const SizedBox(width: 6),
-                const Icon(
-                  Icons.notifications_none_rounded,
-                  color: AppColors.muted,
-                  size: 22,
+                // Notifications Bell with Badge
+                Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    IconButton(
+                      key: const Key('dashboard_notifications_button'),
+                      tooltip: 'Notifications',
+                      icon: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: AppColors.textPrimary,
+                        size: 22,
+                      ),
+                      onPressed: () => NotificationsSheet.show(context),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 14),
                 const CircleAvatar(
@@ -238,7 +336,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Metrics Section (Responsive row / wrap)
             _buildResponsiveMetrics(screenWidth, isCompact),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 26),
+
+            // Quick Scenes Horizontal Scroll Bar
+            _buildQuickScenesSection(),
+
+            const SizedBox(height: 28),
 
             // Room Filter Section
             const Text(
@@ -347,6 +450,111 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  Widget _buildQuickScenesSection() {
+    final scenes = ref.watch(scenesProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Quick Scenes',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => setState(() => selectedTab = 2),
+              child: const Text('See All'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 94,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: scenes.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final scene = scenes[index];
+              final icon = _sceneIcon(scene.iconName);
+
+              return InkWell(
+                key: Key('quick_scene_${scene.id}'),
+                onTap: () => _runScene(scene),
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  width: 154,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.surfaceBorder),
+                    boxShadow: AppShadows.cardGlow,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(icon, color: AppColors.primary, size: 22),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.surfaceElevated,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow_rounded,
+                              size: 14,
+                              color: AppColors.cyan,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        scene.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _sceneIcon(String name) {
+    switch (name) {
+      case 'wb_sunny_rounded':
+        return Icons.wb_sunny_rounded;
+      case 'logout_rounded':
+        return Icons.logout_rounded;
+      case 'bedtime_rounded':
+        return Icons.bedtime_rounded;
+      case 'movie_rounded':
+        return Icons.movie_rounded;
+      default:
+        return Icons.auto_awesome_rounded;
+    }
+  }
+
   Widget _buildResponsiveMetrics(double screenWidth, bool isCompact) {
     final tempCard = MetricCard(
       icon: Icons.thermostat_outlined,
@@ -373,7 +581,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
 
     if (screenWidth >= 640) {
-      // Tablet / Desktop: 3 metrics in a row
       return Row(
         children: [
           Expanded(child: tempCard),
@@ -384,7 +591,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       );
     } else {
-      // Mobile: 2 primary metrics in a row, energy below or responsive
       return Column(
         children: [
           Row(
@@ -433,6 +639,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 DeviceCommandType.setPower,
                 !device.isOn,
               ),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => DeviceDetailScreen(device: device),
+                  ),
+                );
+              },
             ),
           ),
       ],
@@ -440,8 +653,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _navigation() => Container(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-        margin: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+        padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(22),
@@ -453,11 +666,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Row(
           children: [
             _tab(0, Icons.home_outlined, Icons.home_rounded, 'Home'),
-            _tab(1, Icons.bar_chart_outlined, Icons.bar_chart_rounded,
-                'Activity'),
+            _tab(1, Icons.meeting_room_outlined, Icons.meeting_room_rounded,
+                'Rooms'),
             _tab(2, Icons.hub_outlined, Icons.hub_rounded, 'Automation'),
+            _tab(3, Icons.bar_chart_outlined, Icons.bar_chart_rounded,
+                'Activity'),
             _tab(
-                3, Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
+                4, Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
           ],
         ),
       );
@@ -492,7 +707,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Icon(
                 isSelected ? activeIcon : icon,
-                size: 21,
+                size: 20,
                 color: isSelected ? AppColors.primary : AppColors.muted,
               ),
               const SizedBox(height: 4),
@@ -507,45 +722,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _placeholderTab() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.construction_rounded,
-              size: 48,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            ['', 'Activity', 'Automation', 'Settings'][selectedTab],
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Coming in a future milestone',
-            style: TextStyle(
-              color: AppColors.muted,
-              fontSize: 13,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -98,7 +98,7 @@ void main() {
       expect(find.byIcon(Icons.toggle_off_rounded), findsOneWidget);
 
       // Tap Smart Light card to turn it off
-      await tester.tap(find.text('Smart Light'));
+      await tester.tap(find.byIcon(Icons.toggle_on_rounded).first);
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -111,7 +111,7 @@ void main() {
       );
 
       // Tap Smart Light card again to turn back on
-      await tester.tap(find.text('Smart Light'));
+      await tester.tap(find.byIcon(Icons.toggle_off_rounded).first);
       await tester.pump();
       await tester.pumpAndSettle();
 
