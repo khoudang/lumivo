@@ -10,12 +10,30 @@ class DashboardConfigNotifier extends StateNotifier<DashboardConfig> {
     DashboardConfig? initialConfig,
   })  : _homeId = homeId,
         _persistenceManager = persistenceManager,
-        super(initialConfig ?? persistenceManager.getDashboardConfig(homeId));
+        super(initialConfig ??
+            persistenceManager.getDashboardConfig(homeId) ??
+            defaultWithAllSections(homeId));
 
   final String _homeId;
   final HomePersistenceManager _persistenceManager;
 
   String get homeId => _homeId;
+
+  static DashboardConfig defaultWithAllSections(String homeId) {
+    final base = DashboardConfig.defaultFor(homeId);
+    final order = List<DashboardSection>.from(base.sectionOrder);
+    if (!order.contains(DashboardSection.demoLab)) {
+      order.add(DashboardSection.demoLab);
+    }
+    final visibility = Map<DashboardSection, bool>.from(base.visibleSections);
+    for (final s in DashboardSection.values) {
+      visibility.putIfAbsent(s, () => true);
+    }
+    return base.copyWith(
+      sectionOrder: order,
+      visibleSections: visibility,
+    );
+  }
 
   void reorderSections(int oldIndex, int newIndex) {
     var toIndex = newIndex;
@@ -29,16 +47,28 @@ class DashboardConfigNotifier extends StateNotifier<DashboardConfig> {
     final moved = updated.removeAt(oldIndex);
     updated.insert(toIndex, moved);
     state = state.copyWith(sectionOrder: updated);
+    saveLayout();
   }
+
+  void reorder(int oldIndex, int newIndex) => reorderSections(oldIndex, newIndex);
 
   void toggleSectionVisibility(DashboardSection section, bool isVisible) {
     final updated = Map<DashboardSection, bool>.from(state.visibleSections);
     updated[section] = isVisible;
     state = state.copyWith(visibleSections: updated);
+    saveLayout();
+  }
+
+  void toggleVisibility(DashboardSection section, bool isVisible) =>
+      toggleSectionVisibility(section, isVisible);
+
+  void setConfig(DashboardConfig config) {
+    state = config;
+    saveLayout();
   }
 
   Future<void> resetToDefaults() async {
-    final defaults = DashboardConfig.defaultFor(_homeId);
+    final defaults = defaultWithAllSections(_homeId);
     state = defaults;
     await saveLayout();
   }
