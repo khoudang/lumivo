@@ -1,6 +1,7 @@
 import '../../profile/presentation/profile_screen.dart';
 import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/theme/app_theme.dart';
@@ -20,16 +21,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _selectedAccent = 'Lumivo Violet';
   bool _oledDark = false;
 
-  void _showResetConfirmation() {
+  void _showResetConfirmation([AppLocalizations? l10n]) {
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded,
+            const Icon(Icons.warning_amber_rounded,
                 color: AppColors.warning, size: 24),
-            SizedBox(width: 10),
-            Text('Reset Demo Data?'),
+            const SizedBox(width: 10),
+            Text(l10n != null ? '${l10n.resetDemoData}?' : 'Reset Demo Data?'),
           ],
         ),
         content: const Text(
@@ -39,7 +40,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             key: const Key('confirm_reset_demo_data_button'),
@@ -68,7 +69,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Reset All'),
+            child: Text(l10n?.resetAll ?? 'Reset All'),
           ),
         ],
       ),
@@ -77,6 +78,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -87,7 +89,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'SYSTEM & PREFERENCES',
                   style: TextStyle(
                     letterSpacing: 1.5,
@@ -97,8 +99,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Settings',
+                Text(
+                  l10n.settings,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -142,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       size: 26,
                     ),
                   ),
-                  title: const Text(
+                  title: Text(
                     'Demo Lab & Chaos Sim',
                     style: TextStyle(
                       fontSize: 17,
@@ -194,7 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       size: 22,
                     ),
                   ),
-                  title: const Text(
+                  title: Text(
                     'User Profile & Preferences',
                     style: TextStyle(
                       fontSize: 15,
@@ -234,7 +236,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       size: 22,
                     ),
                   ),
-                  title: const Text(
+                  title: Text(
                     'Energy Telemetry & Analytics',
                     style: TextStyle(
                       fontSize: 15,
@@ -264,10 +266,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // Theme Customization
             _buildSection(
-              title: 'Aesthetics & Theme',
+              title: l10n.aestheticsTheme,
               icon: Icons.palette_outlined,
               children: [
-                const Text(
+                Text(
                   'Accent Hue',
                   style: TextStyle(
                     fontSize: 13,
@@ -313,8 +315,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 16),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    'OLED Pure Black Mode',
+                  title: Text(
+                    l10n.oledPureBlackTitle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -397,8 +399,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               key: const Key('reset_demo_data_button'),
               icon: const Icon(Icons.restore_rounded,
                   color: AppColors.danger, size: 20),
-              label: const Text(
-                'Reset Demo Data',
+              label: Text(
+                l10n.resetDemoData,
                 style: TextStyle(color: AppColors.danger),
               ),
               style: OutlinedButton.styleFrom(
@@ -408,7 +410,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              onPressed: _showResetConfirmation,
+              onPressed: () => _showResetConfirmation(l10n),
             ),
             const SizedBox(height: 20),
           ],

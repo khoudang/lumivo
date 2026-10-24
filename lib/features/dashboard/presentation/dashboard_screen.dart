@@ -3,6 +3,7 @@ import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+
 import '../../../core/models/activity_event.dart';
 import '../../../core/models/automation_rule.dart';
 import '../../../core/models/device_command.dart';
@@ -123,17 +124,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final devices = ref.watch(devicesProvider);
+    final l10n = ref.watch(appLocalizationsProvider);
 
     return Scaffold(
       floatingActionButton: selectedTab == 0
-          ? FloatingActionButton(
-              heroTag: 'dashboard_fab',
-              key: const Key('dashboard_add_device_fab'),
-              onPressed: _openAddDeviceSheet,
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              tooltip: 'Add Device',
-              child: const Icon(Icons.add_rounded, size: 28),
+          ? Semantics(
+              button: true,
+              label: l10n.addDevice,
+              child: FloatingActionButton(
+                heroTag: 'dashboard_fab',
+                key: const Key('dashboard_add_device_fab'),
+                onPressed: _openAddDeviceSheet,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                tooltip: l10n.addDevice,
+                child: const Icon(Icons.add_rounded, size: 28),
+              ),
             )
           : null,
       body: SafeArea(
@@ -148,7 +154,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       // Tab 0: Home
                       devices.when(
-                        data: (all) => _home(all),
+                        data: (all) => _home(all, l10n),
                         loading: () => const Center(
                           child: CircularProgressIndicator(),
                         ),
@@ -177,7 +183,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ],
                   ),
                 ),
-                _navigation(),
+                _navigation(l10n),
               ],
             ),
           ),
@@ -186,7 +192,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _home(List<SmartDevice> all) {
+  Widget _home(List<SmartDevice> all, AppLocalizations l10n) {
     const rooms = ['Living Room', 'Bedroom', 'Kitchen'];
 
     final roomCounts = <String, int>{};
@@ -214,31 +220,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Top App Bar
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.home_rounded,
-                    color: AppColors.primary,
-                    size: 24,
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.home_rounded,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'LUMIVO',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                            letterSpacing: 1.5,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const HomeAppBarTitle(),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'LUMIVO',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                    letterSpacing: 1.5,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const HomeAppBarTitle(),
-                const Spacer(),
+                const SizedBox(width: 4),
                 const Icon(
                   Icons.wifi_rounded,
                   color: AppColors.green,
@@ -246,7 +263,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(width: 14),
                 IconButton(
-                  tooltip: 'Add Device',
+                  tooltip: l10n.addDevice,
                   icon: const Icon(
                     Icons.add_circle_outline_rounded,
                     color: AppColors.primary,
@@ -292,23 +309,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(width: 14),
-                InkWell(
-                  key: const Key('dashboard_profile_button'),
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileScreen(),
+                Semantics(
+                  button: true,
+                  label: l10n.userProfilePreferences,
+                  child: InkWell(
+                    key: const Key('dashboard_profile_button'),
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
+                      );
+                    },
+                    child: const CircleAvatar(
+                      radius: 16,
+                      backgroundColor: AppColors.surfaceElevated,
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        color: Colors.white,
+                        size: 18,
                       ),
-                    );
-                  },
-                  child: const CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppColors.surfaceElevated,
-                    child: Icon(
-                      Icons.person_outline_rounded,
-                      color: Colors.white,
-                      size: 18,
                     ),
                   ),
                 ),
@@ -328,9 +349,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Welcome home ✦',
-              style: TextStyle(
+            Text(
+              l10n.welcomeHome,
+              style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -338,9 +359,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Your smart home is looking good.',
-              style: TextStyle(
+            Text(
+              l10n.smartHomeLookingGood,
+              style: const TextStyle(
                 color: AppColors.muted,
                 fontSize: 13,
               ),
@@ -349,12 +370,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 26),
 
             // Metrics Section (Responsive row / wrap)
-            _buildResponsiveMetrics(screenWidth, isCompact),
+            _buildResponsiveMetrics(screenWidth, isCompact, l10n),
 
             const SizedBox(height: 26),
 
             // Quick Scenes Horizontal Scroll Bar
-            _buildQuickScenesSection(),
+            _buildQuickScenesSection(l10n),
 
             const SizedBox(height: 28),
 
@@ -394,9 +415,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 28),
 
             // Room Filter Section
-            const Text(
-              'Rooms',
-              style: TextStyle(
+            Text(
+              l10n.rooms,
+              style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -415,9 +436,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Devices Section Header
             Row(
               children: [
-                const Text(
-                  'Devices',
-                  style: TextStyle(
+                Text(
+                  l10n.devices,
+                  style: const TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -431,12 +452,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    '${visible.length} devices',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      l10n.devicesCount(visible.length),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -477,19 +501,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 18),
 
             // Status footnote
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.check_circle_outline_rounded,
                   color: AppColors.green,
                   size: 14,
                 ),
-                SizedBox(width: 7),
-                Text(
-                  'Demo mode · Local mock devices',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 11,
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    l10n.demoModeFootnote,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
@@ -500,7 +526,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickScenesSection() {
+  Widget _buildQuickScenesSection(AppLocalizations l10n) {
     final scenes = ref.watch(scenesProvider);
 
     return Column(
@@ -508,9 +534,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         Row(
           children: [
-            const Text(
-              'Quick Scenes',
-              style: TextStyle(
+            Text(
+              l10n.quickScenes,
+              style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -519,13 +545,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const Spacer(),
             TextButton(
               onPressed: () => setState(() => selectedTab = 2),
-              child: const Text('See All'),
+              child: Text(l10n.seeAll),
             ),
           ],
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 94,
+          height: 104,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: scenes.length,
@@ -534,52 +560,60 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               final scene = scenes[index];
               final icon = _sceneIcon(scene.iconName);
 
-              return InkWell(
-                key: Key('quick_scene_${scene.id}'),
-                onTap: () => _runScene(scene),
-                borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  width: 154,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.surfaceBorder),
-                    boxShadow: AppShadows.cardGlow,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Icon(icon, color: AppColors.primary, size: 22),
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppColors.surfaceElevated,
-                              shape: BoxShape.circle,
+              return Semantics(
+                button: true,
+                label: 'Execute ${scene.name} scene',
+                child: InkWell(
+                  key: Key('quick_scene_${scene.id}'),
+                  onTap: () => _runScene(scene),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: 154,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.surfaceBorder),
+                      boxShadow: AppShadows.cardGlow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Icon(icon, color: AppColors.primary, size: 22),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.surfaceElevated,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 14,
+                                color: AppColors.cyan,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.play_arrow_rounded,
-                              size: 14,
-                              color: AppColors.cyan,
+                          ],
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            scene.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                        ],
-                      ),
-                      Text(
-                        scene.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -605,12 +639,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  Widget _buildResponsiveMetrics(double screenWidth, bool isCompact) {
+  Widget _buildResponsiveMetrics(
+    double screenWidth,
+    bool isCompact,
+    AppLocalizations l10n,
+  ) {
     final tempCard = MetricCard(
       icon: Icons.thermostat_outlined,
       tint: AppColors.warning,
       value: '26.5°C',
-      label: 'Temperature',
+      label: l10n.temperature,
       statusBadge: 'Optimal',
     );
 
@@ -618,7 +656,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       icon: Icons.water_drop_outlined,
       tint: AppColors.blue,
       value: '65%',
-      label: 'Humidity',
+      label: l10n.humidity,
       statusBadge: 'Comfort',
     );
 
@@ -636,7 +674,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         icon: Icons.bolt_rounded,
         tint: AppColors.green,
         value: '2.4 kWh',
-        label: 'Energy Today',
+        label: l10n.energyToday,
         statusBadge: 'Eco',
       ),
     );
@@ -693,6 +731,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SizedBox(
             width: itemWidth,
             child: DeviceCard(
+              key: Key('device_card_${device.id}'),
               device: device,
               isBusy: pending.contains(device.id),
               onToggle: () => _send(
@@ -713,7 +752,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _navigation() => Container(
+  Widget _navigation(AppLocalizations l10n) => Container(
         padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
         decoration: BoxDecoration(
@@ -726,14 +765,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         child: Row(
           children: [
-            _tab(0, Icons.home_outlined, Icons.home_rounded, 'Home'),
+            _tab(0, Icons.home_outlined, Icons.home_rounded, l10n.home),
             _tab(1, Icons.meeting_room_outlined, Icons.meeting_room_rounded,
-                'Rooms'),
-            _tab(2, Icons.hub_outlined, Icons.hub_rounded, 'Automation'),
+                l10n.rooms),
+            _tab(2, Icons.hub_outlined, Icons.hub_rounded, l10n.automation),
             _tab(3, Icons.bar_chart_outlined, Icons.bar_chart_rounded,
-                'Activity'),
-            _tab(
-                4, Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
+                l10n.activity),
+            _tab(4, Icons.settings_outlined, Icons.settings_rounded,
+                l10n.settings),
           ],
         ),
       );
@@ -746,41 +785,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     final isSelected = selectedTab == index;
     return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => setState(() => selectedTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.18)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: label,
+        child: InkWell(
+          key: Key('nav_tab_$index'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => selectedTab = index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.4)
+                  ? AppColors.primary.withValues(alpha: 0.18)
                   : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.4)
+                    : Colors.transparent,
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                size: 20,
-                color: isSelected ? AppColors.primary : AppColors.muted,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? Colors.white : AppColors.muted,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 20,
+                  color: isSelected ? AppColors.primary : AppColors.muted,
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? Colors.white : AppColors.muted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

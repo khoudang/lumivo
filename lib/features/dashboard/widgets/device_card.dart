@@ -120,131 +120,144 @@ class DeviceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusText = _getStatusText();
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        gradient: _backgroundGradient(),
-        borderRadius: BorderRadius.circular(22),
-        border: _cardBorder(),
-        boxShadow: _cardShadow(),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    return Semantics(
+      button: true,
+      label: '${device.name}, $statusText',
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          gradient: _backgroundGradient(),
           borderRadius: BorderRadius.circular(22),
-          onTap: (_isOffline || isBusy) ? null : (onTap ?? onToggle),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header row: Icon & Status / Toggle button
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Icon container with soft circular glow
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 260),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: device.isOn && !_isOffline
-                            ? _iconTint().withValues(alpha: 0.16)
-                            : AppColors.surfaceElevated.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: device.isOn && !_isOffline
-                              ? _iconTint().withValues(alpha: 0.3)
-                              : Colors.transparent,
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        _deviceIcon(),
-                        color: _iconTint(),
-                        size: 24,
-                      ),
-                    ),
-                    const Spacer(),
-
-                    // Busy spinner or toggle interaction
-                    if (isBusy)
-                      const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: AppColors.primary,
-                        ),
-                      )
-                    else if (_isOffline)
-                      _offlineBadge()
-                    else
-                      _powerToggleButton(),
-                  ],
-                ),
-
-                const SizedBox(height: 22),
-
-                // Device Name
-                Text(
-                  device.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: _isOffline
-                        ? AppColors.textDisabled
-                        : AppColors.textPrimary,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                // Device status subtitle & room
-                Row(
-                  children: [
-                    if (!_isOffline) ...[
-                      Container(
-                        width: 6,
-                        height: 6,
+          border: _cardBorder(),
+          boxShadow: _cardShadow(),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: (_isOffline || isBusy) ? null : (onTap ?? onToggle),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header row: Icon & Status / Toggle button
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Icon container with soft circular glow
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: device.isOn
-                              ? AppColors.green
-                              : AppColors.mutedDark,
+                          color: device.isOn && !_isOffline
+                              ? _iconTint().withValues(alpha: 0.16)
+                              : AppColors.surfaceElevated
+                                  .withValues(alpha: 0.6),
                           shape: BoxShape.circle,
-                          boxShadow: device.isOn
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.greenGlow,
-                                    blurRadius: 6,
-                                  ),
-                                ]
-                              : null,
+                          border: Border.all(
+                            color: device.isOn && !_isOffline
+                                ? _iconTint().withValues(alpha: 0.3)
+                                : Colors.transparent,
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          _deviceIcon(),
+                          color: _iconTint(),
+                          size: 24,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const Spacer(),
+
+                      // Busy spinner or toggle interaction
+                      if (isBusy)
+                        const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      else if (_isOffline)
+                        _offlineBadge()
+                      else
+                        _powerToggleButton(),
                     ],
-                    Expanded(
-                      child: Text(
-                        statusText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _isOffline
-                              ? AppColors.textDisabled
-                              : AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Device Name
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      device.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: _isOffline
+                            ? AppColors.textDisabled
+                            : AppColors.textPrimary,
+                        letterSpacing: 0.2,
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+
+                  const SizedBox(height: 5),
+
+                  // Device status subtitle & room
+                  Row(
+                    children: [
+                      if (!_isOffline) ...[
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: device.isOn
+                                ? AppColors.green
+                                : AppColors.mutedDark,
+                            shape: BoxShape.circle,
+                            boxShadow: device.isOn
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.greenGlow,
+                                      blurRadius: 6,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            statusText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isOffline
+                                  ? AppColors.textDisabled
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -253,20 +266,26 @@ class DeviceCard extends StatelessWidget {
   }
 
   Widget _powerToggleButton() {
-    return GestureDetector(
-      onTap: onToggle,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
-        transitionBuilder: (child, anim) => ScaleTransition(
-          scale: anim,
-          child: child,
-        ),
-        child: Icon(
-          device.isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-          key: ValueKey<bool>(device.isOn),
-          size: 34,
-          color: device.isOn ? AppColors.green : AppColors.mutedDark,
+    return Semantics(
+      button: true,
+      label: '${device.isOn ? 'Turn off' : 'Turn on'} ${device.name}',
+      toggled: device.isOn,
+      child: GestureDetector(
+        key: Key('device_power_btn_${device.id}'),
+        onTap: onToggle,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          transitionBuilder: (child, anim) => ScaleTransition(
+            scale: anim,
+            child: child,
+          ),
+          child: Icon(
+            device.isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+            key: ValueKey<bool>(device.isOn),
+            size: 34,
+            color: device.isOn ? AppColors.green : AppColors.mutedDark,
+          ),
         ),
       ),
     );

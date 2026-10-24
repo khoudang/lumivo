@@ -75,7 +75,7 @@ void main() {
       await tester.tap(find.text('Kitchen'));
       await tester.pumpAndSettle();
 
-      expect(find.text('1 devices'), findsOneWidget);
+      expect(find.textContaining('1 device'), findsOneWidget);
       expect(find.text('Kitchen Light'), findsOneWidget);
       expect(find.text('Bedside Light'), findsNothing);
       expect(find.text('Smart Light'), findsNothing);

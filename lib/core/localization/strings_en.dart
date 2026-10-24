@@ -1,0 +1,94 @@
+/// English localization strings for Lumivo Smart Home
+const Map<String, String> stringsEn = {
+  // Navigation
+  'nav_home': 'Home',
+  'nav_rooms': 'Rooms',
+  'nav_automation': 'Automation',
+  'nav_activity': 'Activity',
+  'nav_settings': 'Settings',
+
+  // Greetings & Dashboard
+  'welcome_home': 'Welcome home ✦',
+  'smart_home_looking_good': 'Your smart home is looking good.',
+  'devices': 'Devices',
+  'favorites': 'Favorites',
+  'quick_scenes': 'Quick Scenes',
+  'see_all': 'See All',
+  'drag_to_reorder': 'Drag to reorder',
+  'demo_mode_footnote': 'Demo mode · Local mock devices',
+  'no_favorites_pinned':
+      'No favorite devices pinned yet. Long press or tap settings on any device to add to favorites.',
+
+  // Device types
+  'device_type_light': 'Light',
+  'device_type_fan': 'Fan',
+  'device_type_ac': 'Climate AC',
+  'device_type_socket': 'Socket',
+  'device_type_curtain': 'Curtain',
+  'device_type_lock': 'Smart Lock',
+  'device_type_sensor': 'Sensor',
+  'device_type_security': 'Security',
+
+  // Metrics & Energy
+  'temperature': 'Temperature',
+  'humidity': 'Humidity',
+  'energy_today': 'Energy Today',
+  'total_kwh': 'Total kWh',
+  'estimated_cost': 'Estimated Cost',
+  'simulated_telemetry': 'Simulated Telemetry',
+  'simulated_telemetry_banner': 'SIMULATED TELEMETRY • VIRTUAL ESTIMATE',
+  'energy_analytics': 'Energy Analytics',
+  'current_tariff': 'Current Tariff',
+  'average_watts': 'Average Watts',
+  'peak_watts': 'Peak Watts',
+
+  // Common actions
+  'back': 'Back',
+  'save': 'Save',
+  'cancel': 'Cancel',
+  'delete': 'Delete',
+  'edit': 'Edit',
+  'done': 'Done',
+  'add': 'Add',
+  'turn_on': 'Turn On',
+  'turn_off': 'Turn Off',
+  'active': 'Active',
+  'off': 'Off',
+  'offline': 'Offline',
+  'all': 'All',
+  'clear_history': 'Clear History',
+
+  // Settings & Preferences
+  'preferences': 'Preferences',
+  'electricity_tariff': 'Electricity Tariff',
+  'aesthetics_theme': 'Aesthetics & Theme',
+  'language': 'Language',
+  'oled_pure_black': 'OLED Pure Black',
+  'oled_pure_black_title': 'OLED Pure Black Mode',
+  'reduced_motion': 'Reduced Motion',
+  'reduced_motion_desc':
+      'Disables pulse, radar, and shimmer animations for accessibility',
+  'temperature_unit': 'Temperature Unit',
+  'reset_demo_data': 'Reset Demo Data',
+  'reset_all': 'Reset All',
+  'user_profile_preferences': 'User Profile & Preferences',
+  'theme_mode': 'Theme Mode',
+  'about_lumivo': 'About Lumivo',
+  'simulation_disclosure': 'Simulation Mode Disclosure',
+
+  // Rooms & Automations
+  'add_new_room': 'Add New Room',
+  'room_name': 'Room Name',
+  'automations': 'Automations',
+  'scenes': 'Scenes',
+  'no_automations': 'No automations configured',
+  'activity_timeline': 'Activity Timeline',
+  'no_activity': 'No activity records found',
+
+  // Onboarding & Discovery
+  'add_device': 'Add Device',
+  'discovered_devices': 'Discovered Devices',
+  'wifi_setup': 'Wi-Fi Setup',
+  'pairing_device': 'Pairing Device',
+  'device_ready': 'Device Ready',
+};

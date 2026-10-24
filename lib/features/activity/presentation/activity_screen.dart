@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../app/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/activity_event.dart';
 import '../../../core/theme/app_theme.dart';
-import '../state/activity_providers.dart';
 
 class ActivityScreen extends ConsumerStatefulWidget {
   const ActivityScreen({super.key});
@@ -16,6 +16,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final allEvents = ref.watch(activityProvider);
 
     final filtered = allEvents.where((e) {
@@ -48,7 +49,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'AUDIT & LOGS',
                             style: TextStyle(
                               letterSpacing: 1.5,
@@ -58,8 +59,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Activity Timeline',
+                          Text(
+                            l10n.activityTimeline,
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -74,7 +75,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                         key: const Key('clear_history_button'),
                         icon: const Icon(Icons.delete_sweep_outlined),
                         color: AppColors.muted,
-                        tooltip: 'Clear History',
+                        tooltip: l10n.clearHistory,
                         onPressed: () {
                           ref.read(activityProvider.notifier).clearEvents();
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -140,8 +141,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                           Icon(Icons.history_toggle_off_rounded,
                               size: 48, color: AppColors.muted),
                           const SizedBox(height: 12),
-                          const Text(
-                            'No activity records found',
+                          Text(
+                            l10n.noActivity,
                             style: TextStyle(
                               color: AppColors.muted,
                               fontSize: 14,

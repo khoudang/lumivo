@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+
 import '../../../core/models/energy_sample.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
@@ -17,7 +18,7 @@ class EnergyScreen extends ConsumerStatefulWidget {
 class _EnergyScreenState extends ConsumerState<EnergyScreen> {
   EnergyPeriod _selectedPeriod = EnergyPeriod.day;
 
-  void _showEditTariffDialog(double currentTariff) {
+  void _showEditTariffDialog(double currentTariff, [AppLocalizations? l10n]) {
     final controller =
         TextEditingController(text: currentTariff.toStringAsFixed(3));
 
@@ -57,7 +58,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
               controller: controller,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: '0.160',
                 hintStyle: const TextStyle(color: AppColors.textDisabled),
@@ -74,7 +75,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             key: const Key('confirm_tariff_rate_button'),
@@ -96,7 +97,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
               }
               Navigator.of(dialogCtx).pop();
             },
-            child: const Text('Save'),
+            child: Text(l10n?.save ?? 'Save'),
           ),
         ],
       ),
@@ -105,6 +106,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final devicesAsync = ref.watch(devicesProvider);
     final allDevices = devicesAsync.valueOrNull ?? [];
     final currentHome = ref.watch(currentHomeProvider);
@@ -124,7 +126,8 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Energy Analytics'),
+        leading: const BackButton(),
+        title: Text(l10n.energyAnalytics),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 20),
@@ -148,12 +151,12 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
             // Simulation Disclaimer Header Badge
-            _buildSimulationHeaderBadge(),
+            _buildSimulationHeaderBadge(l10n),
 
             const SizedBox(height: 16),
 
             // Tariff Note Card
-            _buildTariffNoteCard(tariffRate),
+            _buildTariffNoteCard(tariffRate, l10n),
 
             const SizedBox(height: 20),
 
@@ -164,7 +167,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
 
             // Key Metrics Cards (Total kWh, Estimated Cost, Average Watts, Peak Watts)
             _buildMetricsCards(
-                totalKWh, estimatedCost, avgWatts, peakWatts, tariffRate),
+                totalKWh, estimatedCost, avgWatts, peakWatts, tariffRate, l10n),
 
             const SizedBox(height: 26),
 
@@ -174,14 +177,14 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
             const SizedBox(height: 28),
 
             // Device Energy Breakdown List
-            _buildDeviceBreakdownList(allDevices, totalKWh, tariffRate),
+            _buildDeviceBreakdownList(allDevices, totalKWh, tariffRate, l10n),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSimulationHeaderBadge() {
+  Widget _buildSimulationHeaderBadge([AppLocalizations? l10n]) {
     return Container(
       key: const Key('energy_simulation_badge'),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -193,14 +196,15 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
           width: 1.2,
         ),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.sensors_rounded, color: AppColors.cyan, size: 16),
-          SizedBox(width: 8),
+          const Icon(Icons.sensors_rounded, color: AppColors.cyan, size: 16),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'SIMULATED TELEMETRY • VIRTUAL ESTIMATE',
+              l10n?.simulatedTelemetryBanner ??
+                  'SIMULATED TELEMETRY • VIRTUAL ESTIMATE',
               style: TextStyle(
                 color: AppColors.cyan,
                 fontSize: 11,
@@ -214,7 +218,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
     );
   }
 
-  Widget _buildTariffNoteCard(double tariffRate) {
+  Widget _buildTariffNoteCard(double tariffRate, [AppLocalizations? l10n]) {
     return Container(
       key: const Key('energy_tariff_note'),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -242,8 +246,8 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Current Tariff',
+                Text(
+                  l10n?.currentTariff ?? 'Current Tariff',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.muted,
@@ -253,7 +257,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                 const SizedBox(height: 2),
                 Text(
                   '\$${tariffRate.toStringAsFixed(3)} / kWh (Simulated)',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -336,6 +340,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
     double avgWatts,
     double peakWatts,
     double tariffRate,
+    AppLocalizations? l10n,
   ) {
     return Column(
       children: [
@@ -346,7 +351,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                 key: const Key('metric_total_kwh'),
                 icon: Icons.bolt_rounded,
                 tint: AppColors.green,
-                label: 'Total kWh',
+                label: l10n?.totalKwh ?? 'Total kWh',
                 value: '${totalKWh.toStringAsFixed(1)} kWh',
                 subtitle: '-5.2% vs prior',
               ),
@@ -357,7 +362,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                 key: const Key('metric_estimated_cost'),
                 icon: Icons.attach_money_rounded,
                 tint: const Color(0xFFFFD572),
-                label: 'Estimated Cost',
+                label: l10n?.estimatedCost ?? 'Estimated Cost',
                 value: '\$${estimatedCost.toStringAsFixed(2)}',
                 subtitle: '@ \$${tariffRate.toStringAsFixed(3)}/kWh',
               ),
@@ -372,7 +377,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                 key: const Key('metric_average_watts'),
                 icon: Icons.speed_rounded,
                 tint: AppColors.cyan,
-                label: 'Average Watts',
+                label: l10n?.averageWatts ?? 'Average Watts',
                 value: '${avgWatts.toStringAsFixed(0)} W',
                 subtitle: 'Baseline continuous',
               ),
@@ -383,7 +388,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                 key: const Key('metric_peak_watts'),
                 icon: Icons.trending_up_rounded,
                 tint: AppColors.danger,
-                label: 'Peak Watts',
+                label: l10n?.peakWatts ?? 'Peak Watts',
                 value: '${peakWatts.toStringAsFixed(0)} W',
                 subtitle: 'Spike load telemetry',
               ),
@@ -426,7 +431,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
               const Spacer(),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
@@ -510,7 +515,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
               ),
               Text(
                 'Max: ${maxVal.toStringAsFixed(1)} kWh',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   color: AppColors.cyan,
                   fontWeight: FontWeight.w600,
@@ -536,7 +541,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                       children: [
                         Text(
                           val.toStringAsFixed(1),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 9,
                             color: AppColors.muted,
                             fontWeight: FontWeight.w600,
@@ -574,7 +579,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                         const SizedBox(height: 8),
                         Text(
                           labels[idx],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w500,
@@ -596,6 +601,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
     List<SmartDevice> devices,
     double totalKWh,
     double tariffRate,
+    AppLocalizations? l10n,
   ) {
     // Curated simulation device usage list if devices is empty or to supplement
     final effectiveDevices = devices.isNotEmpty
@@ -647,7 +653,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
             const Spacer(),
             Text(
               '${effectiveDevices.length} tracked',
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              style: TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ],
         ),
@@ -696,7 +702,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                           children: [
                             Text(
                               dev.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -704,7 +710,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                             ),
                             Text(
                               dev.roomId,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.muted,
                               ),
@@ -717,7 +723,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                         children: [
                           Text(
                             '${devKWh.toStringAsFixed(2)} kWh',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
@@ -725,7 +731,7 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                           ),
                           Text(
                             '\$${devCost.toStringAsFixed(2)} • $percentage%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppColors.cyan,
                               fontWeight: FontWeight.w600,
