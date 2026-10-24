@@ -9,6 +9,7 @@ import '../../../services/mock/mock_device_repository.dart';
 import '../../automation/state/automation_providers.dart';
 import '../../demo_lab/presentation/demo_lab_screen.dart';
 import '../../demo_lab/state/demo_lab_providers.dart';
+import '../../onboarding/presentation/welcome_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -257,6 +258,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const EnergyScreen()),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.surfaceBorder, height: 16),
+                ListTile(
+                  key: const Key('open_welcome_tour_tile'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.explore_outlined,
+                      color: AppColors.cyan,
+                      size: 22,
+                    ),
+                  ),
+                  title: const Text(
+                    'Welcome & Demo Tour',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Revisit onboarding highlights, simulation guide & offline mode',
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const WelcomeScreen(),
+                      ),
                     );
                   },
                 ),

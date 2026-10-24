@@ -274,17 +274,22 @@ class DeviceCard extends StatelessWidget {
         key: Key('device_power_btn_${device.id}'),
         onTap: onToggle,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          transitionBuilder: (child, anim) => ScaleTransition(
-            scale: anim,
-            child: child,
-          ),
-          child: Icon(
-            device.isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-            key: ValueKey<bool>(device.isOn),
-            size: 34,
-            color: device.isOn ? AppColors.green : AppColors.mutedDark,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, anim) => ScaleTransition(
+                scale: anim,
+                child: child,
+              ),
+              child: Icon(
+                device.isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                key: ValueKey<bool>(device.isOn),
+                size: 34,
+                color: device.isOn ? AppColors.green : AppColors.mutedDark,
+              ),
+            ),
           ),
         ),
       ),

@@ -127,6 +127,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final l10n = ref.watch(appLocalizationsProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       floatingActionButton: selectedTab == 0
           ? Semantics(
               button: true,
@@ -211,125 +212,122 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
         return ListView(
           padding: EdgeInsets.fromLTRB(
-            screenWidth > 600 ? 32 : 22,
+            screenWidth > 600 ? 32 : (screenWidth < 360 ? 14 : 22),
             16,
-            screenWidth > 600 ? 32 : 22,
+            screenWidth > 600 ? 32 : (screenWidth < 360 ? 14 : 22),
             24,
           ),
           children: [
             // Top App Bar
             Row(
               children: [
-                Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
+Expanded(
+                  child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.home_rounded,
-                            color: AppColors.primary,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'LUMIVO',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 17,
-                            letterSpacing: 1.5,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const HomeAppBarTitle(),
-                      ],
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: const HomeAppBarTitle(),
                     ),
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(
-                  Icons.wifi_rounded,
-                  color: AppColors.green,
-                  size: 20,
-                ),
-                const SizedBox(width: 14),
-                IconButton(
-                  tooltip: l10n.addDevice,
-                  icon: const Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: AppColors.primary,
-                    size: 22,
+                if (screenWidth >= 380) ...[
+                  const Icon(
+                    Icons.wifi_rounded,
+                    color: AppColors.green,
+                    size: 18,
                   ),
-                  onPressed: _openAddDeviceSheet,
-                ),
-                const SizedBox(width: 6),
-                // Notifications Bell with Badge
-                Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    IconButton(
-                      key: const Key('dashboard_notifications_button'),
-                      tooltip: 'Notifications',
+                  const SizedBox(width: 2),
+                ],
+                if (screenWidth >= 360)
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: l10n.addDevice,
+                      padding: EdgeInsets.zero,
                       icon: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: AppColors.textPrimary,
+                        Icons.add_circle_outline_rounded,
+                        color: AppColors.primary,
                         size: 22,
                       ),
-                      onPressed: () => NotificationsSheet.show(context),
+                      onPressed: _openAddDeviceSheet,
                     ),
-                    if (unreadCount > 0)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
+                  ),
+                // Notifications Bell with Badge
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      Center(
+                        child: IconButton(
+                          key: const Key('dashboard_notifications_button'),
+                          tooltip: 'Notifications',
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.notifications_none_rounded,
+                            color: AppColors.textPrimary,
+                            size: 22,
                           ),
-                          child: Text(
-                            '$unreadCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                          onPressed: () => NotificationsSheet.show(context),
+                        ),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 14),
                 Semantics(
                   button: true,
                   label: l10n.userProfilePreferences,
-                  child: InkWell(
-                    key: const Key('dashboard_profile_button'),
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: InkWell(
+                      key: const Key('dashboard_profile_button'),
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      child: const Center(
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppColors.surfaceElevated,
+                          child: Icon(
+                            Icons.person_outline_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
-                      );
-                    },
-                    child: const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: AppColors.surfaceElevated,
-                      child: Icon(
-                        Icons.person_outline_rounded,
-                        color: Colors.white,
-                        size: 18,
                       ),
+                    ),
+                  ),
+                ),
                     ),
                   ),
                 ),
@@ -807,8 +805,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     : Colors.transparent,
               ),
             ),
+child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   isSelected ? activeIcon : icon,
@@ -821,6 +822,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: Text(
                     label,
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight:
@@ -828,6 +830,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       color: isSelected ? Colors.white : AppColors.muted,
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
                 ),
               ],
             ),

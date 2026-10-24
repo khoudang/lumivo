@@ -73,12 +73,16 @@ class FavoritesSection extends StatelessWidget {
             ),
             const Spacer(),
             if (favoriteDevices.isNotEmpty)
-              Text(
-                dragText,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.muted,
-                  fontStyle: FontStyle.italic,
+              Flexible(
+                child: Text(
+                  dragText,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.muted,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
           ],
@@ -245,15 +249,24 @@ class FavoritesSection extends StatelessWidget {
                     button: true,
                     label: '${isOn ? 'Turn off' : 'Turn on'} ${device.name}',
                     toggled: isOn,
-                    child: GestureDetector(
-                      onTap:
-                          isOffline ? null : () => onDeviceToggle?.call(device),
-                      child: Icon(
-                        isOn
-                            ? Icons.toggle_on_rounded
-                            : Icons.toggle_off_rounded,
-                        size: 30,
-                        color: isOn ? AppColors.green : AppColors.mutedDark,
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 48),
+                      child: Center(
+                        child: GestureDetector(
+                          key: Key('favorite_toggle_btn_${device.id}'),
+                          onTap: isOffline
+                              ? null
+                              : () => onDeviceToggle?.call(device),
+                          behavior: HitTestBehavior.opaque,
+                          child: Icon(
+                            isOn
+                                ? Icons.toggle_on_rounded
+                                : Icons.toggle_off_rounded,
+                            size: 30,
+                            color: isOn ? AppColors.green : AppColors.mutedDark,
+                          ),
+                        ),
                       ),
                     ),
                   ),

@@ -77,6 +77,8 @@ class MetricCard extends StatelessWidget {
                           ),
                           child: Text(
                             statusBadge!,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,

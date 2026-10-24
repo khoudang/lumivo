@@ -122,30 +122,34 @@ class BrightnessSliderCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Slider with Semantics
+          // Slider with Semantics and comfortable touch height
           Semantics(
             slider: true,
             label: '${device.name} brightness',
             value: '$percent%',
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 6,
-                activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.surfaceElevated,
-                thumbColor: AppColors.primary,
-                overlayColor: AppColors.primary.withValues(alpha: 0.16),
-                thumbShape: const RoundSliderThumbShape(
-                  enabledThumbRadius: 8,
-                  pressedElevation: 4,
+            child: SizedBox(
+              height: 48,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 6,
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: AppColors.surfaceElevated,
+                  thumbColor: AppColors.primary,
+                  overlayColor: AppColors.primary.withValues(alpha: 0.16),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 8,
+                    pressedElevation: 4,
+                  ),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 18),
                 ),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-              ),
-              child: Slider(
-                value: brightness.clamp(0.0, 100.0),
-                min: 0,
-                max: 100,
-                onChanged: _isDisabled ? null : onChanged,
-                onChangeEnd: _isDisabled ? null : onChangeEnd,
+                child: Slider(
+                  value: brightness.clamp(0.0, 100.0),
+                  min: 0,
+                  max: 100,
+                  onChanged: _isDisabled ? null : onChanged,
+                  onChangeEnd: _isDisabled ? null : onChangeEnd,
+                ),
               ),
             ),
           ),
@@ -182,27 +186,33 @@ class BrightnessSliderCard extends StatelessWidget {
                 onChanged(target);
                 onChangeEnd(target);
               },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.22)
-                : AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.6)
-                  : AppColors.surfaceBorder,
-              width: 1,
-            ),
-          ),
-          child: Text(
-            '$targetPercent%',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.22)
+                    : AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary.withValues(alpha: 0.6)
+                      : AppColors.surfaceBorder,
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                '$targetPercent%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color:
+                      isSelected ? AppColors.primary : AppColors.textSecondary,
+                ),
+              ),
             ),
           ),
         ),

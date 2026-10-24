@@ -282,16 +282,24 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 680),
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              children: [
-                _buildDeviceStatusHeader(currentDevice),
-                const SizedBox(height: 24),
-                _buildSpecializedControl(currentDevice),
-                const SizedBox(height: 24),
-                _buildDeviceInfoCard(currentDevice),
-                const SizedBox(height: 32),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 360;
+                return ListView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isNarrow ? 14 : 24,
+                    vertical: 16,
+                  ),
+                  children: [
+                    _buildDeviceStatusHeader(currentDevice),
+                    const SizedBox(height: 24),
+                    _buildSpecializedControl(currentDevice),
+                    const SizedBox(height: 24),
+                    _buildDeviceInfoCard(currentDevice),
+                    const SizedBox(height: 32),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -344,7 +352,9 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                   ),
                 ),
                 const SizedBox(height: 6),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -382,7 +392,6 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -505,7 +514,9 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             slider: true,
             label: '${device.name} brightness',
             value: '${device.brightness}%',
-            child: Slider(
+            child: SizedBox(
+              height: 48,
+              child: Slider(
               value: device.brightness.toDouble(),
               min: 0,
               max: 100,
@@ -535,6 +546,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             children: moods.map((mood) {
               final isSelected = _selectedColorPreset == mood;
               return ChoiceChip(
+                materialTapTargetSize: MaterialTapTargetSize.padded,
                 label: Text(mood),
                 selected: isSelected,
                 selectedColor: AppColors.primary.withValues(alpha: 0.25),
@@ -630,6 +642,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                   child: ElevatedButton(
                     onPressed: () => _updateFanSpeed(speed),
                     style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
                       backgroundColor: isSelected
                           ? AppColors.cyan
                           : AppColors.surfaceElevated,
@@ -681,18 +694,22 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
               const Text(
                 'Climate Control',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
               ),
               const Spacer(),
-              Text(
-                'Current: ${device.currentTemperature.toStringAsFixed(1)}°C',
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  'Current: ${device.currentTemperature.toStringAsFixed(1)}°C',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -713,30 +730,38 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                   _sendCommand(DeviceCommandType.setTargetTemperature, next);
                 },
               ),
-              const SizedBox(width: 24),
-              Column(
-                children: [
-                  Text(
-                    '${device.targetTemperature.toStringAsFixed(1)}°C',
-                    style: const TextStyle(
-                      fontSize: 44,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -1.0,
+              const SizedBox(width: 12),
+              Flexible(
+                child: Column(
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${device.targetTemperature.toStringAsFixed(1)}°C',
+                        style: const TextStyle(
+                          fontSize: 44,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -1.0,
+                        ),
+                      ),
                     ),
-                  ),
-                  const Text(
-                    'TARGET TEMPERATURE',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.cyan,
+                    const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'TARGET TEMPERATURE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.cyan,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 12),
               IconButton.filled(
                 icon: const Icon(Icons.add_rounded, size: 24),
                 style: IconButton.styleFrom(
@@ -759,6 +784,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             children: modes.map((mode) {
               final isSelected = _selectedAcMode == mode;
               return ChoiceChip(
+                materialTapTargetSize: MaterialTapTargetSize.padded,
                 label: Text(mode),
                 selected: isSelected,
                 selectedColor: AppColors.cyan.withValues(alpha: 0.25),
@@ -948,9 +974,11 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
           const SizedBox(height: 18),
           Semantics(
             slider: true,
-            label: '${device.name} brightness',
-            value: '${device.brightness}%',
-            child: Slider(
+            label: '${device.name} position',
+            value: '${device.position}%',
+            child: SizedBox(
+              height: 48,
+              child: Slider(
               value: device.position.toDouble(),
               min: 0,
               max: 100,
@@ -968,6 +996,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             children: [
               Expanded(
                 child: OutlinedButton.icon(
+                  style:
+                      OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.arrow_upward_rounded, size: 16),
                   label: const Text('Open'),
                   onPressed: () =>
@@ -977,6 +1007,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
+                  style:
+                      OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.pause_rounded, size: 16),
                   label: const Text('Stop'),
                   onPressed: () => _sendCommand(
@@ -986,6 +1018,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
+                  style:
+                      OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.arrow_downward_rounded, size: 16),
                   label: const Text('Close'),
                   onPressed: () =>
@@ -1300,7 +1334,6 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
@@ -1310,12 +1343,18 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
               fontWeight: FontWeight.w500,
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
