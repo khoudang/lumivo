@@ -7,6 +7,7 @@ import '../../../core/models/automation_rule.dart';
 import '../../../core/models/device_command.dart';
 import '../../../core/theme/app_theme.dart';
 import '../state/automation_providers.dart';
+import 'automation_history_sheet.dart';
 import 'create_automation_screen.dart';
 import 'scene_editor_sheet.dart';
 
@@ -123,6 +124,13 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                       ),
                       const Spacer(),
                       IconButton.filledTonal(
+                        key: const Key('view_automation_history_button'),
+                        icon: const Icon(Icons.history_rounded, size: 22),
+                        tooltip: l10n.viewHistory,
+                        onPressed: () => AutomationHistorySheet.show(context),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
                         icon: const Icon(Icons.add_rounded, size: 22),
                         tooltip: 'New Rule',
                         onPressed: () {
@@ -215,8 +223,14 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
   }
 
   Widget _buildRuleCard(AutomationRule rule) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final triggerSummary = _formatTrigger(rule);
     final actionSummary = _formatAction(rule);
+    final history = ref.watch(automationHistoryProvider);
+    final lastRecord = history.cast<AutomationExecutionRecord?>().firstWhere(
+          (r) => r?.ruleId == rule.id,
+          orElse: () => null,
+        );
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -278,7 +292,18 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                   ],
                 ),
               ),
+              IconButton(
+                key: Key('duplicate_automation_${rule.id}'),
+                icon: const Icon(
+                  Icons.copy_rounded,
+                  color: AppColors.muted,
+                  size: 20,
+                ),
+                tooltip: l10n.duplicate,
+                onPressed: () => _confirmDuplicateRule(rule, l10n),
+              ),
               Switch(
+                key: Key('toggle_automation_${rule.id}'),
                 value: rule.isEnabled,
                 activeThumbColor: AppColors.primary,
                 onChanged: (_) {
@@ -323,9 +348,121 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                 actionSummary,
                 AppColors.green,
               ),
+              if (lastRecord != null) _executionStatusChip(lastRecord, l10n),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmDuplicateRule(AutomationRule rule, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          '${l10n.duplicate} ${rule.name}',
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+        ),
+        content: Text(
+          'Create a duplicate copy of "${rule.name}"?',
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              l10n.cancel,
+              style: const TextStyle(color: AppColors.muted),
+            ),
+          ),
+          ElevatedButton(
+            key: Key('confirm_duplicate_${rule.id}'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              final duplicated = rule.copyWith(
+                id: '${rule.id}_copy_${DateTime.now().millisecondsSinceEpoch}',
+                name: '${rule.name} (Copy)',
+              );
+              ref.read(automationRulesProvider.notifier).addRule(duplicated);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.automationDuplicated),
+                  backgroundColor: AppColors.green,
+                ),
+              );
+            },
+            child: Text(l10n.duplicate),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _executionStatusChip(
+      AutomationExecutionRecord record, AppLocalizations l10n) {
+    Color tint;
+    IconData icon;
+    String label;
+    String tooltip;
+
+    switch (record.status) {
+      case AutomationExecutionStatus.executed:
+        tint = AppColors.green;
+        icon = Icons.check_circle_outline_rounded;
+        label = 'Executed';
+        tooltip = record.reason;
+        break;
+      case AutomationExecutionStatus.skipped:
+        tint = AppColors.warning;
+        icon = Icons.next_plan_outlined;
+        label = 'Skipped';
+        tooltip = l10n.skippedExplanation;
+        break;
+      case AutomationExecutionStatus.failed:
+        tint = AppColors.danger;
+        icon = Icons.error_outline_rounded;
+        label = 'Failed';
+        tooltip = record.reason;
+        break;
+      case AutomationExecutionStatus.loopPrevented:
+        tint = const Color(0xFFB388FF);
+        icon = Icons.all_inclusive_rounded;
+        label = 'Loop Prevented';
+        tooltip = l10n.loopPreventedExplanation;
+        break;
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: tint.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: tint.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: tint),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: tint,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

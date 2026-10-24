@@ -1,17 +1,18 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../profile/state/user_profile_notifier.dart';
-import 'package:flutter/material.dart';
 import '../../../core/models/discovered_device.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../profile/state/user_profile_notifier.dart';
 
 enum _AddDeviceStep {
   scanning,
   wifiInput,
   provisioning,
   success,
+  timeout,
 }
 
 /// A dark minimal modal bottom sheet for discovering, provisioning,
@@ -20,14 +21,17 @@ class AddDeviceSheet extends ConsumerStatefulWidget {
   const AddDeviceSheet({
     super.key,
     this.onDeviceAdded,
+    this.simulateTimeout = false,
   });
 
   final void Function(SmartDevice newDevice)? onDeviceAdded;
+  final bool simulateTimeout;
 
   /// Helper to display the Add Device bottom sheet modally.
   static Future<T?> show<T>(
     BuildContext context, {
     void Function(SmartDevice newDevice)? onDeviceAdded,
+    bool simulateTimeout = false,
   }) {
     return showModalBottomSheet<T>(
       context: context,
@@ -36,7 +40,10 @@ class AddDeviceSheet extends ConsumerStatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) => AddDeviceSheet(onDeviceAdded: onDeviceAdded),
+      builder: (_) => AddDeviceSheet(
+        onDeviceAdded: onDeviceAdded,
+        simulateTimeout: simulateTimeout,
+      ),
     );
   }
 
@@ -123,6 +130,15 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
     });
 
     _provisioningTimer?.cancel();
+
+    if (widget.simulateTimeout) {
+      _provisioningTimer = Timer(const Duration(milliseconds: 250), () {
+        if (!mounted) return;
+        setState(() => _currentStep = _AddDeviceStep.timeout);
+      });
+      return;
+    }
+
     _provisioningTimer =
         Timer.periodic(const Duration(milliseconds: 1100), (timer) {
       if (!mounted) {
@@ -136,6 +152,41 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
         setState(() => _currentStep = _AddDeviceStep.success);
       }
     });
+  }
+
+  void _retryPairing() {
+    setState(() {
+      _currentStep = _AddDeviceStep.provisioning;
+      _provisioningPhase = 0;
+    });
+
+    _provisioningTimer?.cancel();
+    _provisioningTimer =
+        Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_provisioningPhase < 3) {
+        setState(() => _provisioningPhase++);
+      } else {
+        timer.cancel();
+        setState(() => _currentStep = _AddDeviceStep.success);
+      }
+    });
+  }
+
+  void _cancelFlow() {
+    _provisioningTimer?.cancel();
+    if (_currentStep == _AddDeviceStep.scanning ||
+        _currentStep == _AddDeviceStep.timeout) {
+      Navigator.of(context).pop();
+    } else {
+      setState(() {
+        _currentStep = _AddDeviceStep.scanning;
+        _provisioningPhase = 0;
+      });
+    }
   }
 
   void _finishAndClose() {
@@ -208,22 +259,26 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
                   else
                     const SizedBox(width: 8),
                   const SizedBox(width: 10),
-                  Text(
-                    _stepTitle(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                  Expanded(
+                    child: Text(
+                      _stepTitle(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
-                    tooltip: 'Close',
+                    key: _currentStep == _AddDeviceStep.timeout
+                        ? null
+                        : const Key('onboarding_cancel_button'),
+                    tooltip: 'Cancel',
                     icon:
                         const Icon(Icons.close_rounded, color: AppColors.muted),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _cancelFlow,
                   ),
                 ],
               ),
@@ -240,6 +295,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
                       _AddDeviceStep.wifiInput => _buildWifiInputView(),
                       _AddDeviceStep.provisioning => _buildProvisioningView(),
                       _AddDeviceStep.success => _buildSuccessView(),
+                      _AddDeviceStep.timeout => _buildTimeoutView(),
                     },
                   ),
                 ),
@@ -257,11 +313,13 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
       case _AddDeviceStep.scanning:
         return l10n?.discoveredDevices ?? 'Discovered Devices';
       case _AddDeviceStep.wifiInput:
-        return 'Wi-Fi Setup';
+        return l10n?.wifiSetup ?? 'Wi-Fi Setup';
       case _AddDeviceStep.provisioning:
-        return 'Pairing Device';
+        return l10n?.pairingDevice ?? 'Pairing Device';
       case _AddDeviceStep.success:
-        return 'Device Ready';
+        return l10n?.deviceReady ?? 'Device Ready';
+      case _AddDeviceStep.timeout:
+        return l10n?.pairingTimeout ?? 'Pairing timed out';
     }
   }
 
@@ -273,7 +331,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
       key: const ValueKey('scanning'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Radar Pulse Animation
+        // Radar Pulse Animation with Concentric Pulsating Rings
         SizedBox(
           height: 140,
           child: Center(
@@ -315,7 +373,29 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
+
+        // Live Discovered Devices Count
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Text(
+            '${_mockDiscovered.length} devices found',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 18),
 
         // List of mock discovered devices
         ..._mockDiscovered.map((device) => _discoveredDeviceTile(device)),
@@ -336,6 +416,8 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           ),
         ),
         child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -354,6 +436,8 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           ),
           title: Text(
             device.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -361,20 +445,25 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
             ),
           ),
           subtitle: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               _signalBars(device.rssi),
-              const SizedBox(width: 8),
-              Text(
-                '${device.rssi} dBm',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.muted,
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  '${device.rssi} dBm',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.muted,
+                  ),
                 ),
               ),
             ],
           ),
           trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
@@ -516,16 +605,19 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
             ),
           ),
         ),
-        const SizedBox(height: 28),
-        ElevatedButton(
-          onPressed: _startProvisioning,
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.bolt_rounded, size: 20),
-              SizedBox(width: 8),
-              Text('Provision & Connect Device'),
-            ],
+        const SizedBox(height: 24),
+        SizedBox(
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _startProvisioning,
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.bolt_rounded, size: 20),
+                SizedBox(width: 8),
+                Text('Provision & Connect Device'),
+              ],
+            ),
           ),
         ),
       ],
@@ -547,6 +639,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
 
     return Column(
       key: const ValueKey('provisioning'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 12),
 
@@ -583,6 +676,24 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
         ],
 
         const SizedBox(height: 24),
+
+        // Cancel Pairing Button with minimum 48pt touch height
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            key: const Key('provisioning_cancel_button'),
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text('Cancel Pairing'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.muted,
+              side: const BorderSide(color: AppColors.surfaceBorder),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _cancelFlow,
+          ),
+        ),
       ],
     );
   }
@@ -661,6 +772,15 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
   // Step 4: Success View
   // -------------------------------------------------------------
   Widget _buildSuccessView() {
+    final l10n = AppLocalizations.of(context);
+    const availableRooms = [
+      'Living Room',
+      'Bedroom',
+      'Kitchen',
+      'Office',
+      'Balcony',
+    ];
+
     return Column(
       key: const ValueKey('success'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -715,11 +835,11 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           ),
         ),
 
-        const SizedBox(height: 26),
+        const SizedBox(height: 24),
 
-        const Text(
-          'Assign to Room',
-          style: TextStyle(
+        Text(
+          l10n?.assignRoom ?? 'Assign Room',
+          style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -727,10 +847,48 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
         ),
         const SizedBox(height: 10),
 
+        // Room Assignment Dropdown
+        DropdownButtonFormField<String>(
+          key: const Key('room_assignment_dropdown'),
+          initialValue: _assignedRoom,
+          isExpanded: true,
+          dropdownColor: AppColors.surfaceElevated,
+          decoration: InputDecoration(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: AppColors.surfaceElevated,
+            prefixIcon: const Icon(
+              Icons.meeting_room_outlined,
+              color: AppColors.primary,
+              size: 20,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.surfaceBorder),
+            ),
+          ),
+          items: availableRooms
+              .map((r) => DropdownMenuItem(
+                    value: r,
+                    child: Text(
+                      r,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ))
+              .toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _assignedRoom = val);
+          },
+        ),
+
+        const SizedBox(height: 12),
+
+        // Quick Choice Chips
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: ['Living Room', 'Bedroom', 'Kitchen', 'Office']
+          children: availableRooms
               .map((room) => ChoiceChip(
                     label: Text(room),
                     selected: _assignedRoom == room,
@@ -751,9 +909,109 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
 
         const SizedBox(height: 28),
 
-        ElevatedButton(
-          onPressed: _finishAndClose,
-          child: const Text('Complete & Go to Dashboard'),
+        SizedBox(
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _finishAndClose,
+            child: const Text('Complete & Go to Dashboard'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------
+  // Step 5: Timeout View with Retry and Cancel Flows
+  // -------------------------------------------------------------
+  Widget _buildTimeoutView() {
+    final l10n = AppLocalizations.of(context);
+
+    return Column(
+      key: const ValueKey('timeout'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        Center(
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.warning,
+                width: 2,
+              ),
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.warning,
+              size: 38,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Text(
+            l10n?.pairingTimeout ?? 'Pairing timed out',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Center(
+          child: Text(
+            'Unable to establish BLE handshake or transfer credentials within the timeout window. Please verify Bluetooth proximity.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.35,
+            ),
+          ),
+        ),
+        const SizedBox(height: 28),
+        SizedBox(
+          height: 48,
+          child: ElevatedButton.icon(
+            key: const Key('onboarding_retry_button'),
+            icon: const Icon(Icons.refresh_rounded, size: 20),
+            label: Text(
+              l10n?.retryPairing ?? 'Retry Pairing',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _retryPairing,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            key: const Key('onboarding_cancel_button'),
+            icon: const Icon(Icons.close_rounded, size: 20),
+            label: Text(
+              l10n?.cancel ?? 'Cancel',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.muted,
+              side: const BorderSide(color: AppColors.surfaceBorder),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _cancelFlow,
+          ),
         ),
       ],
     );
