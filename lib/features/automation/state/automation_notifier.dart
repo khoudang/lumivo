@@ -40,6 +40,27 @@ class AutomationNotifier extends StateNotifier<List<AutomationRule>> {
     _persist();
   }
 
+  void disableRule(String id) {
+    state = [
+      for (final r in state)
+        if (r.id == id) r.copyWith(isEnabled: false) else r,
+    ];
+    _persist();
+  }
+
+  AutomationRule duplicateRule(String id) {
+    final original = state.firstWhere(
+      (r) => r.id == id,
+      orElse: () => throw ArgumentError('Rule not found: $id'),
+    );
+    final duplicate = original.copyWith(
+      id: '${original.id}-copy-${DateTime.now().millisecondsSinceEpoch}',
+      name: '${original.name} (Copy)',
+    );
+    addRule(duplicate);
+    return duplicate;
+  }
+
   void updateRule(AutomationRule rule) {
     state = [
       for (final r in state)
