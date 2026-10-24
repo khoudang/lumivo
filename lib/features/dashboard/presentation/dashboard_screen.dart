@@ -1,3 +1,5 @@
+import '../../health/presentation/smart_home_health_screen.dart';
+import '../../lab/presentation/demo_lab_sheet.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
@@ -390,7 +392,111 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
 
-            const SizedBox(height: 26),
+            const SizedBox(height: 18),
+
+            // Quick Status Area: Smart Home Health & Demo Lab
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: InkWell(
+                    key: const Key('dashboard_health_button'),
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SmartHomeHealthScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.green.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.favorite_rounded,
+                            color: AppColors.green,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              l10n.healthDashboard,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: InkWell(
+                    key: const Key('dashboard_demo_lab_button'),
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => DemoLabSheet.show(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.cyan.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.science_rounded,
+                            color: AppColors.cyan,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              l10n.demoLab,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 22),
 
             // Metrics Section (Responsive row / wrap)
             _buildResponsiveMetrics(screenWidth, isCompact, l10n),
