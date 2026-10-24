@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -18,6 +19,10 @@ class FavoritesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final title = l10n?.favorites ?? 'Favorites';
+    final dragText = l10n?.dragToReorder ?? 'Drag to reorder';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,9 +42,9 @@ class FavoritesSection extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
-              'Favorites',
-              style: TextStyle(
+            Text(
+              title,
+              style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -68,9 +73,9 @@ class FavoritesSection extends StatelessWidget {
             ),
             const Spacer(),
             if (favoriteDevices.isNotEmpty)
-              const Text(
-                'Drag to reorder',
-                style: TextStyle(
+              Text(
+                dragText,
+                style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.muted,
                   fontStyle: FontStyle.italic,
@@ -83,14 +88,16 @@ class FavoritesSection extends StatelessWidget {
 
         // Empty state vs Reorderable list
         if (favoriteDevices.isEmpty)
-          _buildEmptyState()
+          _buildEmptyState(l10n)
         else
-          _buildFavoritesList(),
+          _buildFavoritesList(context),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations? l10n) {
+    final emptyDesc = l10n?.noFavoritesPinned ??
+        'No favorite devices pinned yet. Long press or tap settings on any device to add to favorites.';
     return Container(
       key: const Key('favorites_empty_state'),
       width: double.infinity,
@@ -120,10 +127,10 @@ class FavoritesSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'No favorite devices pinned yet. Long press or tap settings on any device to add to favorites.',
+          Text(
+            emptyDesc,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
               height: 1.4,
@@ -134,9 +141,9 @@ class FavoritesSection extends StatelessWidget {
     );
   }
 
-  Widget _buildFavoritesList() {
+  Widget _buildFavoritesList(BuildContext context) {
     return SizedBox(
-      height: 136,
+      height: 144,
       child: ReorderableListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: favoriteDevices.length,
@@ -164,157 +171,137 @@ class FavoritesSection extends StatelessWidget {
     final isOffline = device.connection == DeviceConnection.offline;
     final isOn = device.isOn && !isOffline;
 
-    return InkWell(
-      onTap: () => onDeviceTap?.call(device),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 160,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: isOn
-              ? const LinearGradient(
-                  colors: [Color(0xFF282444), Color(0xFF171D29)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : const LinearGradient(
-                  colors: [AppColors.surfaceElevated, AppColors.surface],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isOn
-                ? AppColors.primary.withValues(alpha: 0.5)
-                : AppColors.surfaceBorder,
-            width: 1.2,
-          ),
-          boxShadow: AppShadows.cardGlow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Top Row: Device Icon + Favorite Star Badge + Toggle
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isOn
-                        ? AppColors.primary.withValues(alpha: 0.2)
-                        : AppColors.surfaceElevated,
-                    shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: device.name,
+      child: InkWell(
+        onTap: () => onDeviceTap?.call(device),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 160,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: isOn
+                ? const LinearGradient(
+                    colors: [Color(0xFF282444), Color(0xFF171D29)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [AppColors.surfaceElevated, AppColors.surface],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: Icon(
-                    _deviceIcon(device),
-                    color: isOn ? AppColors.primary : AppColors.muted,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Star favorite indicator badge
-                Container(
-                  key: Key('favorite_badge_${device.id}'),
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD572).withValues(alpha: 0.16),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.star_rounded,
-                    color: Color(0xFFFFD572),
-                    size: 14,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: isOffline ? null : () => onDeviceToggle?.call(device),
-                  child: Icon(
-                    isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                    size: 30,
-                    color: isOn ? AppColors.green : AppColors.mutedDark,
-                  ),
-                ),
-              ],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isOn
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : AppColors.surfaceBorder,
+              width: 1.2,
             ),
-
-            // Bottom info: Name & Room
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  device.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+            boxShadow: AppShadows.cardGlow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Top Row: Device Icon + Favorite Star Badge + Toggle
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isOn
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : AppColors.surfaceElevated,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _deviceIcon(device),
+                      color: isOn ? AppColors.primary : AppColors.muted,
+                      size: 20,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        device.roomId,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.muted,
-                        ),
+                  const SizedBox(width: 6),
+                  // Star favorite indicator badge
+                  Semantics(
+                    label: 'Favorite star',
+                    child: Container(
+                      key: Key('favorite_badge_${device.id}'),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD572).withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFFFD572),
+                        size: 14,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isOffline
-                          ? 'Offline'
-                          : (isOn
-                              ? (device.type == DeviceType.light
-                                  ? '${device.brightness}%'
-                                  : 'On')
-                              : 'Off'),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                  ),
+                  const Spacer(),
+                  Semantics(
+                    button: true,
+                    label: '${isOn ? 'Turn off' : 'Turn on'} ${device.name}',
+                    toggled: isOn,
+                    child: GestureDetector(
+                      onTap:
+                          isOffline ? null : () => onDeviceToggle?.call(device),
+                      child: Icon(
+                        isOn
+                            ? Icons.toggle_on_rounded
+                            : Icons.toggle_off_rounded,
+                        size: 30,
                         color: isOn ? AppColors.green : AppColors.mutedDark,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+                  ),
+                ],
+              ),
+
+              // Bottom info: Name & Room
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      device.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      device.roomId,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   IconData _deviceIcon(SmartDevice device) {
-    if (device.customIcon != null) {
-      switch (device.customIcon) {
-        case 'bulb':
-          return Icons.lightbulb_rounded;
-        case 'desk_lamp':
-          return Icons.desk_rounded;
-        case 'ceiling_light':
-          return Icons.wb_incandescent_rounded;
-        case 'fan':
-          return Icons.mode_fan_off_outlined;
-        case 'ac_unit':
-          return Icons.ac_unit_rounded;
-        case 'power':
-          return Icons.power_rounded;
-        case 'lock':
-          return Icons.lock_rounded;
-        case 'window':
-          return Icons.curtains_rounded;
-        case 'sensor':
-          return Icons.sensors_rounded;
-      }
-    }
     switch (device.type) {
       case DeviceType.light:
         return Icons.lightbulb_rounded;

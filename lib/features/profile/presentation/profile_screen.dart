@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../app/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../energy/presentation/energy_screen.dart';
-import '../../home/state/homes_notifier.dart';
-import '../state/user_profile_notifier.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -14,7 +13,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  void _showTariffDialog() {
+  void _showTariffDialog([AppLocalizations? l10n]) {
     final currentHome = ref.read(currentHomeProvider);
     final currentTariff = ref.read(energyTariffProvider) > 0
         ? ref.read(energyTariffProvider)
@@ -49,7 +48,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Set simulated electricity cost rate (\$/kWh):',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
@@ -75,7 +74,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             key: const Key('confirm_profile_tariff_button'),
@@ -97,7 +96,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               }
               Navigator.of(dialogCtx).pop();
             },
-            child: const Text('Save'),
+            child: Text(l10n?.save ?? 'Save'),
           ),
         ],
       ),
@@ -106,6 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final profile = ref.watch(userProfileProvider);
     final currentHome = ref.watch(currentHomeProvider);
     final tariffRate = ref.watch(energyTariffProvider) > 0
@@ -115,7 +115,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Profile & Preferences'),
+        leading: IconButton(
+          icon: const BackButtonIcon(),
+          tooltip: l10n.back,
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(l10n.userProfilePreferences),
       ),
       body: SafeArea(
         child: ListView(
@@ -127,8 +132,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 24),
 
             // Preferences Section
-            const Text(
-              'Preferences',
+            Text(
+              l10n.preferences,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -137,7 +142,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
 
-            _buildPreferencesContainer(profile, tariffRate),
+            _buildPreferencesContainer(profile, tariffRate, l10n),
 
             const SizedBox(height: 24),
 
@@ -239,7 +244,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildPreferencesContainer(UserProfile profile, double tariffRate) {
+  Widget _buildPreferencesContainer(UserProfile profile, double tariffRate,
+      [AppLocalizations? l10n]) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -258,12 +264,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const Icon(Icons.language_rounded,
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Language',
+                          l10n?.language ?? 'Language',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -314,12 +320,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const Icon(Icons.palette_outlined,
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Theme Mode',
+                          l10n?.themeMode ?? 'Theme Mode',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -368,16 +374,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               secondary: const Icon(Icons.accessibility_new_rounded,
                   color: AppColors.primary, size: 20),
-              title: const Text(
-                'Reduced Motion',
+              title: Text(
+                l10n?.reducedMotion ?? 'Reduced Motion',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
               ),
-              subtitle: const Text(
-                'Disables pulse, radar, and shimmer animations for accessibility',
+              subtitle: Text(
+                l10n?.reducedMotionDesc ??
+                    'Disables pulse, radar, and shimmer animations for accessibility',
                 style: TextStyle(fontSize: 11, color: AppColors.muted),
               ),
               value: profile.reducedMotion,
@@ -396,12 +403,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const Icon(Icons.thermostat_outlined,
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Temperature Unit',
+                          l10n?.temperatureUnit ?? 'Temperature Unit',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -450,8 +457,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               leading: const Icon(Icons.receipt_long_rounded,
                   color: AppColors.primary, size: 20),
-              title: const Text(
-                'Electricity Tariff',
+              title: Text(
+                l10n?.electricityTariff ?? 'Electricity Tariff',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -464,7 +471,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded,
                   size: 14, color: AppColors.muted),
-              onTap: _showTariffDialog,
+              onTap: () => _showTariffDialog(l10n),
             ),
           ],
         ),

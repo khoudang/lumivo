@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../profile/state/user_profile_notifier.dart';
 import 'package:flutter/material.dart';
 import '../../../core/models/discovered_device.dart';
 import '../../../core/models/smart_device.dart';
@@ -13,7 +16,7 @@ enum _AddDeviceStep {
 
 /// A dark minimal modal bottom sheet for discovering, provisioning,
 /// and adding a new Lumivo smart device.
-class AddDeviceSheet extends StatefulWidget {
+class AddDeviceSheet extends ConsumerStatefulWidget {
   const AddDeviceSheet({
     super.key,
     this.onDeviceAdded,
@@ -38,10 +41,10 @@ class AddDeviceSheet extends StatefulWidget {
   }
 
   @override
-  State<AddDeviceSheet> createState() => _AddDeviceSheetState();
+  ConsumerState<AddDeviceSheet> createState() => _AddDeviceSheetState();
 }
 
-class _AddDeviceSheetState extends State<AddDeviceSheet>
+class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
     with SingleTickerProviderStateMixin {
   _AddDeviceStep _currentStep = _AddDeviceStep.scanning;
   late final AnimationController _pulseController;
@@ -87,7 +90,14 @@ class _AddDeviceSheetState extends State<AddDeviceSheet>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    )..repeat();
+    );
+    bool isReduced = false;
+    try {
+      isReduced = ref.read(userProfileProvider).reducedMotion;
+    } catch (_) {}
+    if (!isReduced) {
+      _pulseController.repeat();
+    }
   }
 
   @override
@@ -146,6 +156,17 @@ class _AddDeviceSheetState extends State<AddDeviceSheet>
 
   @override
   Widget build(BuildContext context) {
+    bool isReduced = false;
+    try {
+      isReduced = ref.watch(userProfileProvider).reducedMotion;
+    } catch (_) {
+      isReduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    }
+    if (isReduced && _pulseController.isAnimating) {
+      _pulseController.stop();
+    } else if (!isReduced && !_pulseController.isAnimating) {
+      _pulseController.repeat();
+    }
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -177,6 +198,7 @@ class _AddDeviceSheetState extends State<AddDeviceSheet>
                 children: [
                   if (_currentStep == _AddDeviceStep.wifiInput)
                     IconButton(
+                      tooltip: 'Back',
                       icon: const Icon(Icons.arrow_back_rounded),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -196,6 +218,7 @@ class _AddDeviceSheetState extends State<AddDeviceSheet>
                   ),
                   const Spacer(),
                   IconButton(
+                    tooltip: 'Close',
                     icon:
                         const Icon(Icons.close_rounded, color: AppColors.muted),
                     padding: EdgeInsets.zero,
@@ -229,9 +252,10 @@ class _AddDeviceSheetState extends State<AddDeviceSheet>
   }
 
   String _stepTitle() {
+    final l10n = AppLocalizations.of(context);
     switch (_currentStep) {
       case _AddDeviceStep.scanning:
-        return 'Discovered Devices';
+        return l10n?.discoveredDevices ?? 'Discovered Devices';
       case _AddDeviceStep.wifiInput:
         return 'Wi-Fi Setup';
       case _AddDeviceStep.provisioning:

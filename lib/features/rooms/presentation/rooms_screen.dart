@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+
 import '../../../core/models/room.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
@@ -27,26 +28,37 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
     'balcony': (Icons.balcony_rounded, 'Balcony'),
   };
 
-  void _showAddRoomDialog() {
+  void _showAddRoomDialog([AppLocalizations? l10n]) {
     final nameController = TextEditingController();
     String selectedIcon = 'living_room';
+    final titleText = l10n?.addNewRoom ?? 'Add New Room';
+    final nameLabel = l10n?.roomName ?? 'Room Name';
+    final cancelLabel = l10n?.cancel ?? 'Cancel';
+    final addLabel =
+        l10n?.locale.languageCode == 'vi' ? 'Thêm phòng' : 'Add Room';
 
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.add_home_rounded,
+                const Icon(Icons.add_home_rounded,
                     color: AppColors.primary, size: 24),
-                SizedBox(width: 10),
-                Text(
-                  'Add New Room',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      titleText,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -56,9 +68,9 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Room Name',
-                    style: TextStyle(
+                  Text(
+                    nameLabel,
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
@@ -146,7 +158,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogCtx).pop(),
-                child: const Text('Cancel'),
+                child: Text(cancelLabel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -168,7 +180,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                     );
                   }
                 },
-                child: const Text('Add Room'),
+                child: Text(addLabel),
               ),
             ],
           );
@@ -299,18 +311,6 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                                     ],
                                   ),
                                 ),
-                                Text(
-                                  dev.connection == DeviceConnection.online
-                                      ? 'Online'
-                                      : 'Offline',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: dev.connection ==
-                                            DeviceConnection.online
-                                        ? AppColors.cyan
-                                        : AppColors.danger,
-                                  ),
-                                ),
                               ],
                             ),
                           );
@@ -331,6 +331,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
     final rooms = ref.watch(roomsProvider);
     final devicesAsync = ref.watch(devicesProvider);
     final devices = devicesAsync.valueOrNull ?? const [];
+    final l10n = ref.watch(appLocalizationsProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -355,43 +356,58 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                 sliver: SliverToBoxAdapter(
                   child: Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'ROOMS',
-                            style: TextStyle(
-                              letterSpacing: 1.5,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.rooms.toUpperCase(),
+                              style: const TextStyle(
+                                letterSpacing: 1.5,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Spaces & Zones',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
+                            const SizedBox(height: 4),
+                            const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Spaces & Zones',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const Spacer(),
-                      ElevatedButton.icon(
-                        key: const Key('add_room_button'),
-                        onPressed: _showAddRoomDialog,
-                        icon: const Icon(Icons.add_rounded, size: 20),
-                        label: const Text('Add Room'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      const SizedBox(width: 8),
+                      Semantics(
+                        button: true,
+                        label: l10n.addNewRoom,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ElevatedButton.icon(
+                            key: const Key('add_room_button'),
+                            onPressed: () => _showAddRoomDialog(l10n),
+                            icon: const Icon(Icons.add_rounded, size: 20),
+                            label: Text(l10n.locale.languageCode == 'vi'
+                                ? 'Thêm phòng'
+                                : 'Add Room'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -411,7 +427,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: 14,
                     crossAxisSpacing: 14,
-                    childAspectRatio: crossAxisCount == 1 ? 2.6 : 1.45,
+                    childAspectRatio: crossAxisCount == 1 ? 2.2 : 1.35,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -463,120 +479,133 @@ class _RoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasActive = activeDevices > 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: hasActive
-              ? AppColors.primary.withValues(alpha: 0.35)
-              : AppColors.surfaceBorder,
-          width: hasActive ? 1.2 : 1.0,
-        ),
-        boxShadow: hasActive ? AppShadows.cardGlow : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    return Semantics(
+      button: true,
+      label: '${room.name}, $totalDevices devices',
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(22),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: hasActive
-                            ? AppColors.primary.withValues(alpha: 0.16)
-                            : AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
+          border: Border.all(
+            color: hasActive
+                ? AppColors.primary.withValues(alpha: 0.35)
+                : AppColors.surfaceBorder,
+            width: hasActive ? 1.2 : 1.0,
+          ),
+          boxShadow: hasActive ? AppShadows.cardGlow : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
                           color: hasActive
-                              ? AppColors.primary.withValues(alpha: 0.4)
-                              : Colors.transparent,
+                              ? AppColors.primary.withValues(alpha: 0.16)
+                              : AppColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: hasActive
+                                ? AppColors.primary.withValues(alpha: 0.4)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Icon(
+                          iconData,
+                          size: 22,
+                          color:
+                              hasActive ? AppColors.primary : AppColors.muted,
                         ),
                       ),
-                      child: Icon(
-                        iconData,
-                        size: 24,
-                        color: hasActive ? AppColors.primary : AppColors.muted,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hasActive
-                            ? AppColors.green.withValues(alpha: 0.14)
-                            : AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: hasActive
-                              ? AppColors.green.withValues(alpha: 0.3)
-                              : AppColors.surfaceBorder,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (hasActive) ...[
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: AppColors.green,
-                                shape: BoxShape.circle,
+                        decoration: BoxDecoration(
+                          color: hasActive
+                              ? AppColors.green.withValues(alpha: 0.14)
+                              : AppColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: hasActive
+                                ? AppColors.green.withValues(alpha: 0.3)
+                                : AppColors.surfaceBorder,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (hasActive) ...[
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                            ],
+                            Text(
+                              hasActive ? '$activeDevices On' : 'All Off',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: hasActive
+                                    ? AppColors.green
+                                    : AppColors.muted,
                               ),
                             ),
-                            const SizedBox(width: 5),
                           ],
-                          Text(
-                            hasActive ? '$activeDevices On' : 'All Off',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color:
-                                  hasActive ? AppColors.green : AppColors.muted,
-                            ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          room.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            letterSpacing: 0.2,
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      room.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 0.2,
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '$totalDevices ${totalDevices == 1 ? 'device' : 'devices'} · $activeDevices active',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$totalDevices ${totalDevices == 1 ? 'device' : 'devices'} · $activeDevices active',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -80,7 +80,7 @@ void main() {
 
       // 2. Verify available homes list items
       expect(find.text('Suburban Villa'), findsOneWidget);
-      
+
       // 3. Switch active home to Lake Tahoe Cabin
       await tester.tap(find.text('Suburban Villa'));
       await tester.pumpAndSettle();

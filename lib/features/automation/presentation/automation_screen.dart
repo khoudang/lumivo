@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+
 import '../../../core/models/activity_event.dart';
 import '../../../core/models/automation_rule.dart';
 import '../../../core/models/device_command.dart';
@@ -68,6 +69,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
@@ -98,7 +100,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'ROUTINES & LOGIC',
                             style: TextStyle(
                               letterSpacing: 1.5,
@@ -108,8 +110,8 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Automation',
+                          Text(
+                            l10n.automation,
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -158,9 +160,9 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
-                      tabs: const [
-                        Tab(text: 'Automations'),
-                        Tab(text: 'Scenes'),
+                      tabs: [
+                        Tab(text: l10n.automations),
+                        Tab(text: l10n.scenes),
                       ],
                     ),
                   ),
@@ -192,8 +194,8 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
           children: [
             Icon(Icons.hub_outlined, size: 48, color: AppColors.muted),
             const SizedBox(height: 12),
-            const Text(
-              'No automations configured',
+            Text(
+              ref.watch(appLocalizationsProvider).noAutomations,
               style: TextStyle(color: AppColors.muted, fontSize: 15),
             ),
           ],
@@ -403,7 +405,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Ambiance Scenes',
                   style: TextStyle(
                     fontSize: 16,

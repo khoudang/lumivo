@@ -12,9 +12,11 @@ class DeviceDetailScreen extends ConsumerStatefulWidget {
   const DeviceDetailScreen({
     super.key,
     required this.device,
+    this.enableAnimationsInTest = false,
   });
 
   final SmartDevice device;
+  final bool enableAnimationsInTest;
 
   @override
   ConsumerState<DeviceDetailScreen> createState() => _DeviceDetailScreenState();
@@ -47,7 +49,9 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
       duration: const Duration(milliseconds: 900),
     );
     final inTest = WidgetsBinding.instance is! WidgetsFlutterBinding;
-    if (_localDevice.isOn && !inTest) {
+    final isReduced = ref.read(userProfileProvider).reducedMotion;
+    final canAnimate = (!inTest || widget.enableAnimationsInTest) && !isReduced;
+    if (_localDevice.isOn && canAnimate) {
       _fanController.repeat();
     }
 
@@ -58,7 +62,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    if (!inTest) {
+    if (canAnimate) {
       _pulseController.repeat(reverse: true);
     }
   }
@@ -80,6 +84,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
 
   void _updateFanSpeed(String speed) {
     final inTest = WidgetsBinding.instance is! WidgetsFlutterBinding;
+    final isReduced = ref.read(userProfileProvider).reducedMotion;
+    final canAnimate = (!inTest || widget.enableAnimationsInTest) && !isReduced;
     setState(() => _selectedFanSpeed = speed);
     switch (speed) {
       case 'Off':
@@ -89,17 +95,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
       case 'Low':
         if (!_localDevice.isOn) _sendCommand(DeviceCommandType.setPower, true);
         _fanController.duration = const Duration(milliseconds: 1500);
-        if (!inTest) _fanController.repeat();
+        if (canAnimate) _fanController.repeat();
         break;
       case 'Medium':
         if (!_localDevice.isOn) _sendCommand(DeviceCommandType.setPower, true);
         _fanController.duration = const Duration(milliseconds: 900);
-        if (!inTest) _fanController.repeat();
+        if (canAnimate) _fanController.repeat();
         break;
       case 'High':
         if (!_localDevice.isOn) _sendCommand(DeviceCommandType.setPower, true);
         _fanController.duration = const Duration(milliseconds: 450);
-        if (!inTest) _fanController.repeat();
+        if (canAnimate) _fanController.repeat();
         break;
     }
   }
@@ -109,6 +115,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
     setState(() => _isSending = true);
 
     final inTest = WidgetsBinding.instance is! WidgetsFlutterBinding;
+    final isReduced = ref.read(userProfileProvider).reducedMotion;
+    final canAnimate = (!inTest || widget.enableAnimationsInTest) && !isReduced;
 
     // Optimistically update local device
     switch (type) {
@@ -116,7 +124,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         final nextPower = value as bool;
         _localDevice = _localDevice.copyWith(isOn: nextPower);
         if (nextPower) {
-          if (!inTest) _fanController.repeat();
+          if (canAnimate) _fanController.repeat();
         } else {
           _fanController.stop();
         }
@@ -182,6 +190,11 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final reducedMotion = ref.watch(userProfileProvider).reducedMotion;
+    if (reducedMotion) {
+      if (_fanController.isAnimating) _fanController.stop();
+      if (_pulseController.isAnimating) _pulseController.stop();
+    }
     // Reactively watch device updates from repository
     final devicesAsync = ref.watch(devicesProvider);
     final currentDevice = devicesAsync.valueOrNull?.firstWhere(
@@ -194,6 +207,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: IconButton(
+          tooltip: 'Back',
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -487,18 +501,23 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
               ),
             ],
           ),
-          Slider(
-            value: device.brightness.toDouble(),
-            min: 0,
-            max: 100,
-            onChanged: (val) {
-              setState(() {
-                _localDevice = _localDevice.copyWith(
-                    brightness: val.round(), isOn: val > 0);
-              });
-            },
-            onChangeEnd: (val) =>
-                _sendCommand(DeviceCommandType.setBrightness, val.round()),
+          Semantics(
+            slider: true,
+            label: '${device.name} brightness',
+            value: '${device.brightness}%',
+            child: Slider(
+              value: device.brightness.toDouble(),
+              min: 0,
+              max: 100,
+              onChanged: (val) {
+                setState(() {
+                  _localDevice = _localDevice.copyWith(
+                      brightness: val.round(), isOn: val > 0);
+                });
+              },
+              onChangeEnd: (val) =>
+                  _sendCommand(DeviceCommandType.setBrightness, val.round()),
+            ),
           ),
           const SizedBox(height: 18),
           const Text(
@@ -927,17 +946,22 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             ],
           ),
           const SizedBox(height: 18),
-          Slider(
-            value: device.position.toDouble(),
-            min: 0,
-            max: 100,
-            onChanged: (val) {
-              setState(() {
-                _localDevice = _localDevice.copyWith(position: val.round());
-              });
-            },
-            onChangeEnd: (val) =>
-                _sendCommand(DeviceCommandType.setPosition, val.round()),
+          Semantics(
+            slider: true,
+            label: '${device.name} brightness',
+            value: '${device.brightness}%',
+            child: Slider(
+              value: device.position.toDouble(),
+              min: 0,
+              max: 100,
+              onChanged: (val) {
+                setState(() {
+                  _localDevice = _localDevice.copyWith(position: val.round());
+                });
+              },
+              onChangeEnd: (val) =>
+                  _sendCommand(DeviceCommandType.setPosition, val.round()),
+            ),
           ),
           const SizedBox(height: 18),
           Row(

@@ -28,6 +28,9 @@ export '../features/energy/state/energy_notifier.dart'
         energySummaryProvider,
         EnergyPeriodNotifier,
         EnergySummaryNotifier;
+export '../core/localization/app_localizations.dart' show AppLocalizations;
+export '../core/localization/localization_provider.dart'
+    show appLocalizationsProvider;
 export '../services/storage/home_persistence_manager.dart'
     show homePersistenceProvider, HomePersistenceManager, HomeState;
 

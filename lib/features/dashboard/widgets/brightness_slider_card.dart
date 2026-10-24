@@ -66,14 +66,18 @@ class BrightnessSliderCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${device.name} Brightness',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${device.name} Brightness',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -118,26 +122,31 @@ class BrightnessSliderCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Slider
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 6,
-              activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.surfaceElevated,
-              thumbColor: AppColors.primary,
-              overlayColor: AppColors.primary.withValues(alpha: 0.16),
-              thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 8,
-                pressedElevation: 4,
+          // Slider with Semantics
+          Semantics(
+            slider: true,
+            label: '${device.name} brightness',
+            value: '$percent%',
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.surfaceElevated,
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withValues(alpha: 0.16),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 8,
+                  pressedElevation: 4,
+                ),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
               ),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-            ),
-            child: Slider(
-              value: brightness.clamp(0.0, 100.0),
-              min: 0,
-              max: 100,
-              onChanged: _isDisabled ? null : onChanged,
-              onChangeEnd: _isDisabled ? null : onChangeEnd,
+              child: Slider(
+                value: brightness.clamp(0.0, 100.0),
+                min: 0,
+                max: 100,
+                onChanged: _isDisabled ? null : onChanged,
+                onChangeEnd: _isDisabled ? null : onChangeEnd,
+              ),
             ),
           ),
 
@@ -160,35 +169,41 @@ class BrightnessSliderCard extends StatelessWidget {
 
   Widget _presetChip(BuildContext context, int targetPercent) {
     final isSelected = brightness.round() == targetPercent;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: _isDisabled
-          ? null
-          : () {
-              final target = targetPercent.toDouble();
-              onChanged(target);
-              onChangeEnd(target);
-            },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.22)
-              : AppColors.surfaceElevated.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
+    return Semantics(
+      button: true,
+      label: '$targetPercent%',
+      selected: isSelected,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: _isDisabled
+            ? null
+            : () {
+                final target = targetPercent.toDouble();
+                onChanged(target);
+                onChangeEnd(target);
+              },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.5)
-                : AppColors.surfaceBorder.withValues(alpha: 0.5),
-            width: 1,
+                ? AppColors.primary.withValues(alpha: 0.22)
+                : AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.6)
+                  : AppColors.surfaceBorder,
+              width: 1,
+            ),
           ),
-        ),
-        child: Text(
-          '$targetPercent%',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.muted,
+          child: Text(
+            '$targetPercent%',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+            ),
           ),
         ),
       ),
