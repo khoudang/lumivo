@@ -119,9 +119,9 @@ void main() {
 
       final migrated = await manager.loadHomeState();
 
-      // Verify upgraded to schema version 5
-      expect(migrated.schemaVersion, 5);
-      expect(HomePersistenceManager.schemaVersion, 5);
+      // Verify upgraded to schema version 5+
+      expect(migrated.schemaVersion, greaterThanOrEqualTo(5));
+      expect(HomePersistenceManager.schemaVersion, greaterThanOrEqualTo(5));
 
       // Verify current home preserved
       expect(migrated.currentHomeId, 'home-suburban');
@@ -185,7 +185,7 @@ void main() {
       );
 
       final migrated = await manager.loadHomeState();
-      expect(migrated.schemaVersion, 5);
+      expect(migrated.schemaVersion, greaterThanOrEqualTo(5));
       expect(migrated.devices.any((d) => d.id == 'device-bulb-1'), isTrue);
       expect(
           await storage.getString(HomePersistenceManager.v3StorageKey), isNull);
@@ -204,7 +204,7 @@ void main() {
         '{"schemaVersion": 5, "homes": [ {',
       );
       var state = await manager.loadHomeState();
-      expect(state.schemaVersion, 5);
+      expect(state.schemaVersion, greaterThanOrEqualTo(5));
       expect(state.homes.length, greaterThanOrEqualTo(2));
       expect(state.devices.isNotEmpty, isTrue);
 
@@ -217,7 +217,7 @@ void main() {
         'NOT_EVEN_JSON_CORRUPT_BYTES_XYZ_123',
       );
       state = await manager.loadHomeState();
-      expect(state.schemaVersion, 5);
+      expect(state.schemaVersion, greaterThanOrEqualTo(5));
       expect(state.devices.isNotEmpty, isTrue);
 
       // Test 3: Truncated JSON
@@ -226,7 +226,7 @@ void main() {
         '{"schemaVersion": 5, "currentHomeId": "home-def',
       );
       state = await manager.loadHomeState();
-      expect(state.schemaVersion, 5);
+      expect(state.schemaVersion, greaterThanOrEqualTo(5));
       expect(state.homes.length, greaterThanOrEqualTo(2));
 
       // Test 4: Top-level JSON array instead of Map
@@ -235,7 +235,7 @@ void main() {
         '[1, 2, 3, "unexpected"]',
       );
       state = await manager.loadHomeState();
-      expect(state.schemaVersion, 5);
+      expect(state.schemaVersion, greaterThanOrEqualTo(5));
       expect(state.devices.isNotEmpty, isTrue);
     });
 

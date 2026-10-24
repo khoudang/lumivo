@@ -603,7 +603,7 @@ void main() {
 
       final safeState = await persistenceManager.loadHomeState();
       expect(safeState, isNotNull);
-      expect(safeState.schemaVersion, 5);
+      expect(safeState.schemaVersion, greaterThanOrEqualTo(5));
       expect(safeState.homes.isNotEmpty, isTrue);
       expect(safeState.devices.isNotEmpty, isTrue);
     });

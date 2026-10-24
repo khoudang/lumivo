@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/activity_event.dart';
 import '../../core/models/automation_rule.dart';
+import '../../core/models/dashboard_config.dart';
 import '../../core/models/device_command.dart';
 import '../../core/models/device_health.dart';
 import '../../core/models/energy_sample.dart';
@@ -30,6 +31,7 @@ class HomeState {
     this.automationRecords = const [],
     this.deviceHealthRecords = const [],
     this.simulatedModifications = const {},
+    this.dashboardConfigs = const {},
   });
 
   final int schemaVersion;
@@ -47,6 +49,7 @@ class HomeState {
   final List<AutomationExecutionRecord> automationRecords;
   final List<DeviceHealth> deviceHealthRecords;
   final Map<String, dynamic> simulatedModifications;
+  final Map<String, DashboardConfig> dashboardConfigs;
 
   HomeState copyWith({
     int? schemaVersion,
@@ -64,6 +67,7 @@ class HomeState {
     List<AutomationExecutionRecord>? automationRecords,
     List<DeviceHealth>? deviceHealthRecords,
     Map<String, dynamic>? simulatedModifications,
+    Map<String, DashboardConfig>? dashboardConfigs,
   }) {
     return HomeState(
       schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -82,6 +86,7 @@ class HomeState {
       deviceHealthRecords: deviceHealthRecords ?? this.deviceHealthRecords,
       simulatedModifications:
           simulatedModifications ?? this.simulatedModifications,
+      dashboardConfigs: dashboardConfigs ?? this.dashboardConfigs,
     );
   }
 
@@ -125,6 +130,8 @@ class HomeState {
         'deviceHealthRecords':
             deviceHealthRecords.map((h) => h.toJson()).toList(),
         'simulatedModifications': simulatedModifications,
+        'dashboardConfigs':
+            dashboardConfigs.map((k, v) => MapEntry(k, v.toJson())),
       };
 
   factory HomeState.fromJson(Map<String, dynamic> json) {
@@ -185,6 +192,14 @@ class HomeState {
       simulatedModifications: json['simulatedModifications'] is Map
           ? Map<String, dynamic>.from(json['simulatedModifications'] as Map)
           : const {},
+      dashboardConfigs: json['dashboardConfigs'] is Map
+          ? (json['dashboardConfigs'] as Map<String, dynamic>).map(
+              (k, v) => MapEntry(
+                k,
+                DashboardConfig.fromJson(Map<String, dynamic>.from(v as Map)),
+              ),
+            )
+          : const {},
     );
   }
 }
@@ -194,9 +209,10 @@ class HomePersistenceManager {
       : _storage = storage ?? StorageAdapterFactory.create();
 
   final StorageAdapter _storage;
-  static const int schemaVersion = 5;
-  static const int currentSchemaVersion = 5;
-  static const String storageKey = 'lumivo_home_state_v5';
+  static const int schemaVersion = 6;
+  static const int currentSchemaVersion = 6;
+  static const String storageKey = 'lumivo_home_state_v6';
+  static const String v5StorageKey = 'lumivo_home_state_v5';
   static const String v4StorageKey = 'lumivo_home_state_v4';
   static const String v3StorageKey = 'lumivo_home_state_v3';
   static const String v2StorageKey = 'lumivo_home_state_v2';
@@ -669,6 +685,10 @@ class HomePersistenceManager {
       ];
 
   HomeState createDemoState() {
+    final configs = <String, DashboardConfig>{};
+    for (final home in defaultHomes) {
+      configs[home.id] = DashboardConfig.defaultFor(home.id);
+    }
     return HomeState(
       schemaVersion: schemaVersion,
       homes: List.of(defaultHomes),
@@ -685,6 +705,7 @@ class HomePersistenceManager {
       automationRecords: const [],
       deviceHealthRecords: const [],
       simulatedModifications: const {},
+      dashboardConfigs: configs,
     );
   }
 
@@ -701,21 +722,26 @@ class HomePersistenceManager {
       var isMigrating = false;
 
       if (rawJson == null || rawJson.trim().isEmpty) {
-        rawJson = await _storage.getString(v4StorageKey);
+        rawJson = await _storage.getString(v5StorageKey);
         if (rawJson != null && rawJson.trim().isNotEmpty) {
           isMigrating = true;
         } else {
-          rawJson = await _storage.getString(v3StorageKey);
+          rawJson = await _storage.getString(v4StorageKey);
           if (rawJson != null && rawJson.trim().isNotEmpty) {
             isMigrating = true;
           } else {
-            rawJson = await _storage.getString(v2StorageKey);
+            rawJson = await _storage.getString(v3StorageKey);
             if (rawJson != null && rawJson.trim().isNotEmpty) {
               isMigrating = true;
             } else {
-              rawJson = await _storage.getString(legacyStorageKey);
+              rawJson = await _storage.getString(v2StorageKey);
               if (rawJson != null && rawJson.trim().isNotEmpty) {
                 isMigrating = true;
+              } else {
+                rawJson = await _storage.getString(legacyStorageKey);
+                if (rawJson != null && rawJson.trim().isNotEmpty) {
+                  isMigrating = true;
+                }
               }
             }
           }
@@ -737,8 +763,9 @@ class HomePersistenceManager {
 
       final version = parsed['schemaVersion'] as int? ?? 1;
       if (version < schemaVersion || isMigrating) {
-        final migratedState = _migrateToV5(parsed);
+        final migratedState = _migrateToV6(parsed);
         await saveHomeState(migratedState);
+        await _storage.remove(v5StorageKey);
         await _storage.remove(v4StorageKey);
         await _storage.remove(v3StorageKey);
         await _storage.remove(v2StorageKey);
@@ -761,7 +788,7 @@ class HomePersistenceManager {
     }
   }
 
-  HomeState _migrateToV5(Map<String, dynamic> raw) {
+  HomeState _migrateToV6(Map<String, dynamic> raw) {
     // 1. Homes: inject default homes if none present
     List<Home> homes = defaultHomes;
     if (raw['homes'] is List && (raw['homes'] as List).isNotEmpty) {
@@ -900,6 +927,25 @@ class HomePersistenceManager {
       simMods = Map<String, dynamic>.from(raw['simulatedModifications'] as Map);
     }
 
+    // 14. Phase 6: Dashboard Configs per home
+    final Map<String, DashboardConfig> dashboardConfigs = {};
+    if (raw['dashboardConfigs'] is Map &&
+        (raw['dashboardConfigs'] as Map).isNotEmpty) {
+      final map = raw['dashboardConfigs'] as Map<String, dynamic>;
+      map.forEach((k, v) {
+        if (v is Map) {
+          dashboardConfigs[k] =
+              DashboardConfig.fromJson(Map<String, dynamic>.from(v));
+        }
+      });
+    }
+    for (final home in homes) {
+      dashboardConfigs.putIfAbsent(
+        home.id,
+        () => DashboardConfig.defaultFor(home.id),
+      );
+    }
+
     return HomeState(
       schemaVersion: schemaVersion,
       homes: homes,
@@ -916,11 +962,13 @@ class HomePersistenceManager {
       automationRecords: automationRecords,
       deviceHealthRecords: deviceHealthRecords,
       simulatedModifications: simMods,
+      dashboardConfigs: dashboardConfigs,
     );
   }
 
   Future<HomeState> resetDemoData() async {
     await _storage.remove(storageKey);
+    await _storage.remove(v5StorageKey);
     await _storage.remove(v4StorageKey);
     await _storage.remove(v3StorageKey);
     await _storage.remove(v2StorageKey);
@@ -1079,6 +1127,18 @@ class HomePersistenceManager {
   Future<void> saveSimulatedModifications(Map<String, dynamic> mods) async {
     final current = await _getCurrentOrFallback();
     await saveHomeState(current.copyWith(simulatedModifications: mods));
+  }
+
+  DashboardConfig getDashboardConfig(String homeId) {
+    final state = _cachedState ?? createDemoState();
+    return state.dashboardConfigs[homeId] ?? DashboardConfig.defaultFor(homeId);
+  }
+
+  Future<void> saveDashboardConfig(DashboardConfig config) async {
+    final current = await _getCurrentOrFallback();
+    final updated = Map<String, DashboardConfig>.from(current.dashboardConfigs);
+    updated[config.homeId] = config;
+    await saveHomeState(current.copyWith(dashboardConfigs: updated));
   }
 
   static const String firstRunStorageKey = 'lumivo_first_run_completed';
