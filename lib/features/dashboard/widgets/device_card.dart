@@ -284,7 +284,9 @@ class DeviceCard extends StatelessWidget {
                 child: child,
               ),
               child: Icon(
-                device.isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                device.isOn
+                    ? Icons.toggle_on_rounded
+                    : Icons.toggle_off_rounded,
                 key: ValueKey<bool>(device.isOn),
                 size: 34,
                 color: device.isOn ? AppColors.green : AppColors.mutedDark,

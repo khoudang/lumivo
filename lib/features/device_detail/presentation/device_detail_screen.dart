@@ -517,17 +517,18 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             child: SizedBox(
               height: 48,
               child: Slider(
-              value: device.brightness.toDouble(),
-              min: 0,
-              max: 100,
-              onChanged: (val) {
-                setState(() {
-                  _localDevice = _localDevice.copyWith(
-                      brightness: val.round(), isOn: val > 0);
-                });
-              },
-              onChangeEnd: (val) =>
-                  _sendCommand(DeviceCommandType.setBrightness, val.round()),
+                value: device.brightness.toDouble(),
+                min: 0,
+                max: 100,
+                onChanged: (val) {
+                  setState(() {
+                    _localDevice = _localDevice.copyWith(
+                        brightness: val.round(), isOn: val > 0);
+                  });
+                },
+                onChangeEnd: (val) =>
+                    _sendCommand(DeviceCommandType.setBrightness, val.round()),
+              ),
             ),
           ),
           const SizedBox(height: 18),
@@ -979,16 +980,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
             child: SizedBox(
               height: 48,
               child: Slider(
-              value: device.position.toDouble(),
-              min: 0,
-              max: 100,
-              onChanged: (val) {
-                setState(() {
-                  _localDevice = _localDevice.copyWith(position: val.round());
-                });
-              },
-              onChangeEnd: (val) =>
-                  _sendCommand(DeviceCommandType.setPosition, val.round()),
+                value: device.position.toDouble(),
+                min: 0,
+                max: 100,
+                onChanged: (val) {
+                  setState(() {
+                    _localDevice = _localDevice.copyWith(position: val.round());
+                  });
+                },
+                onChangeEnd: (val) =>
+                    _sendCommand(DeviceCommandType.setPosition, val.round()),
+              ),
             ),
           ),
           const SizedBox(height: 18),
