@@ -45,6 +45,31 @@ export '../services/storage/home_persistence_manager.dart'
     show homePersistenceProvider, HomePersistenceManager, HomeState;
 export '../features/onboarding/state/first_run_notifier.dart'
     show firstRunCompletedProvider, FirstRunNotifier;
+export '../features/dashboard/state/dashboard_config_notifier.dart'
+    show
+        dashboardConfigProvider,
+        dashboardEditModeProvider,
+        isDashboardEditModeProvider,
+        DashboardConfigNotifier;
+export '../features/search/state/device_search_notifier.dart'
+    show
+        deviceSearchQueryProvider,
+        deviceSearchTypeFilterProvider,
+        deviceSearchStatusFilterProvider,
+        deviceSearchSortProvider,
+        filteredDevicesProvider,
+        DeviceSearchEngine;
+export '../features/energy/state/energy_insights_notifier.dart'
+    show energyReportProvider, EnergyInsightsEngine;
+export '../features/backup/state/backup_restore_notifier.dart'
+    show backupRestoreProvider, BackupRestoreNotifier, BackupRestoreState;
+export '../features/automation/state/scene_preview_notifier.dart'
+    show
+        scenePreviewProvider,
+        scenePreviewFamily,
+        selectedSceneForPreviewProvider,
+        ScenePreviewItem,
+        ScenePreviewEngine;
 
 final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
   final persistence = ref.watch(homePersistenceProvider);
