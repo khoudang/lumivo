@@ -38,6 +38,8 @@ export '../features/energy/state/energy_notifier.dart'
         energySummaryProvider,
         EnergyPeriodNotifier,
         EnergySummaryNotifier;
+export '../features/dashboard/state/dashboard_config_notifier.dart'
+    show dashboardConfigProvider, DashboardConfigNotifier;
 export '../core/localization/app_localizations.dart' show AppLocalizations;
 export '../core/localization/localization_provider.dart'
     show appLocalizationsProvider;

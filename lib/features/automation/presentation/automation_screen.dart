@@ -1,3 +1,5 @@
+import 'automation_builder_wizard.dart';
+import 'scene_preview_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
@@ -79,7 +81,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const CreateAutomationScreen(),
+              builder: (_) => const AutomationBuilderWizard(),
             ),
           );
         },
@@ -622,6 +624,17 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  IconButton(
+                    key: Key('preview_scene_${scene.id}'),
+                    icon: const Icon(Icons.visibility_outlined,
+                        size: 20, color: AppColors.cyan),
+                    tooltip: 'Preview Scene',
+                    onPressed: () => ScenePreviewDialog.show(
+                      context,
+                      actions: scene.actions,
+                      title: scene.name,
                     ),
                   ),
                   IconButton(

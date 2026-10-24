@@ -1,3 +1,6 @@
+import '../../search/presentation/device_search_screen.dart';
+import 'dashboard_edit_sheet.dart';
+import '../../../core/models/dashboard_config.dart';
 import '../../health/presentation/smart_home_health_screen.dart';
 import '../../lab/presentation/demo_lab_sheet.dart';
 import '../../profile/presentation/profile_screen.dart';
@@ -204,6 +207,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     final visible = all.where((d) => d.roomId == room).toList();
+    final dashboardConfig = ref.watch(dashboardConfigProvider);
     final lights = visible.where((d) => d.type == DeviceType.light).toList();
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
@@ -285,6 +289,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       onPressed: _openAddDeviceSheet,
                     ),
                   ),
+                // Global Search Button
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: IconButton(
+                    key: const Key('dashboard_search_button'),
+                    tooltip: l10n.searchDevices,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.textPrimary,
+                      size: 22,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const DeviceSearchScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Edit Dashboard Button
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: IconButton(
+                    key: const Key('dashboard_edit_mode_button'),
+                    tooltip: l10n.editDashboard,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(
+                      Icons.dashboard_customize_outlined,
+                      color: AppColors.textPrimary,
+                      size: 22,
+                    ),
+                    onPressed: () => DashboardEditSheet.show(context),
+                  ),
+                ),
                 // Notifications Bell with Badge
                 SizedBox(
                   width: 48,
@@ -394,240 +436,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             const SizedBox(height: 18),
 
-            // Quick Status Area: Smart Home Health & Demo Lab
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: InkWell(
-                    key: const Key('dashboard_health_button'),
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SmartHomeHealthScreen(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppColors.green.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.favorite_rounded,
-                            color: AppColors.green,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              l10n.healthDashboard,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+            // Dynamic Section Rendering based on DashboardConfig
+            for (final section in dashboardConfig.sectionOrder)
+              if (dashboardConfig.isVisible(section)) ...[
+                _buildDashboardSection(
+                  section,
+                  all: all,
+                  visible: visible,
+                  lights: lights,
+                  screenWidth: screenWidth,
+                  isCompact: isCompact,
+                  rooms: rooms,
+                  roomCounts: roomCounts,
+                  l10n: l10n,
                 ),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: InkWell(
-                    key: const Key('dashboard_demo_lab_button'),
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => DemoLabSheet.show(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppColors.cyan.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.science_rounded,
-                            color: AppColors.cyan,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              l10n.demoLab,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 22),
               ],
-            ),
-
-            const SizedBox(height: 22),
-
-            // Metrics Section (Responsive row / wrap)
-            _buildResponsiveMetrics(screenWidth, isCompact, l10n),
-
-            const SizedBox(height: 26),
-
-            // Quick Scenes Horizontal Scroll Bar
-            _buildQuickScenesSection(l10n),
-
-            const SizedBox(height: 28),
-
-            // Favorites Section
-            FavoritesSection(
-              favoriteDevices: all.where((d) => d.isFavorite).toList()
-                ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder)),
-              onReorder: (oldIndex, newIndex) {
-                final favorites = all.where((d) => d.isFavorite).toList()
-                  ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                final item = favorites.removeAt(oldIndex);
-                favorites.insert(newIndex, item);
-                final repo = ref.read(deviceRepositoryProvider);
-                if (repo is MockDeviceRepository) {
-                  for (int i = 0; i < favorites.length; i++) {
-                    repo.updateDevice(favorites[i].copyWith(favoriteOrder: i));
-                  }
-                }
-              },
-              onDeviceTap: (device) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => DeviceDetailScreen(device: device),
-                  ),
-                );
-              },
-              onDeviceToggle: (device) => _send(
-                device,
-                DeviceCommandType.setPower,
-                !device.isOn,
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Room Filter Section
-            Text(
-              l10n.rooms,
-              style: const TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            RoomSelector(
-              rooms: rooms,
-              selectedRoom: room,
-              onRoomSelected: (selected) => setState(() => room = selected),
-              roomDeviceCounts: roomCounts,
-            ),
-
-            const SizedBox(height: 28),
-
-            // Devices Section Header
-            Row(
-              children: [
-                Text(
-                  l10n.devices,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      l10n.devicesCount(visible.length),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Responsive Device Cards
-            _buildResponsiveDeviceGrid(visible, screenWidth),
-
-            // Brightness Control Section
-            if (lights.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              for (final light in lights) ...[
-                BrightnessSliderCard(
-                  device: light,
-                  brightness:
-                      brightnessDraft[light.id] ?? light.brightness.toDouble(),
-                  isBusy: pending.contains(light.id),
-                  onChanged: (value) =>
-                      setState(() => brightnessDraft[light.id] = value),
-                  onChangeEnd: (value) async {
-                    await _send(
-                      light,
-                      DeviceCommandType.setBrightness,
-                      value.round(),
-                    );
-                    if (mounted) {
-                      setState(() => brightnessDraft.remove(light.id));
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-              ],
-            ],
-
-            const SizedBox(height: 18),
 
             // Status footnote
             Row(
@@ -652,6 +476,356 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildDashboardSection(
+    DashboardSection section, {
+    required List<SmartDevice> all,
+    required List<SmartDevice> visible,
+    required List<SmartDevice> lights,
+    required double screenWidth,
+    required bool isCompact,
+    required List<String> rooms,
+    required Map<String, int> roomCounts,
+    required AppLocalizations l10n,
+  }) {
+    switch (section) {
+      case DashboardSection.metrics:
+        return _buildResponsiveMetrics(screenWidth, isCompact, l10n);
+
+      case DashboardSection.health:
+        return _buildHealthSection(l10n);
+
+      case DashboardSection.demoLab:
+        return _buildDemoLabSection(l10n);
+
+      case DashboardSection.quickScenes:
+        return _buildQuickScenesSection(l10n);
+
+      case DashboardSection.favorites:
+        return FavoritesSection(
+          favoriteDevices: all.where((d) => d.isFavorite).toList()
+            ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder)),
+          onReorder: (oldIndex, newIndex) {
+            final favorites = all.where((d) => d.isFavorite).toList()
+              ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
+            if (oldIndex < newIndex) {
+              newIndex -= 1;
+            }
+            final item = favorites.removeAt(oldIndex);
+            favorites.insert(newIndex, item);
+            final repo = ref.read(deviceRepositoryProvider);
+            if (repo is MockDeviceRepository) {
+              for (int i = 0; i < favorites.length; i++) {
+                repo.updateDevice(favorites[i].copyWith(favoriteOrder: i));
+              }
+            }
+          },
+          onDeviceTap: (device) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => DeviceDetailScreen(device: device),
+              ),
+            );
+          },
+          onDeviceToggle: (device) => _send(
+            device,
+            DeviceCommandType.setPower,
+            !device.isOn,
+          ),
+        );
+
+      case DashboardSection.devices:
+        return _buildDevicesSection(
+          visible: visible,
+          lights: lights,
+          screenWidth: screenWidth,
+          rooms: rooms,
+          roomCounts: roomCounts,
+          l10n: l10n,
+        );
+
+      case DashboardSection.activity:
+        return _buildActivitySection(l10n);
+    }
+  }
+
+  Widget _buildHealthSection(AppLocalizations l10n) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
+      child: InkWell(
+        key: const Key('dashboard_health_button'),
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SmartHomeHealthScreen(),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.green.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.favorite_rounded,
+                color: AppColors.green,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  l10n.healthDashboard,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDemoLabSection(AppLocalizations l10n) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
+      child: InkWell(
+        key: const Key('dashboard_demo_lab_button'),
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => DemoLabSheet.show(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.cyan.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.science_rounded,
+                color: AppColors.cyan,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  l10n.demoLab,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivitySection(AppLocalizations l10n) {
+    final events = ref.watch(activityProvider);
+    final recentEvents = events.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              l10n.activityTimeline,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => setState(() => selectedTab = 3),
+              child: Text(l10n.seeAll),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (recentEvents.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.surfaceBorder),
+            ),
+            child: Text(
+              l10n.noActivity,
+              style: const TextStyle(color: AppColors.muted, fontSize: 13),
+            ),
+          )
+        else
+          for (final ev in recentEvents)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.surfaceBorder),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.history_rounded,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ev.title,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          ev.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+      ],
+    );
+  }
+
+  Widget _buildDevicesSection({
+    required List<SmartDevice> visible,
+    required List<SmartDevice> lights,
+    required double screenWidth,
+    required List<String> rooms,
+    required Map<String, int> roomCounts,
+    required AppLocalizations l10n,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Room Filter Section
+        Text(
+          l10n.rooms,
+          style: const TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        RoomSelector(
+          rooms: rooms,
+          selectedRoom: room,
+          onRoomSelected: (selected) => setState(() => room = selected),
+          roomDeviceCounts: roomCounts,
+        ),
+
+        const SizedBox(height: 28),
+
+        // Devices Section Header
+        Row(
+          children: [
+            Text(
+              l10n.devices,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n.devicesCount(visible.length),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 14),
+
+        // Responsive Device Cards
+        _buildResponsiveDeviceGrid(visible, screenWidth),
+
+        // Brightness Control Section
+        if (lights.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          for (final light in lights) ...[
+            BrightnessSliderCard(
+              device: light,
+              brightness:
+                  brightnessDraft[light.id] ?? light.brightness.toDouble(),
+              isBusy: pending.contains(light.id),
+              onChanged: (value) =>
+                  setState(() => brightnessDraft[light.id] = value),
+              onChangeEnd: (value) async {
+                await _send(
+                  light,
+                  DeviceCommandType.setBrightness,
+                  value.round(),
+                );
+                if (mounted) {
+                  setState(() => brightnessDraft.remove(light.id));
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ],
     );
   }
 

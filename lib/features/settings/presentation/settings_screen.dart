@@ -1,3 +1,4 @@
+import '../../backup/presentation/backup_restore_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
@@ -258,6 +259,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const EnergyScreen()),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.surfaceBorder, height: 16),
+                ListTile(
+                  key: const Key('settings_backup_tile'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB388FF).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.settings_backup_restore_rounded,
+                      color: Color(0xFFB388FF),
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    l10n.backupAndRestore,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Export JSON snapshots & restore smart home configuration',
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BackupRestoreScreen(),
+                      ),
                     );
                   },
                 ),

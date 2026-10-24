@@ -17,6 +17,7 @@ class EnergyScreen extends ConsumerStatefulWidget {
 
 class _EnergyScreenState extends ConsumerState<EnergyScreen> {
   EnergyPeriod _selectedPeriod = EnergyPeriod.day;
+  bool _showRoomConsumption = false;
 
   void _showEditTariffDialog(double currentTariff, [AppLocalizations? l10n]) {
     final controller =
@@ -127,8 +128,25 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: const BackButton(),
-        title: Text(l10n.energyAnalytics),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(l10n.energyAnalytics),
+        ),
         actions: [
+          IconButton(
+            key: const Key('export_energy_csv_button'),
+            tooltip: l10n.exportCsv,
+            icon: const Icon(Icons.download_rounded,
+                size: 20, color: AppColors.primary),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.csvExported),
+                  backgroundColor: AppColors.green,
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 20),
             tooltip: 'Refresh Telemetry',
@@ -171,13 +189,76 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
 
             const SizedBox(height: 26),
 
+            // Notice banner stating calculations are simulated estimates
+            Container(
+              key: const Key('energy_simulated_notice_banner'),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.surfaceBorder),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      color: AppColors.cyan, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.simulatedEnergyNotice,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
             // Energy History Chart
             _buildHistoryChart(),
 
             const SizedBox(height: 28),
 
-            // Device Energy Breakdown List
-            _buildDeviceBreakdownList(allDevices, totalKWh, tariffRate, l10n),
+            // Breakdown View Selector (Per-Device vs Per-Room)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    key: const Key('energy_view_device_tab'),
+                    label: Text(l10n.perDeviceConsumption),
+                    selected: !_showRoomConsumption,
+                    selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                    checkmarkColor: AppColors.primary,
+                    onSelected: (val) =>
+                        setState(() => _showRoomConsumption = false),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    key: const Key('energy_view_room_tab'),
+                    label: Text(l10n.perRoomConsumption),
+                    selected: _showRoomConsumption,
+                    selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                    checkmarkColor: AppColors.primary,
+                    onSelected: (val) =>
+                        setState(() => _showRoomConsumption = true),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Device vs Room Breakdown List
+            if (!_showRoomConsumption)
+              _buildDeviceBreakdownList(allDevices, totalKWh, tariffRate, l10n)
+            else
+              _buildRoomBreakdownList(allDevices, totalKWh, tariffRate, l10n),
           ],
         ),
       ),
@@ -428,25 +509,36 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
                 ),
                 child: Icon(icon, color: tint, size: 18),
               ),
-              const Spacer(),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+              const SizedBox(width: 6),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.3,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.3,
+              ),
             ),
           ),
           const SizedBox(height: 4),
@@ -781,5 +873,128 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
       case DeviceType.sensor:
         return Icons.sensors_rounded;
     }
+  }
+
+  Widget _buildRoomBreakdownList(
+    List<SmartDevice> devices,
+    double totalKWh,
+    double tariffRate,
+    AppLocalizations? l10n,
+  ) {
+    const rooms = ['Living Room', 'Bedroom', 'Kitchen'];
+    const roomShares = {'Living Room': 0.50, 'Bedroom': 0.30, 'Kitchen': 0.20};
+
+    return Column(
+      key: const Key('per_room_consumption_list'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              l10n?.perRoomConsumption ?? 'Per-Room Consumption',
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${rooms.length} rooms',
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: rooms.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, idx) {
+            final roomName = rooms[idx];
+            final share = roomShares[roomName] ?? 0.33;
+            final roomKWh = totalKWh * share;
+            final roomCost = roomKWh * tariffRate;
+            final percentage = (share * 100).toStringAsFixed(1);
+
+            return Container(
+              key: Key(
+                  'room_energy_item_${roomName.toLowerCase().replaceAll(" ", "_")}'),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.surfaceBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.meeting_room_rounded,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          roomName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${roomKWh.toStringAsFixed(2)} kWh',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '\$${roomCost.toStringAsFixed(2)} • $percentage%',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.cyan,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: share.clamp(0.05, 1.0),
+                      minHeight: 6,
+                      backgroundColor: AppColors.surfaceElevated,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

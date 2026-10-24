@@ -189,6 +189,45 @@ class AppLocalizations {
   String get reconnectDevice => translate('reconnect_device');
   String get injectPacketLoss => translate('inject_packet_loss');
   String get triggerReconnectStorm => translate('trigger_reconnect_storm');
+
+  // Phase 6 Getters
+  String get editDashboard => translate('edit_dashboard');
+  String get doneEditing => translate('done_editing');
+  String get resetLayout => translate('reset_layout');
+  String get saveLayout => translate('save_layout');
+  String get sectionReordered => translate('section_reordered');
+  String get dashboardCustomized => translate('dashboard_customized');
+  String get searchDevices => translate('search_devices');
+  String get allTypes => translate('all_types');
+  String get allStatuses => translate('all_statuses');
+  String get sortName => translate('sort_name');
+  String get sortRoom => translate('sort_room');
+  String get sortRecent => translate('sort_recent');
+  String get noDevicesFound => translate('no_devices_found');
+  String get clearFilters => translate('clear_filters');
+  String get automationBuilder => translate('automation_builder');
+  String get whenTrigger => translate('when_trigger');
+  String get ifCondition => translate('if_condition');
+  String get thenAction => translate('then_action');
+  String get previewScene => translate('preview_scene');
+  String get affectedDevices => translate('affected_devices');
+  String get templateMorning => translate('template_morning');
+  String get templateMovie => translate('template_movie');
+  String get templateAway => translate('template_away');
+  String get templateNight => translate('template_night');
+  String get automationSummary => translate('automation_summary');
+  String get perDeviceConsumption => translate('per_device_consumption');
+  String get perRoomConsumption => translate('per_room_consumption');
+  String get exportCsv => translate('export_csv');
+  String get csvExported => translate('csv_exported');
+  String get simulatedEnergyNotice => translate('simulated_energy_notice');
+  String get backupAndRestore => translate('backup_and_restore');
+  String get exportBackup => translate('export_backup');
+  String get importBackup => translate('import_backup');
+  String get backupPreview => translate('backup_preview');
+  String get restoreSuccess => translate('restore_success');
+  String get invalidBackupError => translate('invalid_backup_error');
+  String get replaceDataWarning => translate('replace_data_warning');
 }
 
 /// LocalizationsDelegate for [AppLocalizations].
