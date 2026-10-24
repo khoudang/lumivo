@@ -7,6 +7,7 @@ analyzer:
     - web/**
     - lumivo_phase0/**
     - main_backup.dart
+    - ios/**
 
 linter:
   rules:
