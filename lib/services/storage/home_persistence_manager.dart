@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/activity_event.dart';
 import '../../core/models/automation_rule.dart';
 import '../../core/models/device_command.dart';
+import '../../core/models/device_health.dart';
 import '../../core/models/energy_sample.dart';
 import '../../core/models/home.dart';
 import '../../core/models/in_app_notification.dart';
@@ -25,6 +26,10 @@ class HomeState {
     this.scenes = const [],
     this.activityEvents = const [],
     this.notifications = const [],
+    this.commandRecords = const [],
+    this.automationRecords = const [],
+    this.deviceHealthRecords = const [],
+    this.simulatedModifications = const {},
   });
 
   final int schemaVersion;
@@ -38,6 +43,10 @@ class HomeState {
   final List<Scene> scenes;
   final List<ActivityEvent> activityEvents;
   final List<InAppNotification> notifications;
+  final List<CommandRecord> commandRecords;
+  final List<AutomationExecutionRecord> automationRecords;
+  final List<DeviceHealth> deviceHealthRecords;
+  final Map<String, dynamic> simulatedModifications;
 
   HomeState copyWith({
     int? schemaVersion,
@@ -51,6 +60,10 @@ class HomeState {
     List<Scene>? scenes,
     List<ActivityEvent>? activityEvents,
     List<InAppNotification>? notifications,
+    List<CommandRecord>? commandRecords,
+    List<AutomationExecutionRecord>? automationRecords,
+    List<DeviceHealth>? deviceHealthRecords,
+    Map<String, dynamic>? simulatedModifications,
   }) {
     return HomeState(
       schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -64,7 +77,26 @@ class HomeState {
       scenes: scenes ?? this.scenes,
       activityEvents: activityEvents ?? this.activityEvents,
       notifications: notifications ?? this.notifications,
+      commandRecords: commandRecords ?? this.commandRecords,
+      automationRecords: automationRecords ?? this.automationRecords,
+      deviceHealthRecords: deviceHealthRecords ?? this.deviceHealthRecords,
+      simulatedModifications:
+          simulatedModifications ?? this.simulatedModifications,
     );
+  }
+
+  static Map<String, dynamic> _sanitizeCustomData(Map<String, dynamic> data) {
+    final sanitized = Map<String, dynamic>.from(data);
+    sanitized.removeWhere((key, _) {
+      final lower = key.toLowerCase();
+      return lower.contains('password') ||
+          lower.contains('secret') ||
+          lower.contains('passphrase') ||
+          lower.contains('token') ||
+          lower.contains('credential') ||
+          lower.contains('wifi_pass');
+    });
+    return sanitized;
   }
 
   Map<String, dynamic> toJson() => {
@@ -74,11 +106,25 @@ class HomeState {
         'userProfile': userProfile.toJson(),
         'energySamples': energySamples.map((e) => e.toJson()).toList(),
         'rooms': rooms.map((r) => r.toJson()).toList(),
-        'devices': devices.map((d) => d.toJson()).toList(),
+        'devices': devices.map((d) {
+          final json = d.toJson();
+          if (json['customData'] is Map) {
+            json['customData'] = _sanitizeCustomData(
+                Map<String, dynamic>.from(json['customData'] as Map));
+          }
+          return json;
+        }).toList(),
         'automations': automations.map((a) => a.toJson()).toList(),
         'scenes': scenes.map((s) => s.toJson()).toList(),
         'activityEvents': activityEvents.map((e) => e.toJson()).toList(),
         'notifications': notifications.map((n) => n.toJson()).toList(),
+        'commandRecords':
+            commandRecords.take(100).map((c) => c.toJson()).toList(),
+        'automationRecords':
+            automationRecords.take(100).map((a) => a.toJson()).toList(),
+        'deviceHealthRecords':
+            deviceHealthRecords.map((h) => h.toJson()).toList(),
+        'simulatedModifications': simulatedModifications,
       };
 
   factory HomeState.fromJson(Map<String, dynamic> json) {
@@ -121,6 +167,24 @@ class HomeState {
                   (e) => InAppNotification.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      commandRecords: (json['commandRecords'] as List<dynamic>?)
+              ?.map((e) => CommandRecord.fromJson(e as Map<String, dynamic>))
+              .take(100)
+              .toList() ??
+          const [],
+      automationRecords: (json['automationRecords'] as List<dynamic>?)
+              ?.map((e) =>
+                  AutomationExecutionRecord.fromJson(e as Map<String, dynamic>))
+              .take(100)
+              .toList() ??
+          const [],
+      deviceHealthRecords: (json['deviceHealthRecords'] as List<dynamic>?)
+              ?.map((e) => DeviceHealth.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      simulatedModifications: json['simulatedModifications'] is Map
+          ? Map<String, dynamic>.from(json['simulatedModifications'] as Map)
+          : const {},
     );
   }
 }
@@ -130,9 +194,11 @@ class HomePersistenceManager {
       : _storage = storage ?? StorageAdapterFactory.create();
 
   final StorageAdapter _storage;
-  static const int schemaVersion = 3;
-  static const int currentSchemaVersion = 3;
-  static const String storageKey = 'lumivo_home_state_v3';
+  static const int schemaVersion = 5;
+  static const int currentSchemaVersion = 5;
+  static const String storageKey = 'lumivo_home_state_v5';
+  static const String v4StorageKey = 'lumivo_home_state_v4';
+  static const String v3StorageKey = 'lumivo_home_state_v3';
   static const String v2StorageKey = 'lumivo_home_state_v2';
   static const String legacyStorageKey = 'lumivo_home_state';
 
@@ -584,7 +650,7 @@ class HomePersistenceManager {
           id: 'evt-init',
           title: 'System Initialized',
           description:
-              'Lumivo Phase 3 state loaded with 9 devices across 2 homes',
+              'Lumivo Phase 5 state loaded with multi-home reliability, safe persistence and diagnostics',
           timestamp: DateTime.now(),
           severity: ActivitySeverity.info,
           source: 'system',
@@ -615,6 +681,10 @@ class HomePersistenceManager {
       scenes: List.of(defaultScenes),
       activityEvents: defaultActivityEvents,
       notifications: defaultNotifications,
+      commandRecords: const [],
+      automationRecords: const [],
+      deviceHealthRecords: const [],
+      simulatedModifications: const {},
     );
   }
 
@@ -631,13 +701,23 @@ class HomePersistenceManager {
       var isMigrating = false;
 
       if (rawJson == null || rawJson.trim().isEmpty) {
-        rawJson = await _storage.getString(v2StorageKey);
+        rawJson = await _storage.getString(v4StorageKey);
         if (rawJson != null && rawJson.trim().isNotEmpty) {
           isMigrating = true;
         } else {
-          rawJson = await _storage.getString(legacyStorageKey);
+          rawJson = await _storage.getString(v3StorageKey);
           if (rawJson != null && rawJson.trim().isNotEmpty) {
             isMigrating = true;
+          } else {
+            rawJson = await _storage.getString(v2StorageKey);
+            if (rawJson != null && rawJson.trim().isNotEmpty) {
+              isMigrating = true;
+            } else {
+              rawJson = await _storage.getString(legacyStorageKey);
+              if (rawJson != null && rawJson.trim().isNotEmpty) {
+                isMigrating = true;
+              }
+            }
           }
         }
       }
@@ -657,8 +737,10 @@ class HomePersistenceManager {
 
       final version = parsed['schemaVersion'] as int? ?? 1;
       if (version < schemaVersion || isMigrating) {
-        final migratedState = _migrateToV3(parsed);
+        final migratedState = _migrateToV5(parsed);
         await saveHomeState(migratedState);
+        await _storage.remove(v4StorageKey);
+        await _storage.remove(v3StorageKey);
         await _storage.remove(v2StorageKey);
         await _storage.remove(legacyStorageKey);
         return migratedState;
@@ -668,13 +750,18 @@ class HomePersistenceManager {
       _cachedState = state;
       return state;
     } catch (_) {
+      // Robust Corrupted Storage Recovery:
+      // If local storage JSON is malformed, truncated, or invalid, catch the error
+      // and fallback to clean factory seed state without crashing the app or losing unrelated keys.
       final demoState = createDemoState();
-      await saveHomeState(demoState);
+      try {
+        await saveHomeState(demoState);
+      } catch (_) {}
       return demoState;
     }
   }
 
-  HomeState _migrateToV3(Map<String, dynamic> raw) {
+  HomeState _migrateToV5(Map<String, dynamic> raw) {
     // 1. Homes: inject default homes if none present
     List<Home> homes = defaultHomes;
     if (raw['homes'] is List && (raw['homes'] as List).isNotEmpty) {
@@ -696,6 +783,10 @@ class HomePersistenceManager {
         if (devJson['homeId'] == null ||
             (devJson['homeId'] as String).isEmpty) {
           devJson['homeId'] = 'home-default';
+        }
+        if (devJson['customData'] is Map) {
+          devJson['customData'] = HomeState._sanitizeCustomData(
+              Map<String, dynamic>.from(devJson['customData'] as Map));
         }
         return SmartDevice.fromJson(devJson);
       }).toList();
@@ -773,6 +864,42 @@ class HomePersistenceManager {
           .toList();
     }
 
+    // 10. Phase 5: Command Records (bounded up to 100)
+    List<CommandRecord> commandRecords = const [];
+    if (raw['commandRecords'] is List &&
+        (raw['commandRecords'] as List).isNotEmpty) {
+      commandRecords = (raw['commandRecords'] as List)
+          .map((e) => CommandRecord.fromJson(e as Map<String, dynamic>))
+          .take(100)
+          .toList();
+    }
+
+    // 11. Phase 5: Automation Records (bounded up to 100)
+    List<AutomationExecutionRecord> automationRecords = const [];
+    if (raw['automationRecords'] is List &&
+        (raw['automationRecords'] as List).isNotEmpty) {
+      automationRecords = (raw['automationRecords'] as List)
+          .map((e) =>
+              AutomationExecutionRecord.fromJson(e as Map<String, dynamic>))
+          .take(100)
+          .toList();
+    }
+
+    // 12. Phase 5: Device Health Records
+    List<DeviceHealth> deviceHealthRecords = const [];
+    if (raw['deviceHealthRecords'] is List &&
+        (raw['deviceHealthRecords'] as List).isNotEmpty) {
+      deviceHealthRecords = (raw['deviceHealthRecords'] as List)
+          .map((e) => DeviceHealth.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    // 13. Phase 5: Simulated Modifications
+    Map<String, dynamic> simMods = const {};
+    if (raw['simulatedModifications'] is Map) {
+      simMods = Map<String, dynamic>.from(raw['simulatedModifications'] as Map);
+    }
+
     return HomeState(
       schemaVersion: schemaVersion,
       homes: homes,
@@ -785,11 +912,17 @@ class HomePersistenceManager {
       scenes: scenes,
       activityEvents: events,
       notifications: notifs,
+      commandRecords: commandRecords,
+      automationRecords: automationRecords,
+      deviceHealthRecords: deviceHealthRecords,
+      simulatedModifications: simMods,
     );
   }
 
   Future<HomeState> resetDemoData() async {
     await _storage.remove(storageKey);
+    await _storage.remove(v4StorageKey);
+    await _storage.remove(v3StorageKey);
     await _storage.remove(v2StorageKey);
     await _storage.remove(legacyStorageKey);
     final demoState = createDemoState();
@@ -861,6 +994,91 @@ class HomePersistenceManager {
   Future<void> saveNotifications(List<InAppNotification> notifications) async {
     final current = await _getCurrentOrFallback();
     await saveHomeState(current.copyWith(notifications: notifications));
+  }
+
+  List<CommandRecord> getCommandRecords({String? homeId}) {
+    final state = _cachedState ?? createDemoState();
+    if (homeId == null) {
+      return List.unmodifiable(state.commandRecords.take(100));
+    }
+    return List.unmodifiable(
+        state.commandRecords.where((r) => r.homeId == homeId).take(100));
+  }
+
+  Future<void> saveCommandRecords(
+    List<CommandRecord> records, {
+    String? homeId,
+  }) async {
+    final current = await _getCurrentOrFallback();
+    final List<CommandRecord> merged;
+    if (homeId != null) {
+      final otherHomeRecords =
+          current.commandRecords.where((r) => r.homeId != homeId).toList();
+      final targetHomeRecords =
+          records.where((r) => r.homeId == homeId).take(100).toList();
+      merged = [...targetHomeRecords, ...otherHomeRecords].take(200).toList();
+    } else {
+      merged = records.take(100).toList();
+    }
+    await saveHomeState(current.copyWith(commandRecords: merged));
+  }
+
+  List<AutomationExecutionRecord> getAutomationRecords({String? homeId}) {
+    final state = _cachedState ?? createDemoState();
+    if (homeId == null) {
+      return List.unmodifiable(state.automationRecords.take(100));
+    }
+    return List.unmodifiable(
+        state.automationRecords.where((r) => r.homeId == homeId).take(100));
+  }
+
+  Future<void> saveAutomationRecords(
+    List<AutomationExecutionRecord> records, {
+    String? homeId,
+  }) async {
+    final current = await _getCurrentOrFallback();
+    final List<AutomationExecutionRecord> merged;
+    if (homeId != null) {
+      final otherHomeRecords =
+          current.automationRecords.where((r) => r.homeId != homeId).toList();
+      final targetHomeRecords =
+          records.where((r) => r.homeId == homeId).take(100).toList();
+      merged = [...targetHomeRecords, ...otherHomeRecords].take(200).toList();
+    } else {
+      merged = records.take(100).toList();
+    }
+    await saveHomeState(current.copyWith(automationRecords: merged));
+  }
+
+  List<DeviceHealth> getDeviceHealthRecords({String? homeId}) {
+    final state = _cachedState ?? createDemoState();
+    if (homeId == null) {
+      return List.unmodifiable(state.deviceHealthRecords);
+    }
+    return List.unmodifiable(
+        state.deviceHealthRecords.where((h) => h.homeId == homeId));
+  }
+
+  Future<void> saveDeviceHealthRecords(
+    List<DeviceHealth> healthList, {
+    String? homeId,
+  }) async {
+    final current = await _getCurrentOrFallback();
+    final List<DeviceHealth> merged;
+    if (homeId != null) {
+      final other =
+          current.deviceHealthRecords.where((h) => h.homeId != homeId).toList();
+      final target = healthList.where((h) => h.homeId == homeId).toList();
+      merged = [...target, ...other];
+    } else {
+      merged = List.of(healthList);
+    }
+    await saveHomeState(current.copyWith(deviceHealthRecords: merged));
+  }
+
+  Future<void> saveSimulatedModifications(Map<String, dynamic> mods) async {
+    final current = await _getCurrentOrFallback();
+    await saveHomeState(current.copyWith(simulatedModifications: mods));
   }
 
   static const String firstRunStorageKey = 'lumivo_first_run_completed';

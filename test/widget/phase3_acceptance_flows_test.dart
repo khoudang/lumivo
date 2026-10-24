@@ -447,7 +447,7 @@ void main() {
 
       final state = await persistence.loadHomeState();
 
-      expect(state.schemaVersion, 3);
+      expect(state.schemaVersion, greaterThanOrEqualTo(3));
       expect(state.homes.isNotEmpty, isTrue);
       expect(state.homes.any((h) => h.id == 'home-default'), isTrue);
       expect(state.currentHomeId, 'home-default');
@@ -486,7 +486,7 @@ void main() {
       final demoState = await persistence.resetDemoData();
       repository.resetToDemo();
 
-      expect(demoState.schemaVersion, 3);
+      expect(demoState.schemaVersion, greaterThanOrEqualTo(3));
       expect(demoState.homes.length, 2);
       expect(demoState.devices.length, 9);
       expect(

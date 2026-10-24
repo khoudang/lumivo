@@ -14,7 +14,17 @@ export '../features/activity/state/activity_notifier.dart'
     show activityProvider;
 export '../features/automation/state/automation_notifier.dart'
     show automationProvider;
+export '../features/automation/state/automation_history_notifier.dart'
+    show automationExecutionHistoryProvider, AutomationHistoryNotifier;
 export '../features/automation/state/scenes_notifier.dart' show scenesProvider;
+export '../features/health/state/device_health_notifier.dart'
+    show
+        deviceHealthProvider,
+        homeHealthSummaryProvider,
+        healthAggregatorProvider,
+        HealthAggregator;
+export '../features/history/state/command_history_notifier.dart'
+    show commandHistoryProvider, CommandHistoryNotifier;
 export '../features/notifications/state/notifications_notifier.dart'
     show notificationsProvider;
 export '../features/rooms/state/rooms_notifier.dart' show roomsProvider;
