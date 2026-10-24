@@ -13,6 +13,7 @@ import 'device_simulators/generic_device_simulator.dart';
 import 'device_simulators/lock_simulator.dart';
 import 'device_simulators/sensor_simulator.dart';
 import 'device_simulators/socket_simulator.dart';
+import 'health_aggregator.dart';
 import 'virtual_clock.dart';
 
 /// Point-in-time snapshot representing complete environmental and smart home state.
@@ -58,7 +59,7 @@ class SimulationSnapshot {
 }
 
 /// Central engine coordinating the virtual clock, device simulators,
-/// automation rules engine, and real-time total home power telemetry.
+/// automation rules engine, health aggregation, and real-time total home power telemetry.
 class SimulationEngine {
   SimulationEngine({
     VirtualClock? clock,
@@ -89,6 +90,12 @@ class SimulationEngine {
 
     _snapshot = _computeSnapshot();
 
+    healthAggregator = HealthAggregator(
+      repository: repository,
+      simulationEngine: this,
+      initialDevices: _devices.values.toList(),
+    );
+
     _clockSubscription = this.clock.tickStream.listen((time) {
       _onClockTick(time);
     });
@@ -112,6 +119,7 @@ class SimulationEngine {
 
   final VirtualClock clock;
   final AutomationEngine automationEngine;
+  late final HealthAggregator healthAggregator;
   final DeviceRepository? repository;
 
   final Map<String, SmartDevice> _devices = {};
@@ -120,6 +128,7 @@ class SimulationEngine {
 
   double? _forcedAmbientTemperature;
   double? _forcedAmbientHumidity;
+  double _packetLossRate = 0.0;
 
   late DateTime _lastTickTime;
   late SimulationSnapshot _snapshot;
@@ -138,6 +147,9 @@ class SimulationEngine {
 
   /// Read-only view of current devices.
   List<SmartDevice> get devices => List.unmodifiable(_devices.values);
+
+  /// Simulated packet loss rate (0.0 to 1.0).
+  double get packetLossRate => _packetLossRate;
 
   /// Retrieves the active simulator for [deviceId].
   DeviceSimulator? getSimulator(String deviceId) => _simulators[deviceId];
@@ -289,6 +301,7 @@ class SimulationEngine {
 
   void _emitUpdatedSnapshot() {
     _snapshot = _computeSnapshot();
+    healthAggregator.evaluate(_devices.values);
     if (!_snapshotController.isClosed) {
       _snapshotController.add(_snapshot);
     }
@@ -298,8 +311,8 @@ class SimulationEngine {
   // Chaos and Demo Lab Controls
   // ==========================================
 
-  /// Forces a device online or offline (chaos injection).
-  void forceDeviceOffline(String deviceId, bool offline) {
+  /// Forces a device online or offline (chaos fault injection).
+  void forceDeviceOffline(String deviceId, [bool offline = true]) {
     if (offline) {
       _forcedOfflineDeviceIds.add(deviceId);
       if (_devices.containsKey(deviceId)) {
@@ -324,6 +337,37 @@ class SimulationEngine {
       }
     }
     _emitUpdatedSnapshot();
+  }
+
+  /// Reconnects a device previously forced offline.
+  void reconnectDevice(String deviceId) {
+    forceDeviceOffline(deviceId, false);
+  }
+
+  /// Injects simulated packet loss rate (0.0 to 1.0) into command pipeline.
+  void setPacketLossRate(double rate) {
+    _packetLossRate = rate.clamp(0.0, 1.0);
+    if (repository is MockDeviceRepository) {
+      (repository as MockDeviceRepository).commandPipeline.packetLossRate =
+          _packetLossRate;
+    }
+  }
+
+  /// Simulates a reconnect storm by disconnecting all active devices
+  /// and reconnecting them with backoff delays.
+  Future<void> triggerReconnectStorm({
+    Duration delayBetweenDevices = const Duration(milliseconds: 20),
+  }) async {
+    final allDeviceIds = _devices.keys.toList();
+    for (final id in allDeviceIds) {
+      forceDeviceOffline(id, true);
+    }
+    for (int i = 0; i < allDeviceIds.length; i++) {
+      if (delayBetweenDevices > Duration.zero) {
+        await Future<void>.delayed(delayBetweenDevices);
+      }
+      reconnectDevice(allDeviceIds[i]);
+    }
   }
 
   /// Sets the simulated virtual time.
@@ -402,6 +446,7 @@ class SimulationEngine {
     _isDisposed = true;
     _clockSubscription?.cancel();
     _repoSubscription?.cancel();
+    healthAggregator.dispose();
     clock.dispose();
     automationEngine.dispose();
     _snapshotController.close();

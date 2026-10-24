@@ -44,11 +44,12 @@ class ScenesNotifier extends StateNotifier<List<Scene>> {
   }
 
   Future<void> executeScene(Scene scene, DeviceRepository repo) async {
-    for (final action in scene.actions) {
+    for (var i = 0; i < scene.actions.length; i++) {
+      final action = scene.actions[i];
       await repo.sendCommand(
         DeviceCommand(
           requestId:
-              'scene-${scene.id}-${DateTime.now().microsecondsSinceEpoch}',
+              'scene-${scene.id}-${DateTime.now().microsecondsSinceEpoch}-$i',
           deviceId: action.deviceId,
           type: action.commandType,
           value: action.value,

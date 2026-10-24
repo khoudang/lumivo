@@ -4,6 +4,7 @@ import '../../core/models/automation_rule.dart';
 import '../../core/models/device_command.dart';
 import '../../core/models/smart_device.dart';
 import '../../core/repositories/device_repository.dart';
+import '../simulation/command_pipeline.dart';
 import '../storage/home_persistence_manager.dart';
 
 class MockDeviceRepository implements DeviceRepository {
@@ -11,7 +12,19 @@ class MockDeviceRepository implements DeviceRepository {
     this.responseDelay = const Duration(milliseconds: 380),
     List<SmartDevice>? initialDevices,
     this.persistenceManager,
-  }) {
+    CommandPipeline? commandPipeline,
+    this.offlineErrorMessage = 'Device offline',
+  }) : commandPipeline = commandPipeline ??
+            CommandPipeline(
+              simulatedLatency:
+                  responseDelay == Duration.zero ? Duration.zero : null,
+              minLatencyMs: responseDelay == Duration.zero ? 0 : 20,
+              maxLatencyMs: responseDelay == Duration.zero
+                  ? 0
+                  : (responseDelay.inMilliseconds > 60
+                      ? responseDelay.inMilliseconds
+                      : 60),
+            ) {
     if (initialDevices != null) {
       _devices.clear();
       _devices.addAll(initialDevices);
@@ -25,6 +38,8 @@ class MockDeviceRepository implements DeviceRepository {
 
   final Duration responseDelay;
   final HomePersistenceManager? persistenceManager;
+  final CommandPipeline commandPipeline;
+  final String offlineErrorMessage;
   final StreamController<List<SmartDevice>> _updates =
       StreamController<List<SmartDevice>>.broadcast();
 
@@ -321,6 +336,26 @@ class MockDeviceRepository implements DeviceRepository {
     }
   }
 
+  void forceDeviceOffline(String deviceId) {
+    final index = _devices.indexWhere((device) => device.id == deviceId);
+    if (index >= 0) {
+      _devices[index] =
+          _devices[index].copyWith(connection: DeviceConnection.offline);
+      _notifyListeners();
+      _persist();
+    }
+  }
+
+  void reconnectDevice(String deviceId) {
+    final index = _devices.indexWhere((device) => device.id == deviceId);
+    if (index >= 0) {
+      _devices[index] =
+          _devices[index].copyWith(connection: DeviceConnection.online);
+      _notifyListeners();
+      _persist();
+    }
+  }
+
   void resetToDefaults() {
     _devices.clear();
     _devices.addAll(_defaultDevices);
@@ -358,104 +393,107 @@ class MockDeviceRepository implements DeviceRepository {
 
   @override
   Future<CommandResult> sendCommand(DeviceCommand command) async {
-    if (responseDelay > Duration.zero) {
-      await Future<void>.delayed(responseDelay);
-    }
-    final index =
-        _devices.indexWhere((device) => device.id == command.deviceId);
-    if (index < 0) {
-      return CommandResult(
-        requestId: command.requestId,
-        status: CommandStatus.failed,
-        errorMessage: 'Device not found',
-      );
-    }
-    final current = _devices[index];
-    if (current.connection == DeviceConnection.offline) {
-      return CommandResult(
-        requestId: command.requestId,
-        status: CommandStatus.failed,
-        errorMessage: 'Device offline',
-      );
-    }
-    SmartDevice next;
-    switch (command.type) {
-      case DeviceCommandType.setPower:
-        if (command.value is! bool) {
+    return commandPipeline.execute(
+      command,
+      onExecute: (cmd) async {
+        final index =
+            _devices.indexWhere((device) => device.id == cmd.deviceId);
+        if (index < 0) {
           return CommandResult(
-            requestId: command.requestId,
+            requestId: cmd.requestId,
             status: CommandStatus.failed,
-            errorMessage: 'Expected boolean',
+            errorMessage: 'Device not found',
           );
         }
-        next = current.copyWith(isOn: command.value as bool);
-        break;
-
-      case DeviceCommandType.setBrightness:
-        if (current.type != DeviceType.light || command.value is! int) {
+        final current = _devices[index];
+        if (!current.isOnline) {
           return CommandResult(
-            requestId: command.requestId,
+            requestId: cmd.requestId,
             status: CommandStatus.failed,
-            errorMessage: 'Unsupported brightness',
+            errorMessage: offlineErrorMessage,
           );
         }
-        final level = (command.value as int).clamp(0, 100);
-        next = current.copyWith(brightness: level, isOn: level > 0);
-        break;
+        SmartDevice next;
+        switch (cmd.type) {
+          case DeviceCommandType.setPower:
+            if (cmd.value is! bool) {
+              return CommandResult(
+                requestId: cmd.requestId,
+                status: CommandStatus.failed,
+                errorMessage: 'Expected boolean',
+              );
+            }
+            next = current.copyWith(isOn: cmd.value as bool);
+            break;
 
-      case DeviceCommandType.setTargetTemperature:
-        if (command.value is! num) {
-          return CommandResult(
-            requestId: command.requestId,
-            status: CommandStatus.failed,
-            errorMessage: 'Expected number for temperature',
-          );
+          case DeviceCommandType.setBrightness:
+            if (current.type != DeviceType.light || cmd.value is! int) {
+              return CommandResult(
+                requestId: cmd.requestId,
+                status: CommandStatus.failed,
+                errorMessage: 'Unsupported brightness',
+              );
+            }
+            final level = (cmd.value as int).clamp(0, 100);
+            next = current.copyWith(brightness: level, isOn: level > 0);
+            break;
+
+          case DeviceCommandType.setTargetTemperature:
+            if (cmd.value is! num) {
+              return CommandResult(
+                requestId: cmd.requestId,
+                status: CommandStatus.failed,
+                errorMessage: 'Expected number for temperature',
+              );
+            }
+            final temp = (cmd.value as num).toDouble().clamp(16.0, 30.0);
+            next = current.copyWith(targetTemperature: temp);
+            break;
+
+          case DeviceCommandType.setPosition:
+            if (cmd.value is! num) {
+              return CommandResult(
+                requestId: cmd.requestId,
+                status: CommandStatus.failed,
+                errorMessage: 'Expected number for position',
+              );
+            }
+            final pos = (cmd.value as num).toInt().clamp(0, 100);
+            next = current.copyWith(position: pos);
+            break;
+
+          case DeviceCommandType.setLock:
+            if (cmd.value is! bool) {
+              return CommandResult(
+                requestId: cmd.requestId,
+                status: CommandStatus.failed,
+                errorMessage: 'Expected boolean for lock',
+              );
+            }
+            final locked = cmd.value as bool;
+            next = current.copyWith(isLocked: locked);
+            break;
+
+          case DeviceCommandType.toggleLock:
+            next = current.copyWith(isLocked: !current.isLocked);
+            break;
         }
-        final temp = (command.value as num).toDouble().clamp(16.0, 30.0);
-        next = current.copyWith(targetTemperature: temp);
-        break;
 
-      case DeviceCommandType.setPosition:
-        if (command.value is! num) {
-          return CommandResult(
-            requestId: command.requestId,
-            status: CommandStatus.failed,
-            errorMessage: 'Expected number for position',
-          );
-        }
-        final pos = (command.value as num).toInt().clamp(0, 100);
-        next = current.copyWith(position: pos);
-        break;
+        _devices[index] = next;
+        _notifyListeners();
+        _persist();
 
-      case DeviceCommandType.setLock:
-        if (command.value is! bool) {
-          return CommandResult(
-            requestId: command.requestId,
-            status: CommandStatus.failed,
-            errorMessage: 'Expected boolean for lock',
-          );
-        }
-        final locked = command.value as bool;
-        next = current.copyWith(isLocked: locked);
-        break;
-
-      case DeviceCommandType.toggleLock:
-        next = current.copyWith(isLocked: !current.isLocked);
-        break;
-    }
-
-    _devices[index] = next;
-    _notifyListeners();
-    _persist();
-
-    return CommandResult(
-      requestId: command.requestId,
-      status: CommandStatus.confirmed,
+        return CommandResult(
+          requestId: cmd.requestId,
+          status: CommandStatus.confirmed,
+        );
+      },
     );
   }
 
   @override
   Future<void> dispose() async {
+    commandPipeline.dispose();
     if (!_updates.isClosed) {
       await _updates.close();
     }
