@@ -20,7 +20,7 @@ class RoomSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: rooms.length,
@@ -87,45 +87,51 @@ class _RoomChip extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  room,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? Colors.white : AppColors.textSecondary,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    room,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color:
+                          isSelected ? Colors.white : AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                if (count != null) ...[
-                  const SizedBox(width: 8),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.45)
-                          : AppColors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color:
-                            isSelected ? Colors.white : AppColors.textSecondary,
+                  if (count != null) ...[
+                    const SizedBox(width: 8),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary.withValues(alpha: 0.45)
+                            : AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

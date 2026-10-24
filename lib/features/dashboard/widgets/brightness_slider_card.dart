@@ -118,26 +118,29 @@ class BrightnessSliderCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Slider
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 6,
-              activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.surfaceElevated,
-              thumbColor: AppColors.primary,
-              overlayColor: AppColors.primary.withValues(alpha: 0.16),
-              thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 8,
-                pressedElevation: 4,
+          // Slider with comfortable touch height
+          SizedBox(
+            height: 48,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.surfaceElevated,
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withValues(alpha: 0.16),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 8,
+                  pressedElevation: 4,
+                ),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
               ),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-            ),
-            child: Slider(
-              value: brightness.clamp(0.0, 100.0),
-              min: 0,
-              max: 100,
-              onChanged: _isDisabled ? null : onChanged,
-              onChangeEnd: _isDisabled ? null : onChangeEnd,
+              child: Slider(
+                value: brightness.clamp(0.0, 100.0),
+                min: 0,
+                max: 100,
+                onChanged: _isDisabled ? null : onChanged,
+                onChangeEnd: _isDisabled ? null : onChangeEnd,
+              ),
             ),
           ),
 
@@ -169,26 +172,31 @@ class BrightnessSliderCard extends StatelessWidget {
               onChanged(target);
               onChangeEnd(target);
             },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.22)
-              : AppColors.surfaceElevated.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.5)
-                : AppColors.surfaceBorder.withValues(alpha: 0.5),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          '$targetPercent%',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.muted,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.22)
+                  : AppColors.surfaceElevated.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.5)
+                    : AppColors.surfaceBorder.withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              '$targetPercent%',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : AppColors.muted,
+              ),
+            ),
           ),
         ),
       ),

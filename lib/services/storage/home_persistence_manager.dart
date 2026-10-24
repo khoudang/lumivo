@@ -862,6 +862,17 @@ class HomePersistenceManager {
     final current = await _getCurrentOrFallback();
     await saveHomeState(current.copyWith(notifications: notifications));
   }
+
+  static const String firstRunStorageKey = 'lumivo_first_run_completed';
+
+  Future<bool> isFirstRunCompleted() async {
+    final val = await _storage.getString(firstRunStorageKey);
+    return val == 'true';
+  }
+
+  Future<void> setFirstRunCompleted(bool completed) async {
+    await _storage.setString(firstRunStorageKey, completed.toString());
+  }
 }
 
 final homePersistenceProvider = Provider<HomePersistenceManager>((ref) {

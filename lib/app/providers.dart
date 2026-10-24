@@ -30,6 +30,8 @@ export '../features/energy/state/energy_notifier.dart'
         EnergySummaryNotifier;
 export '../services/storage/home_persistence_manager.dart'
     show homePersistenceProvider, HomePersistenceManager, HomeState;
+export '../features/onboarding/state/first_run_notifier.dart'
+    show firstRunCompletedProvider, FirstRunNotifier;
 
 final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
   final persistence = ref.watch(homePersistenceProvider);

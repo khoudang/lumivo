@@ -125,6 +125,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final devices = ref.watch(devicesProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       floatingActionButton: selectedTab == 0
           ? FloatingActionButton(
               heroTag: 'dashboard_fab',
@@ -205,9 +206,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
         return ListView(
           padding: EdgeInsets.fromLTRB(
-            screenWidth > 600 ? 32 : 22,
+            screenWidth > 600 ? 32 : (screenWidth < 360 ? 14 : 22),
             16,
-            screenWidth > 600 ? 32 : 22,
+            screenWidth > 600 ? 32 : (screenWidth < 360 ? 14 : 22),
             24,
           ),
           children: [
@@ -223,92 +224,120 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: const Icon(
                     Icons.home_rounded,
                     color: AppColors.primary,
-                    size: 24,
+                    size: 22,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 const Text(
                   'LUMIVO',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                    letterSpacing: 1.5,
+                    fontSize: 16,
+                    letterSpacing: 1.2,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(width: 8),
-                const HomeAppBarTitle(),
-                const Spacer(),
-                const Icon(
-                  Icons.wifi_rounded,
-                  color: AppColors.green,
-                  size: 20,
-                ),
-                const SizedBox(width: 14),
-                IconButton(
-                  tooltip: 'Add Device',
-                  icon: const Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: AppColors.primary,
-                    size: 22,
-                  ),
-                  onPressed: _openAddDeviceSheet,
-                ),
                 const SizedBox(width: 6),
-                // Notifications Bell with Badge
-                Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    IconButton(
-                      key: const Key('dashboard_notifications_button'),
-                      tooltip: 'Notifications',
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: const HomeAppBarTitle(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                if (screenWidth >= 380) ...[
+                  const Icon(
+                    Icons.wifi_rounded,
+                    color: AppColors.green,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 2),
+                ],
+                if (screenWidth >= 360)
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: 'Add Device',
+                      padding: EdgeInsets.zero,
                       icon: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: AppColors.textPrimary,
+                        Icons.add_circle_outline_rounded,
+                        color: AppColors.primary,
                         size: 22,
                       ),
-                      onPressed: () => NotificationsSheet.show(context),
+                      onPressed: _openAddDeviceSheet,
                     ),
-                    if (unreadCount > 0)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
+                  ),
+                // Notifications Bell with Badge
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      Center(
+                        child: IconButton(
+                          key: const Key('dashboard_notifications_button'),
+                          tooltip: 'Notifications',
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.notifications_none_rounded,
+                            color: AppColors.textPrimary,
+                            size: 22,
                           ),
-                          child: Text(
-                            '$unreadCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                          onPressed: () => NotificationsSheet.show(context),
+                        ),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 14),
-                InkWell(
-                  key: const Key('dashboard_profile_button'),
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileScreen(),
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: InkWell(
+                    key: const Key('dashboard_profile_button'),
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
+                      );
+                    },
+                    child: const Center(
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.surfaceElevated,
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
-                    );
-                  },
-                  child: const CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppColors.surfaceElevated,
-                    child: Icon(
-                      Icons.person_outline_rounded,
-                      color: Colors.white,
-                      size: 18,
                     ),
                   ),
                 ),
@@ -763,24 +792,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   : Colors.transparent,
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                size: 20,
-                color: isSelected ? AppColors.primary : AppColors.muted,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? Colors.white : AppColors.muted,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 20,
+                  color: isSelected ? AppColors.primary : AppColors.muted,
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? Colors.white : AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

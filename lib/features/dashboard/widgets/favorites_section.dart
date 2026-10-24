@@ -68,12 +68,16 @@ class FavoritesSection extends StatelessWidget {
             ),
             const Spacer(),
             if (favoriteDevices.isNotEmpty)
-              const Text(
-                'Drag to reorder',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.muted,
-                  fontStyle: FontStyle.italic,
+              const Flexible(
+                child: Text(
+                  'Drag to reorder',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.muted,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
           ],
@@ -228,12 +232,22 @@ class FavoritesSection extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                GestureDetector(
-                  onTap: isOffline ? null : () => onDeviceToggle?.call(device),
-                  child: Icon(
-                    isOn ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                    size: 30,
-                    color: isOn ? AppColors.green : AppColors.mutedDark,
+                ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(minWidth: 48, minHeight: 48),
+                  child: Center(
+                    child: GestureDetector(
+                      onTap:
+                          isOffline ? null : () => onDeviceToggle?.call(device),
+                      behavior: HitTestBehavior.opaque,
+                      child: Icon(
+                        isOn
+                            ? Icons.toggle_on_rounded
+                            : Icons.toggle_off_rounded,
+                        size: 30,
+                        color: isOn ? AppColors.green : AppColors.mutedDark,
+                      ),
+                    ),
                   ),
                 ),
               ],
