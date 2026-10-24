@@ -1,4 +1,4 @@
-package com.example.lumivo
+package com.lumivo.app
 
 import io.flutter.embedding.android.FlutterActivity
 

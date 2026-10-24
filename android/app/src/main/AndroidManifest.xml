@@ -1,6 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 
+      Lumivo Mobile Platform Audit:
+      Lumivo is a fully virtualized, deterministic simulation IoT platform.
+      No native BLE, Wi-Fi hardware scanning, or Fine/Coarse Location permissions
+      are required or declared in this manifest. All device telemetry and state
+      transitions operate via the in-memory simulation engine and mock services.
+    -->
+
     <application
-        android:label="lumivo"
+        android:label="Lumivo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
