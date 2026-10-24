@@ -189,3 +189,64 @@ class Scene {
         homeId: json['homeId'] as String? ?? 'home-default',
       );
 }
+
+enum AutomationExecutionStatus {
+  executed,
+  skipped,
+  failed,
+  loopPrevented,
+}
+
+/// Execution record with explanation reasons and loop prevention telemetry.
+class AutomationExecutionRecord {
+  const AutomationExecutionRecord({
+    required this.id,
+    required this.ruleId,
+    required this.ruleName,
+    required this.timestamp,
+    required this.status,
+    required this.reason,
+    this.dispatchedCommandIds = const [],
+    this.homeId = 'home-default',
+  });
+
+  final String id;
+  final String ruleId;
+  final String ruleName;
+  final DateTime timestamp;
+  final AutomationExecutionStatus status;
+  final String reason;
+  final List<String> dispatchedCommandIds;
+  final String homeId;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'ruleId': ruleId,
+        'ruleName': ruleName,
+        'timestamp': timestamp.toIso8601String(),
+        'status': status.name,
+        'reason': reason,
+        'dispatchedCommandIds': dispatchedCommandIds,
+        'homeId': homeId,
+      };
+
+  factory AutomationExecutionRecord.fromJson(Map<String, dynamic> json) =>
+      AutomationExecutionRecord(
+        id: json['id'] as String? ?? '',
+        ruleId: json['ruleId'] as String? ?? '',
+        ruleName: json['ruleName'] as String? ?? '',
+        timestamp: json['timestamp'] != null
+            ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
+            : DateTime.now(),
+        status: AutomationExecutionStatus.values.firstWhere(
+          (e) => e.name == json['status'],
+          orElse: () => AutomationExecutionStatus.executed,
+        ),
+        reason: json['reason'] as String? ?? '',
+        dispatchedCommandIds: (json['dispatchedCommandIds'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
+        homeId: json['homeId'] as String? ?? 'home-default',
+      );
+}

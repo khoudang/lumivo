@@ -158,6 +158,37 @@ class AppLocalizations {
   String get wifiSetup => translate('wifi_setup');
   String get pairingDevice => translate('pairing_device');
   String get deviceReady => translate('device_ready');
+
+  // Phase 5 Getters
+  String get healthDashboard => translate('health_dashboard');
+  String get systemHealthScore => translate('system_health_score');
+  String get healthOptimal => translate('health_optimal');
+  String get healthDegraded => translate('health_degraded');
+  String get healthOfflineWarning => translate('health_offline_warning');
+  String get devicesOnline => translate('devices_online');
+  String get devicesOffline => translate('devices_offline');
+  String get signalStrength => translate('signal_strength');
+  String get activeWarnings => translate('active_warnings');
+  String get noWarnings => translate('no_warnings');
+  String get simulatedBleScan => translate('simulated_ble_scan');
+  String get wifiSetupSimulated => translate('wifi_setup_simulated');
+  String get assignRoom => translate('assign_room');
+  String get retryPairing => translate('retry_pairing');
+  String get pairingTimeout => translate('pairing_timeout');
+  String get duplicate => translate('duplicate');
+  String get automationDuplicated => translate('automation_duplicated');
+  String get executionHistory => translate('execution_history');
+  String get viewHistory => translate('view_history');
+  String get noHistory => translate('no_history');
+  String get ruleValidationError => translate('rule_validation_error');
+  String get loopPreventedExplanation =>
+      translate('loop_prevented_explanation');
+  String get skippedExplanation => translate('skipped_explanation');
+  String get demoLab => translate('demo_lab');
+  String get forceDeviceOffline => translate('force_device_offline');
+  String get reconnectDevice => translate('reconnect_device');
+  String get injectPacketLoss => translate('inject_packet_loss');
+  String get triggerReconnectStorm => translate('trigger_reconnect_storm');
 }
 
 /// LocalizationsDelegate for [AppLocalizations].
