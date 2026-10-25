@@ -171,6 +171,7 @@ class _AutomationBuilderWizardState
       operator: _conditionOperator,
       thresholdValue: _conditionValue,
       actions: actions,
+      homeId: ref.read(currentHomeProvider).id,
     );
 
     ref.read(automationRulesProvider.notifier).addRule(newRule);
@@ -259,8 +260,11 @@ class _AutomationBuilderWizardState
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appLocalizationsProvider);
+    final currentHome = ref.watch(currentHomeProvider);
     final devicesAsync = ref.watch(devicesProvider);
-    final allDevices = devicesAsync.valueOrNull ?? [];
+    final rawDevices = devicesAsync.valueOrNull ?? [];
+    final allDevices =
+        rawDevices.where((d) => d.homeId == currentHome.id).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,

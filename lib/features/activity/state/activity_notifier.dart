@@ -6,12 +6,14 @@ class ActivityNotifier extends StateNotifier<List<ActivityEvent>> {
   ActivityNotifier([
     List<ActivityEvent>? initialEvents,
     this._persistenceManager,
-  ]) : super(initialEvents ?? HomePersistenceManager.defaultActivityEvents);
+  ]) : super((initialEvents ?? HomePersistenceManager.defaultActivityEvents)
+            .take(100)
+            .toList());
 
   final HomePersistenceManager? _persistenceManager;
 
   void addEvent(ActivityEvent event) {
-    state = [event, ...state];
+    state = [event, ...state].take(100).toList();
     _persist();
   }
 
@@ -21,7 +23,7 @@ class ActivityNotifier extends StateNotifier<List<ActivityEvent>> {
   }
 
   void setEvents(List<ActivityEvent> events) {
-    state = List.of(events);
+    state = events.take(100).toList();
     _persist();
   }
 

@@ -17,9 +17,12 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appLocalizationsProvider);
+    final currentHome = ref.watch(currentHomeProvider);
     final allEvents = ref.watch(activityProvider);
+    final homeEvents =
+        allEvents.where((e) => e.homeId == null || e.homeId == currentHome.id);
 
-    final filtered = allEvents.where((e) {
+    final filtered = homeEvents.where((e) {
       if (_activeFilter == 'All') return true;
       if (_activeFilter == 'Automations') {
         return e.source == 'automation';

@@ -1,6 +1,4 @@
 import 'dart:async';
-import '../../core/models/activity_event.dart';
-import '../../core/models/automation_rule.dart';
 import '../../core/models/device_command.dart';
 import '../../core/models/smart_device.dart';
 import '../../core/repositories/device_repository.dart';
@@ -169,129 +167,63 @@ class MockDeviceRepository implements DeviceRepository {
   }
 
   Future<void> removeDeviceWithCascade(String deviceId) async {
-    final index = _devices.indexWhere((d) => d.id == deviceId);
-    if (index < 0) return;
-    final removedDevice = _devices.removeAt(index);
-
-    // Prune favorite orders
-    final favs = _devices.where((d) => d.isFavorite).toList()
-      ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
-    for (int i = 0; i < favs.length; i++) {
-      final devIdx = _devices.indexWhere((d) => d.id == favs[i].id);
-      if (devIdx >= 0) {
-        _devices[devIdx] = _devices[devIdx].copyWith(favoriteOrder: i);
+    if (persistenceManager != null) {
+      await persistenceManager!.deleteDeviceWithCascade(deviceId);
+      final reloaded = await persistenceManager!.loadHomeState();
+      _devices
+        ..clear()
+        ..addAll(reloaded.devices);
+    } else {
+      final index = _devices.indexWhere((d) => d.id == deviceId);
+      if (index >= 0) {
+        _devices.removeAt(index);
+        final favs = _devices.where((d) => d.isFavorite).toList()
+          ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
+        for (int i = 0; i < favs.length; i++) {
+          final devIdx = _devices.indexWhere((d) => d.id == favs[i].id);
+          if (devIdx >= 0) {
+            _devices[devIdx] = _devices[devIdx].copyWith(favoriteOrder: i);
+          }
+        }
       }
     }
+    _notifyListeners();
+  }
 
+  Future<void> removeRoomWithCascade(String roomId,
+      {String? reassignToRoomId}) async {
     if (persistenceManager != null) {
-      await persistenceManager!.saveDevices(List.of(_devices));
-      final currentHomeState = await persistenceManager!.loadHomeState();
-
-      // Prune actions from Scenes
-      final updatedScenes = currentHomeState.scenes.map((scene) {
-        final prunedActions = scene.actions
-            .where((action) => action.deviceId != deviceId)
-            .toList();
-        return scene.copyWith(actions: prunedActions);
-      }).toList();
-      await persistenceManager!.saveScenes(updatedScenes);
-
-      // Prune or disable AutomationRules
-      final updatedRules = currentHomeState.automations.map((rule) {
-        final isSensorRef = rule.sensorDeviceId == deviceId;
-        final prunedActions = rule.actions
-            .where((action) => action.deviceId != deviceId)
-            .toList();
-        final shouldDisable = isSensorRef || prunedActions.isEmpty;
-        if (isSensorRef) {
-          return AutomationRule(
-            id: rule.id,
-            name: rule.name,
-            isEnabled: false,
-            triggerType: rule.triggerType,
-            timeOfDay: rule.timeOfDay,
-            daysOfWeek: rule.daysOfWeek,
-            sensorDeviceId: null,
-            sensorProperty: rule.sensorProperty,
-            operator: rule.operator,
-            thresholdValue: rule.thresholdValue,
-            actions: prunedActions,
-            lastExecutedAt: rule.lastExecutedAt,
-            homeId: rule.homeId,
-          );
-        }
-        return rule.copyWith(
-          actions: prunedActions,
-          isEnabled: shouldDisable ? false : rule.isEnabled,
-        );
-      }).toList();
-      await persistenceManager!.saveAutomations(updatedRules);
-
-      // Record ActivityEvent
-      final cascadeEvent = ActivityEvent(
-        id: 'evt-cascade-${DateTime.now().microsecondsSinceEpoch}',
-        title: 'Cascade Deletion: ${removedDevice.name}',
-        description:
-            'Device "$deviceId" removed. Pruned from scenes and automations.',
-        timestamp: DateTime.now(),
-        deviceId: deviceId,
-        severity: ActivitySeverity.warning,
-        source: 'system',
-      );
-      final currentEvents = currentHomeState.activityEvents;
       await persistenceManager!
-          .saveActivityEvents([cascadeEvent, ...currentEvents]);
+          .deleteRoomWithCascade(roomId, reassignToRoomId: reassignToRoomId);
+      final reloaded = await persistenceManager!.loadHomeState();
+      _devices
+        ..clear()
+        ..addAll(reloaded.devices);
+    } else {
+      for (int i = 0; i < _devices.length; i++) {
+        if (_devices[i].roomId == roomId) {
+          if (reassignToRoomId != null) {
+            _devices[i] = _devices[i].copyWith(roomId: reassignToRoomId);
+          }
+        }
+      }
+      if (reassignToRoomId == null) {
+        _devices.removeWhere((d) => d.roomId == roomId);
+      }
     }
-
     _notifyListeners();
   }
 
   Future<void> deleteHomeWithCascade(String homeId) async {
-    _devices.removeWhere((d) => d.homeId == homeId);
-
-    final favs = _devices.where((d) => d.isFavorite).toList()
-      ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
-    for (int i = 0; i < favs.length; i++) {
-      final devIdx = _devices.indexWhere((d) => d.id == favs[i].id);
-      if (devIdx >= 0) {
-        _devices[devIdx] = _devices[devIdx].copyWith(favoriteOrder: i);
-      }
-    }
-
     if (persistenceManager != null) {
-      await persistenceManager!.saveDevices(List.of(_devices));
-      final currentHomeState = await persistenceManager!.loadHomeState();
-
-      final updatedRooms =
-          currentHomeState.rooms.where((r) => r.homeId != homeId).toList();
-      final updatedScenes =
-          currentHomeState.scenes.where((s) => s.homeId != homeId).toList();
-      final updatedRules = currentHomeState.automations
-          .where((a) => a.homeId != homeId)
-          .toList();
-      final updatedHomes =
-          currentHomeState.homes.where((h) => h.id != homeId).toList();
-
-      await persistenceManager!.saveRooms(updatedRooms);
-      await persistenceManager!.saveScenes(updatedScenes);
-      await persistenceManager!.saveAutomations(updatedRules);
-      await persistenceManager!.saveHomes(updatedHomes);
-
-      final cascadeEvent = ActivityEvent(
-        id: 'evt-home-cascade-${DateTime.now().microsecondsSinceEpoch}',
-        title: 'Home Deleted: $homeId',
-        description:
-            'Home "$homeId" and all associated devices, rooms, scenes, and automations were deleted.',
-        timestamp: DateTime.now(),
-        severity: ActivitySeverity.warning,
-        source: 'system',
-      );
-      await persistenceManager!.saveActivityEvents([
-        cascadeEvent,
-        ...currentHomeState.activityEvents,
-      ]);
+      await persistenceManager!.deleteHomeWithCascade(homeId);
+      final reloaded = await persistenceManager!.loadHomeState();
+      _devices
+        ..clear()
+        ..addAll(reloaded.devices);
+    } else {
+      _devices.removeWhere((d) => d.homeId == homeId);
     }
-
     _notifyListeners();
   }
 
