@@ -36,7 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
         content: const Text(
-          'This will revert all devices, rooms, automations, activity logs and notifications to their initial Phase 2 factory demo states.',
+          'This will revert all devices, rooms, automations, activity logs and notifications to their initial factory demo states.',
           style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
@@ -472,10 +472,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: 'About Lumivo',
               icon: Icons.apps_rounded,
               children: [
-                _infoTile('Version', '2.0.0-phase2 (Build 2026.10)'),
+                _infoTile('Version', '7.0.0-phase7 (Build 2026.10)'),
                 _infoTile('Framework', 'Flutter 3.24+ / Riverpod 2.6'),
                 _infoTile('Architecture', 'Dark Minimal Consumer IoT UX'),
-                _infoTile('Workspace', 'D:\\app_iot\\lumivo_phase2_ui'),
+                _infoTile('Workspace', 'D:\\app_iot\\lumivo_phase7_ui'),
               ],
             ),
             const SizedBox(height: 24),

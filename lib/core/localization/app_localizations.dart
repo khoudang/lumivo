@@ -228,6 +228,114 @@ class AppLocalizations {
   String get restoreSuccess => translate('restore_success');
   String get invalidBackupError => translate('invalid_backup_error');
   String get replaceDataWarning => translate('replace_data_warning');
+
+  // Phase 7 — Accessibility, UI Audit & Consumer Experience
+  String get brandTagline => translate('brand_tagline');
+  String get enterDemoMode => translate('enter_demo_mode');
+  String get skipToDashboard => translate('skip_to_dashboard');
+  String get featureIotSimTitle => translate('feature_iot_sim_title');
+  String get featureIotSimSubtitle => translate('feature_iot_sim_subtitle');
+  String get featureIotSimTag => translate('feature_iot_sim_tag');
+  String get featureAmbianceTitle => translate('feature_ambiance_title');
+  String get featureAmbianceSubtitle => translate('feature_ambiance_subtitle');
+  String get featureAmbianceTag => translate('feature_ambiance_tag');
+  String get featureEnergyTitle => translate('feature_energy_title');
+  String get featureEnergySubtitle => translate('feature_energy_subtitle');
+  String get featureEnergyTag => translate('feature_energy_tag');
+  String get demoModeCallout => translate('demo_mode_callout');
+  String get notifications => translate('notifications');
+  String get noNotifications => translate('no_notifications');
+  String get markAllRead => translate('mark_all_read');
+  String get clearAll => translate('clear_all');
+  String get filterAll => translate('filter_all');
+  String get filterAutomations => translate('filter_automations');
+  String get filterManual => translate('filter_manual');
+  String get filterAlerts => translate('filter_alerts');
+  String get spacesAndZones => translate('spaces_and_zones');
+  String get selectRoomIcon => translate('select_room_icon');
+  String get deleteRoom => translate('delete_room');
+  String get switchHome => translate('switch_home');
+  String get manageActiveProperty => translate('manage_active_property');
+  String get availableHomes => translate('available_homes');
+  String get addNewHome => translate('add_new_home');
+  String get homeName => translate('home_name');
+  String get address => translate('address');
+  String get tariffRateLabel => translate('tariff_rate_label');
+  String get role => translate('role');
+  String get owner => translate('owner');
+  String get member => translate('member');
+  String get editHome => translate('edit_home');
+  String get deleteHome => translate('delete_home');
+
+  String deleteHomeConfirm(String name) {
+    return translate('delete_home_confirm').replaceAll('{name}', name);
+  }
+
+  String get confirmDeleteDeviceTitle =>
+      translate('confirm_delete_device_title');
+  String confirmDeleteDeviceBody(String name) {
+    return translate('confirm_delete_device_body').replaceAll('{name}', name);
+  }
+
+  String get confirmDeleteRoomTitle => translate('confirm_delete_room_title');
+  String confirmDeleteRoomBody(String name) {
+    return translate('confirm_delete_room_body').replaceAll('{name}', name);
+  }
+
+  String get confirmDeleteRuleTitle => translate('confirm_delete_rule_title');
+  String confirmDeleteRuleBody(String name) {
+    return translate('confirm_delete_rule_body').replaceAll('{name}', name);
+  }
+
+  String get confirmDeleteSceneTitle => translate('confirm_delete_scene_title');
+  String confirmDeleteSceneBody(String name) {
+    return translate('confirm_delete_scene_body').replaceAll('{name}', name);
+  }
+
+  String get confirmResetDashboardTitle =>
+      translate('confirm_reset_dashboard_title');
+  String get confirmResetDashboardBody =>
+      translate('confirm_reset_dashboard_body');
+  String get confirmClearHistoryTitle =>
+      translate('confirm_clear_history_title');
+  String get confirmClearHistoryBody => translate('confirm_clear_history_body');
+  String get confirmClearNotificationsTitle =>
+      translate('confirm_clear_notifications_title');
+  String get confirmClearNotificationsBody =>
+      translate('confirm_clear_notifications_body');
+
+  String get celsius => translate('celsius');
+  String get fahrenheit => translate('fahrenheit');
+  String get homeAdministrator => translate('home_administrator');
+  String get systemDisplayLanguage => translate('system_display_language');
+  String get themeDescription => translate('theme_description');
+  String get weatherAcDisplay => translate('weather_ac_display');
+  String get simulated => translate('simulated');
+  String get connect => translate('connect');
+  String get wifiNetworkSsid => translate('wifi_network_ssid');
+  String get enterWifiSsid => translate('enter_wifi_ssid');
+  String get wifiPassword => translate('wifi_password');
+  String get enterWifiPassword => translate('enter_wifi_password');
+  String get readyToPair => translate('ready_to_pair');
+  String get provisionAndConnect => translate('provision_and_connect');
+  String get cancelPairing => translate('cancel_pairing');
+  String get completeAndDashboard => translate('complete_and_dashboard');
+  String get connectingBle => translate('connecting_ble');
+  String get configuringWifi => translate('configuring_wifi');
+  String get verifyingMqtt => translate('verifying_mqtt');
+  String get finalizingConfig => translate('finalizing_config');
+  String get deleteRule => translate('confirm_delete_rule_title');
+  String get resetDashboardLayout => translate('confirm_reset_dashboard_title');
+  String get resetDashboardConfirmBody =>
+      translate('confirm_reset_dashboard_body');
+  String get clearAllNotifications =>
+      translate('confirm_clear_notifications_title');
+  String get historyCleared => translate('history_cleared');
+  String get notificationsCleared => translate('notifications_cleared');
+  String get unread => translate('unread');
+  String get scanningForDevices => translate('scanning_for_devices');
+  String get devicesFound => translate('devices_found');
+  String get pairingTimeoutDesc => translate('pairing_timeout_desc');
 }
 
 /// LocalizationsDelegate for [AppLocalizations].

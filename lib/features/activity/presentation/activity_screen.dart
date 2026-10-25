@@ -14,6 +14,44 @@ class ActivityScreen extends ConsumerStatefulWidget {
 class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   String _activeFilter = 'All';
 
+  Future<void> _confirmClearHistory(AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.clearHistory),
+        content: Text(l10n.confirmClearHistoryBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_clear_history_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.clearAll),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      ref.read(activityProvider.notifier).clearEvents();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.historyCleared),
+            backgroundColor: AppColors.surfaceElevated,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appLocalizationsProvider);
@@ -46,45 +84,45 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                 children: [
                   Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'AUDIT & LOGS',
-                            style: TextStyle(
-                              letterSpacing: 1.5,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'AUDIT & LOGS',
+                              style: TextStyle(
+                                letterSpacing: 1.5,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.activityTimeline,
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.activityTimeline,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       IconButton(
                         key: const Key('clear_history_button'),
                         icon: const Icon(Icons.delete_sweep_outlined),
                         color: AppColors.muted,
                         tooltip: l10n.clearHistory,
-                        onPressed: () {
-                          ref.read(activityProvider.notifier).clearEvents();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Activity history cleared'),
-                              backgroundColor: AppColors.surfaceElevated,
-                            ),
-                          );
-                        },
+                        constraints:
+                            const BoxConstraints(minWidth: 48, minHeight: 48),
+                        onPressed: () => _confirmClearHistory(l10n),
                       ),
                     ],
                   ),

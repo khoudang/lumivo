@@ -445,138 +445,56 @@ class HomeSelectorSheet extends ConsumerWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Drag handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              // Sheet Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.surfaceBorder,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    child: const Icon(
-                      Icons.home_work_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Switch Home',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Manage active property & multi-home control',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        color: AppColors.muted, size: 20),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-
-              // Active Home Indicator Card
-              Container(
-                key: const Key('active_home_banner'),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF201D38), Color(0xFF171D29)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.5),
-                    width: 1.2,
                   ),
                 ),
-                child: Row(
+
+                // Sheet Header
+                Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.check_rounded,
-                          color: Colors.white, size: 14),
+                      child: const Icon(
+                        Icons.home_work_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                currentHome.name,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  currentHome.role,
-                                  style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
                           Text(
-                            currentHome.address,
-                            style: const TextStyle(
+                            'Switch Home',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Manage active property & multi-home control',
+                            style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
@@ -584,176 +502,272 @@ class HomeSelectorSheet extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Text(
-                      '\$${currentHome.tariffRate.toStringAsFixed(3)}/kWh',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.cyan,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded,
+                          color: AppColors.muted, size: 20),
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 48),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
-              const Text(
-                'Available Homes',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Available Homes List
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 280),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: homes.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final home = homes[index];
-                    final isCurrent = home.id == currentHome.id;
-
-                    return Container(
-                      key: Key('home_item_${home.id}'),
-                      decoration: BoxDecoration(
-                        color: isCurrent
-                            ? AppColors.surfaceElevated
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isCurrent
-                              ? AppColors.primary.withValues(alpha: 0.6)
-                              : AppColors.surfaceBorder,
-                          width: isCurrent ? 1.2 : 1,
+                // Active Home Indicator Card
+                Container(
+                  key: const Key('active_home_banner'),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF201D38), Color(0xFF171D29)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.check_rounded,
+                            color: Colors.white, size: 14),
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 4),
-                          leading: Icon(
-                            isCurrent
-                                ? Icons.radio_button_checked_rounded
-                                : Icons.radio_button_off_rounded,
-                            color:
-                                isCurrent ? AppColors.primary : AppColors.muted,
-                            size: 20,
-                          ),
-                          title: Row(
-                            children: [
-                              Text(
-                                home.name,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: isCurrent
-                                      ? FontWeight.bold
-                                      : FontWeight.w600,
-                                  color: isCurrent
-                                      ? AppColors.textPrimary
-                                      : AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: home.role == 'Owner'
-                                      ? AppColors.primary
-                                          .withValues(alpha: 0.15)
-                                      : AppColors.surfaceBorder,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  home.role,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    color: home.role == 'Owner'
-                                        ? AppColors.primary
-                                        : AppColors.muted,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    currentHome.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '${home.address} • \$${home.tariffRate.toStringAsFixed(2)}/kWh',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                key: Key('edit_home_${home.id}'),
-                                icon: const Icon(Icons.edit_outlined,
-                                    size: 18, color: AppColors.muted),
-                                tooltip: 'Edit',
-                                onPressed: () =>
-                                    _showEditHomeDialog(context, ref, home),
-                              ),
-                              if (homes.length > 1)
-                                IconButton(
-                                  key: Key('delete_home_${home.id}'),
-                                  icon: const Icon(Icons.delete_outline_rounded,
-                                      size: 18, color: AppColors.danger),
-                                  tooltip: 'Delete',
-                                  onPressed: () => _showDeleteHomeConfirmation(
-                                      context, ref, home),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.25),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    currentHome.role,
+                                    style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                            ],
-                          ),
-                          onTap: () {
-                            ref
-                                .read(homesProvider.notifier)
-                                .switchHome(home.id);
-                          },
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              currentHome.address,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // Add New Home Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  key: const Key('add_new_home_button'),
-                  icon: const Icon(Icons.add_rounded,
-                      color: AppColors.primary, size: 20),
-                  label: const Text(
-                    '+ Add New Home',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                      Text(
+                        '\$${currentHome.tariffRate.toStringAsFixed(3)}/kWh',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.cyan,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => _showAddHomeDialog(context, ref),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 16),
+
+                const Text(
+                  'Available Homes',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Available Homes List
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 280),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: homes.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final home = homes[index];
+                      final isCurrent = home.id == currentHome.id;
+
+                      return Container(
+                        key: Key('home_item_${home.id}'),
+                        decoration: BoxDecoration(
+                          color: isCurrent
+                              ? AppColors.surfaceElevated
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isCurrent
+                                ? AppColors.primary.withValues(alpha: 0.6)
+                                : AppColors.surfaceBorder,
+                            width: isCurrent ? 1.2 : 1,
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
+                            leading: Icon(
+                              isCurrent
+                                  ? Icons.radio_button_checked_rounded
+                                  : Icons.radio_button_off_rounded,
+                              color: isCurrent
+                                  ? AppColors.primary
+                                  : AppColors.muted,
+                              size: 20,
+                            ),
+                            title: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    home.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: isCurrent
+                                          ? FontWeight.bold
+                                          : FontWeight.w600,
+                                      color: isCurrent
+                                          ? AppColors.textPrimary
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: home.role == 'Owner'
+                                        ? AppColors.primary
+                                            .withValues(alpha: 0.15)
+                                        : AppColors.surfaceBorder,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    home.role,
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: home.role == 'Owner'
+                                          ? AppColors.primary
+                                          : AppColors.muted,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              '${home.address} • \$${home.tariffRate.toStringAsFixed(2)}/kWh',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  key: Key('edit_home_${home.id}'),
+                                  icon: const Icon(Icons.edit_outlined,
+                                      size: 18, color: AppColors.muted),
+                                  tooltip: 'Edit',
+                                  onPressed: () =>
+                                      _showEditHomeDialog(context, ref, home),
+                                ),
+                                if (homes.length > 1)
+                                  IconButton(
+                                    key: Key('delete_home_${home.id}'),
+                                    icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: AppColors.danger),
+                                    tooltip: 'Delete',
+                                    onPressed: () =>
+                                        _showDeleteHomeConfirmation(
+                                            context, ref, home),
+                                  ),
+                              ],
+                            ),
+                            onTap: () {
+                              ref
+                                  .read(homesProvider.notifier)
+                                  .switchHome(home.id);
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Add New Home Button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: const Key('add_new_home_button'),
+                    icon: const Icon(Icons.add_rounded,
+                        color: AppColors.primary, size: 20),
+                    label: const Text(
+                      '+ Add New Home',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => _showAddHomeDialog(context, ref),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

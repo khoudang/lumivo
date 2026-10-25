@@ -87,7 +87,38 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
     Navigator.of(context).maybePop();
   }
 
-  void _reset() {
+  Future<void> _reset() async {
+    final l10n = ref.read(appLocalizationsProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.resetDashboardLayout),
+        content: Text(l10n.resetDashboardConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_reset_dashboard_layout_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.resetLayout),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      _applyReset();
+    }
+  }
+
+  void _applyReset() {
     ref.read(dashboardConfigProvider.notifier).resetToDefaults();
     final config = ref.read(dashboardConfigProvider);
     setState(() {
@@ -284,28 +315,51 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              InkWell(
-                                key: Key('move_up_${section.name}'),
-                                onTap: index > 0 ? () => _moveUp(index) : null,
-                                child: Icon(
-                                  Icons.keyboard_arrow_up_rounded,
-                                  size: 18,
-                                  color: index > 0
-                                      ? AppColors.textPrimary
-                                      : AppColors.surfaceBorder,
+                              Semantics(
+                                button: true,
+                                label: 'Move up ${section.name}',
+                                child: InkWell(
+                                  key: Key('move_up_${section.name}'),
+                                  onTap:
+                                      index > 0 ? () => _moveUp(index) : null,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 48,
+                                      minHeight: 24,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      Icons.keyboard_arrow_up_rounded,
+                                      size: 20,
+                                      color: index > 0
+                                          ? AppColors.textPrimary
+                                          : AppColors.surfaceBorder,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              InkWell(
-                                key: Key('move_down_${section.name}'),
-                                onTap: index < _draftOrder.length - 1
-                                    ? () => _moveDown(index)
-                                    : null,
-                                child: Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  size: 18,
-                                  color: index < _draftOrder.length - 1
-                                      ? AppColors.textPrimary
-                                      : AppColors.surfaceBorder,
+                              Semantics(
+                                button: true,
+                                label: 'Move down ${section.name}',
+                                child: InkWell(
+                                  key: Key('move_down_${section.name}'),
+                                  onTap: index < _draftOrder.length - 1
+                                      ? () => _moveDown(index)
+                                      : null,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 48,
+                                      minHeight: 24,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      size: 20,
+                                      color: index < _draftOrder.length - 1
+                                          ? AppColors.textPrimary
+                                          : AppColors.surfaceBorder,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],

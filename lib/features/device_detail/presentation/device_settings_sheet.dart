@@ -87,12 +87,14 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
             Icon(Icons.warning_amber_rounded,
                 color: AppColors.danger, size: 24),
             SizedBox(width: 10),
-            Text(
-              'Delete Device?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            Expanded(
+              child: Text(
+                'Delete Device?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ],
@@ -396,20 +398,15 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
                     key: const Key('device_settings_favorite_switch'),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    title: const Row(
-                      children: [
-                        Icon(Icons.star_rounded,
-                            color: Color(0xFFFFD572), size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Pin to Favorites',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
+                    secondary: const Icon(Icons.star_rounded,
+                        color: Color(0xFFFFD572), size: 20),
+                    title: const Text(
+                      'Pin to Favorites',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     subtitle: const Text(
                       'Quick access on dashboard favorites shelf',

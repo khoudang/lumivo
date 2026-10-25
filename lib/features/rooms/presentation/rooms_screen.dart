@@ -87,9 +87,9 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text(
-                    'Select Room Icon',
-                    style: TextStyle(
+                  Text(
+                    l10n?.selectRoomIcon ?? 'Select Room Icon',
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
@@ -189,7 +189,49 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
     );
   }
 
-  void _openRoomDevices(String roomName, List<SmartDevice> devices) {
+  Future<void> _confirmDeleteRoom(
+      BuildContext context, WidgetRef ref, Room room) async {
+    final l10n = ref.read(appLocalizationsProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.deleteRoom),
+        content: Text(l10n.confirmDeleteRoomBody(room.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_delete_room_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      ref.read(roomsProvider.notifier).deleteRoom(room.id);
+      if (context.mounted) {
+        Navigator.of(context).maybePop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${room.name} deleted'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openRoomDevices(Room room, List<SmartDevice> devices) {
+    final roomName = room.name;
     if (widget.onRoomSelected != null) {
       widget.onRoomSelected!(roomName);
       return;
@@ -228,21 +270,36 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text(
-                        roomName,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                      Expanded(
+                        child: Text(
+                          roomName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Text(
                         '${roomDevices.length} devices',
                         style: const TextStyle(
                           color: AppColors.muted,
                           fontSize: 13,
                         ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        key: const Key('delete_room_button'),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: AppColors.danger, size: 20),
+                        tooltip: 'Delete Room',
+                        constraints: const BoxConstraints(
+                          minWidth: 44,
+                          minHeight: 44,
+                        ),
+                        onPressed: () => _confirmDeleteRoom(context, ref, room),
                       ),
                     ],
                   ),
@@ -370,12 +427,12 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const FittedBox(
+                            FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                'Spaces & Zones',
-                                style: TextStyle(
+                                l10n.spacesAndZones,
+                                style: const TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.textPrimary,
@@ -445,7 +502,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                         iconData: iconData,
                         totalDevices: totalCount,
                         activeDevices: activeCount,
-                        onTap: () => _openRoomDevices(room.name, devices),
+                        onTap: () => _openRoomDevices(room, devices),
                       );
                     },
                     childCount: rooms.length,

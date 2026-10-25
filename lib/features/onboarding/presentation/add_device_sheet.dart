@@ -213,6 +213,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
     } catch (_) {
       isReduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     }
+    final l10n = AppLocalizations.of(context);
     if (isReduced && _pulseController.isAnimating) {
       _pulseController.stop();
     } else if (!isReduced && !_pulseController.isAnimating) {
@@ -248,13 +249,18 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
               Row(
                 children: [
                   if (_currentStep == _AddDeviceStep.wifiInput)
-                    IconButton(
-                      tooltip: 'Back',
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => setState(
-                          () => _currentStep = _AddDeviceStep.scanning),
+                    Semantics(
+                      button: true,
+                      label: l10n?.back ?? 'Back',
+                      child: IconButton(
+                        tooltip: l10n?.back ?? 'Back',
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        padding: const EdgeInsets.all(12),
+                        constraints:
+                            const BoxConstraints(minWidth: 48, minHeight: 48),
+                        onPressed: () => setState(
+                            () => _currentStep = _AddDeviceStep.scanning),
+                      ),
                     )
                   else
                     const SizedBox(width: 8),
@@ -269,16 +275,21 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
                       ),
                     ),
                   ),
-                  IconButton(
-                    key: _currentStep == _AddDeviceStep.timeout
-                        ? null
-                        : const Key('onboarding_cancel_button'),
-                    tooltip: 'Cancel',
-                    icon:
-                        const Icon(Icons.close_rounded, color: AppColors.muted),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: _cancelFlow,
+                  Semantics(
+                    button: true,
+                    label: l10n?.cancel ?? 'Cancel',
+                    child: IconButton(
+                      key: _currentStep == _AddDeviceStep.timeout
+                          ? null
+                          : const Key('onboarding_cancel_button'),
+                      tooltip: l10n?.cancel ?? 'Cancel',
+                      icon: const Icon(Icons.close_rounded,
+                          color: AppColors.muted),
+                      padding: const EdgeInsets.all(12),
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 48),
+                      onPressed: _cancelFlow,
+                    ),
                   ),
                 ],
               ),
@@ -327,6 +338,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
   // Step 1: Scanning View
   // -------------------------------------------------------------
   Widget _buildScanningView() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('scanning'),
       mainAxisSize: MainAxisSize.min,
@@ -364,9 +376,9 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           ),
         ),
 
-        const Text(
-          'Scanning for nearby BLE devices...',
-          style: TextStyle(
+        Text(
+          l10n?.scanningForDevices ?? 'Scanning for nearby BLE devices...',
+          style: const TextStyle(
             fontSize: 13,
             color: AppColors.textSecondary,
             fontWeight: FontWeight.w500,
@@ -386,7 +398,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
             ),
           ),
           child: Text(
-            '${_mockDiscovered.length} devices found',
+            '${_mockDiscovered.length} ${l10n?.devicesFound ?? "devices found"}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -471,9 +483,9 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
                 color: AppColors.primary.withValues(alpha: 0.5),
               ),
             ),
-            child: const Text(
-              'Connect',
-              style: TextStyle(
+            child: Text(
+              AppLocalizations.of(context)?.connect ?? 'Connect',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,
@@ -516,6 +528,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
   // Step 2: Wi-Fi Provisioning Form
   // -------------------------------------------------------------
   Widget _buildWifiInputView() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('wifiInput'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -549,9 +562,10 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      const Text(
-                        'Ready to pair with home Wi-Fi network',
-                        style: TextStyle(
+                      Text(
+                        l10n?.readyToPair ??
+                            'Ready to pair with home Wi-Fi network',
+                        style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,
                         ),
@@ -562,9 +576,9 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
               ],
             ),
           ),
-        const Text(
-          'Wi-Fi Network (SSID)',
-          style: TextStyle(
+        Text(
+          l10n?.wifiNetworkSsid ?? 'Wi-Fi Network (SSID)',
+          style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: AppColors.textSecondary,
@@ -573,15 +587,15 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
         const SizedBox(height: 8),
         TextField(
           controller: _ssidController,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.wifi_rounded),
-            hintText: 'Enter Wi-Fi SSID',
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.wifi_rounded),
+            hintText: l10n?.enterWifiSsid ?? 'Enter Wi-Fi SSID',
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Wi-Fi Password',
-          style: TextStyle(
+        Text(
+          l10n?.wifiPassword ?? 'Wi-Fi Password',
+          style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: AppColors.textSecondary,
@@ -593,7 +607,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           obscureText: _obscurePassword,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.lock_outline_rounded),
-            hintText: 'Enter Password',
+            hintText: l10n?.enterWifiPassword ?? 'Enter Password',
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword
@@ -610,12 +624,12 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           height: 48,
           child: ElevatedButton(
             onPressed: _startProvisioning,
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.bolt_rounded, size: 20),
-                SizedBox(width: 8),
-                Text('Provision & Connect Device'),
+                const Icon(Icons.bolt_rounded, size: 20),
+                const SizedBox(width: 8),
+                Text(l10n?.provisionAndConnect ?? 'Provision & Connect Device'),
               ],
             ),
           ),
@@ -628,11 +642,12 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
   // Step 3: Provisioning Progress
   // -------------------------------------------------------------
   Widget _buildProvisioningView() {
-    const steps = [
-      'Connecting to device via BLE...',
-      'Configuring Wi-Fi credentials...',
-      'Verifying cloud MQTT link...',
-      'Finalizing configuration...',
+    final l10n = AppLocalizations.of(context);
+    final steps = [
+      l10n?.connectingBle ?? 'Connecting to device via BLE...',
+      l10n?.configuringWifi ?? 'Configuring Wi-Fi credentials...',
+      l10n?.verifyingMqtt ?? 'Verifying cloud MQTT link...',
+      l10n?.finalizingConfig ?? 'Finalizing configuration...',
     ];
 
     final progressPercent = ((_provisioningPhase + 1) / 4).clamp(0.0, 1.0);
@@ -683,7 +698,7 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           child: OutlinedButton.icon(
             key: const Key('provisioning_cancel_button'),
             icon: const Icon(Icons.close_rounded, size: 18),
-            label: const Text('Cancel Pairing'),
+            label: Text(l10n?.cancelPairing ?? 'Cancel Pairing'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.muted,
               side: const BorderSide(color: AppColors.surfaceBorder),
@@ -913,7 +928,8 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           height: 48,
           child: ElevatedButton(
             onPressed: _finishAndClose,
-            child: const Text('Complete & Go to Dashboard'),
+            child: Text(
+                l10n?.completeAndDashboard ?? 'Complete & Go to Dashboard'),
           ),
         ),
       ],
@@ -962,11 +978,12 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
           ),
         ),
         const SizedBox(height: 8),
-        const Center(
+        Center(
           child: Text(
-            'Unable to establish BLE handshake or transfer credentials within the timeout window. Please verify Bluetooth proximity.',
+            l10n?.pairingTimeoutDesc ??
+                'Unable to establish BLE handshake or transfer credentials within the timeout window. Please verify Bluetooth proximity.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
               height: 1.35,
