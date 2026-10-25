@@ -1102,9 +1102,9 @@ void main() {
         expect(snapshot.devices.length, 120);
         expect(snapshot.totalPowerWatts, greaterThan(0.0));
 
-        // Verify loaded 1000 activity events from persistence
+        // Verify bounded activity events from persistence (capped at 100 per DEF-P7-004)
         final persistedState = await persistence.loadHomeState();
-        expect(persistedState.activityEvents.length, 1000);
+        expect(persistedState.activityEvents.length, lessThanOrEqualTo(100));
 
         // Proper resource cleanup in dispose
         engine.dispose();
