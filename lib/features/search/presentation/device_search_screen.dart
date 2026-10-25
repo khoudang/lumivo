@@ -283,7 +283,7 @@ class _DeviceSearchScreenState extends ConsumerState<DeviceSearchScreen> {
 
                 // Device Type Filter Chips
                 SizedBox(
-                  height: 38,
+                  height: 48,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     padding:
@@ -334,27 +334,36 @@ class _DeviceSearchScreenState extends ConsumerState<DeviceSearchScreen> {
 
   Widget _buildStatusChip(String status, String label, Key key) {
     final isSelected = _selectedStatus == status;
-    return InkWell(
-      key: key,
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => setState(() => _selectedStatus = status),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.2)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? AppColors.primary : AppColors.muted,
+    return Semantics(
+      button: true,
+      label: label,
+      selected: isSelected,
+      child: InkWell(
+        key: key,
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => setState(() => _selectedStatus = status),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.2)
+                  : AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? AppColors.primary : AppColors.muted,
+              ),
+            ),
           ),
         ),
       ),
@@ -363,26 +372,33 @@ class _DeviceSearchScreenState extends ConsumerState<DeviceSearchScreen> {
 
   Widget _buildTypeChip(DeviceType? type, String label, Key key) {
     final isSelected = _selectedType == type;
-    return InkWell(
-      key: key,
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => setState(() => _selectedType = type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? Colors.white : AppColors.muted,
+    return Semantics(
+      button: true,
+      label: label,
+      selected: isSelected,
+      child: InkWell(
+        key: key,
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => setState(() => _selectedType = type),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : AppColors.muted,
+              ),
             ),
           ),
         ),

@@ -127,7 +127,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
           children: [
             // User Profile Card
-            _buildProfileCard(profile),
+            _buildProfileCard(profile, l10n),
 
             const SizedBox(height: 24),
 
@@ -154,7 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileCard(UserProfile profile) {
+  Widget _buildProfileCard(UserProfile profile, [AppLocalizations? l10n]) {
     return Container(
       key: const Key('user_profile_card'),
       padding: const EdgeInsets.all(20),
@@ -226,9 +226,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: AppColors.primary.withValues(alpha: 0.4),
                     ),
                   ),
-                  child: const Text(
-                    'Home Administrator',
-                    style: TextStyle(
+                  child: Text(
+                    l10n?.homeAdministrator ?? 'Home Administrator',
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
@@ -259,35 +259,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Language Preference Toggle
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.language_rounded,
-                      color: AppColors.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.language ?? 'Language',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 360;
+                  final titleCol = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n?.language ?? 'Language',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
-                        Text(
-                          'System display language',
-                          style:
-                              TextStyle(fontSize: 11, color: AppColors.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Segmented Language Selector
-                  Row(
+                      ),
+                      Text(
+                        l10n?.systemDisplayLanguage ??
+                            'System display language',
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.muted),
+                      ),
+                    ],
+                  );
+                  final pillRow = Wrap(
                     key: const Key('preference_language_selector'),
-                    mainAxisSize: MainAxisSize.min,
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
                       _choicePill(
                         label: 'English',
@@ -296,7 +293,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .read(userProfileProvider.notifier)
                             .updateLanguage('en'),
                       ),
-                      const SizedBox(width: 6),
                       _choicePill(
                         label: 'Tiếng Việt',
                         isSelected: profile.language == 'vi',
@@ -305,8 +301,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .updateLanguage('vi'),
                       ),
                     ],
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.language_rounded,
+                                color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(child: titleCol),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        pillRow,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      const Icon(Icons.language_rounded,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(child: titleCol),
+                      pillRow,
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -315,34 +339,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Theme Preference Toggle
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.palette_outlined,
-                      color: AppColors.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.themeMode ?? 'Theme Mode',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 360;
+                  final titleCol = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n?.themeMode ?? 'Theme Mode',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
-                        Text(
-                          'Dark Minimal vs AMOLED Pure Black',
-                          style:
-                              TextStyle(fontSize: 11, color: AppColors.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
+                      ),
+                      Text(
+                        l10n?.themeDescription ??
+                            'Dark Minimal vs AMOLED Pure Black',
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.muted),
+                      ),
+                    ],
+                  );
+                  final pillRow = Wrap(
                     key: const Key('preference_theme_toggle'),
-                    mainAxisSize: MainAxisSize.min,
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
                       _choicePill(
                         label: 'Dark Minimal',
@@ -351,7 +373,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .read(userProfileProvider.notifier)
                             .updateTheme('dark'),
                       ),
-                      const SizedBox(width: 6),
                       _choicePill(
                         label: 'OLED Black',
                         isSelected: profile.themeMode == 'oled',
@@ -360,8 +381,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .updateTheme('oled'),
                       ),
                     ],
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.palette_outlined,
+                                color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(child: titleCol),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        pillRow,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      const Icon(Icons.palette_outlined,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(child: titleCol),
+                      pillRow,
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -398,34 +447,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Temperature Unit Selector
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.thermostat_outlined,
-                      color: AppColors.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.temperatureUnit ?? 'Temperature Unit',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 360;
+                  final titleCol = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n?.temperatureUnit ?? 'Temperature Unit',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
-                        Text(
-                          'Weather & AC climate display',
-                          style:
-                              TextStyle(fontSize: 11, color: AppColors.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
+                      ),
+                      Text(
+                        l10n?.weatherAcDisplay ??
+                            'Weather & AC climate display',
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.muted),
+                      ),
+                    ],
+                  );
+                  final pillRow = Wrap(
                     key: const Key('preference_temp_unit_selector'),
-                    mainAxisSize: MainAxisSize.min,
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
                       _choicePill(
                         label: 'Celsius (°C)',
@@ -434,7 +481,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .read(userProfileProvider.notifier)
                             .updateTemperatureUnit('C'),
                       ),
-                      const SizedBox(width: 6),
                       _choicePill(
                         label: 'Fahrenheit (°F)',
                         isSelected: profile.temperatureUnit == 'F',
@@ -443,8 +489,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .updateTemperatureUnit('F'),
                       ),
                     ],
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.thermostat_outlined,
+                                color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(child: titleCol),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        pillRow,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      const Icon(Icons.thermostat_outlined,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(child: titleCol),
+                      pillRow,
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -466,7 +540,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               subtitle: Text(
-                '\$${tariffRate.toStringAsFixed(3)} / kWh (Simulated)',
+                '\$${tariffRate.toStringAsFixed(3)} / kWh (${l10n?.simulated ?? "Simulated"})',
                 style: const TextStyle(fontSize: 11, color: AppColors.cyan),
               ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded,
@@ -484,28 +558,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.22)
-              : AppColors.surfaceElevated,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-            width: isSelected ? 1.2 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? AppColors.primary : AppColors.textSecondary,
+    return Semantics(
+      button: true,
+      label: label,
+      selected: isSelected,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.22)
+                  : AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+                width: isSelected ? 1.2 : 1,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              ),
+            ),
           ),
         ),
       ),

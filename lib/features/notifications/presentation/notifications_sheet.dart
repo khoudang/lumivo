@@ -2,11 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/activity_event.dart';
 import '../../../core/models/in_app_notification.dart';
+import '../../../app/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../state/notifications_providers.dart';
 
 class NotificationsSheet extends ConsumerWidget {
   const NotificationsSheet({super.key});
+
+  Future<void> _confirmClearNotifications(
+      BuildContext context, WidgetRef ref) async {
+    final l10n = ref.read(appLocalizationsProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.clearAllNotifications),
+        content: Text(l10n.confirmClearNotificationsBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_clear_notifications_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.clearAll),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      ref.read(notificationsProvider.notifier).clearAll();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.notificationsCleared),
+            backgroundColor: AppColors.surfaceElevated,
+          ),
+        );
+      }
+    }
+  }
 
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet<void>(
@@ -22,6 +63,7 @@ class NotificationsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final notifications = ref.watch(notificationsProvider);
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
@@ -51,47 +93,71 @@ class NotificationsSheet extends ConsumerWidget {
               // Header
               Row(
                 children: [
-                  const Text(
-                    'Notifications',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            l10n.notifications,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (unreadCount > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Text(
+                              '$unreadCount ${l10n.unread.toLowerCase()}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 10),
                   if (unreadCount > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Text(
-                        '$unreadCount New',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  const Spacer(),
-                  if (unreadCount > 0)
-                    TextButton(
+                    IconButton(
                       key: const Key('mark_all_read_button'),
+                      icon: const Icon(Icons.done_all_rounded,
+                          color: AppColors.primary, size: 20),
+                      tooltip: l10n.markAllRead,
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 48),
                       onPressed: () {
                         ref
                             .read(notificationsProvider.notifier)
                             .markAllAsRead();
                       },
-                      child: const Text('Mark all read'),
+                    ),
+                  if (notifications.isNotEmpty)
+                    IconButton(
+                      key: const Key('clear_all_notifications_button'),
+                      icon: const Icon(Icons.delete_sweep_outlined,
+                          color: AppColors.muted, size: 22),
+                      tooltip: l10n.clearAllNotifications,
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 48),
+                      onPressed: () => _confirmClearNotifications(context, ref),
                     ),
                 ],
               ),
@@ -109,9 +175,9 @@ class NotificationsSheet extends ConsumerWidget {
                               color: AppColors.muted,
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              'No notifications',
-                              style: TextStyle(
+                            Text(
+                              l10n.noNotifications,
+                              style: const TextStyle(
                                 color: AppColors.muted,
                                 fontSize: 14,
                               ),
@@ -234,8 +300,9 @@ class NotificationsSheet extends ConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close_rounded, size: 16),
+              icon: const Icon(Icons.close_rounded, size: 18),
               color: AppColors.muted,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               onPressed: () {
                 ref
                     .read(notificationsProvider.notifier)

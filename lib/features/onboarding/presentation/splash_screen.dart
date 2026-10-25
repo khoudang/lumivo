@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// A subtle, dark minimal brand splash screen featuring a pulsing Lumivo
@@ -70,6 +71,16 @@ class SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations =
+        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (disableAnimations && controller.isAnimating) {
+      controller.stop();
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final tagline =
+        l10n?.brandTagline ?? 'Intelligent Living, Beautifully Simple';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -78,40 +89,46 @@ class SplashScreenState extends State<SplashScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Pulsing Lumivo Emblem
-              ScaleTransition(
-                scale: pulseAnimation,
-                child: Container(
-                  key: const Key('splash_screen_emblem'),
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const RadialGradient(
-                      colors: [
-                        Color(0xFFA294FF),
-                        AppColors.primary,
-                        AppColors.surfaceElevated,
-                      ],
-                      stops: [0.0, 0.55, 1.0],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                        blurRadius: 36,
-                        spreadRadius: 4,
-                        offset: const Offset(0, 8),
+              Semantics(
+                label: 'Lumivo Emblem',
+                image: true,
+                child: ScaleTransition(
+                  scale: disableAnimations
+                      ? const AlwaysStoppedAnimation(1.0)
+                      : pulseAnimation,
+                  child: Container(
+                    key: const Key('splash_screen_emblem'),
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const RadialGradient(
+                        colors: [
+                          Color(0xFFA294FF),
+                          AppColors.primary,
+                          AppColors.surfaceElevated,
+                        ],
+                        stops: [0.0, 0.55, 1.0],
                       ),
-                    ],
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      width: 1.8,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.5),
+                          blurRadius: 36,
+                          spreadRadius: 4,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        width: 1.8,
+                      ),
                     ),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.blur_on_rounded,
-                      color: Colors.white,
-                      size: 52,
+                    child: const Center(
+                      child: Icon(
+                        Icons.blur_on_rounded,
+                        color: Colors.white,
+                        size: 52,
+                      ),
                     ),
                   ),
                 ),
@@ -121,7 +138,9 @@ class SplashScreenState extends State<SplashScreen>
 
               // Title: LUMIVO
               FadeTransition(
-                opacity: fadeAnimation,
+                opacity: disableAnimations
+                    ? const AlwaysStoppedAnimation(1.0)
+                    : fadeAnimation,
                 child: const Text(
                   'LUMIVO',
                   style: TextStyle(
@@ -135,13 +154,15 @@ class SplashScreenState extends State<SplashScreen>
 
               const SizedBox(height: 10),
 
-              // Tagline: Intelligent Living, Beautifully Simple
+              // Tagline
               FadeTransition(
-                opacity: fadeAnimation,
-                child: const Text(
-                  'Intelligent Living, Beautifully Simple',
+                opacity: disableAnimations
+                    ? const AlwaysStoppedAnimation(1.0)
+                    : fadeAnimation,
+                child: Text(
+                  tagline,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textSecondary,

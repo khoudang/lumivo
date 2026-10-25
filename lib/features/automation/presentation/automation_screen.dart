@@ -101,31 +101,37 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                 children: [
                   Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'ROUTINES & LOGIC',
-                            style: TextStyle(
-                              letterSpacing: 1.5,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'ROUTINES & LOGIC',
+                              style: TextStyle(
+                                letterSpacing: 1.5,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.automation,
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.automation,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       IconButton.filledTonal(
                         key: const Key('view_automation_history_button'),
                         icon: const Icon(Icons.history_rounded, size: 22),
@@ -318,23 +324,14 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                 },
               ),
               IconButton(
+                key: Key('delete_automation_${rule.id}'),
                 icon: const Icon(
                   Icons.delete_outline_rounded,
                   color: AppColors.muted,
                   size: 20,
                 ),
-                tooltip: 'Delete',
-                onPressed: () {
-                  ref
-                      .read(automationRulesProvider.notifier)
-                      .deleteRule(rule.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Rule "${rule.name}" deleted'),
-                      backgroundColor: AppColors.surfaceElevated,
-                    ),
-                  );
-                },
+                tooltip: l10n.delete,
+                onPressed: () => _confirmDeleteRule(rule, l10n),
               ),
             ],
           ),
@@ -355,6 +352,51 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
               ),
               if (lastRecord != null) _executionStatusChip(lastRecord, l10n),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteRule(AutomationRule rule, AppLocalizations l10n) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          l10n.deleteRule,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+        ),
+        content: Text(
+          l10n.confirmDeleteRuleBody(rule.name),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              l10n.cancel,
+              style: const TextStyle(color: AppColors.muted),
+            ),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_delete_rule_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              ref.read(automationRulesProvider.notifier).deleteRule(rule.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Rule "${rule.name}" deleted'),
+                  backgroundColor: AppColors.surfaceElevated,
+                ),
+              );
+            },
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -460,12 +502,16 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
           children: [
             Icon(icon, size: 14, color: tint),
             const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: tint,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: tint,
+                ),
               ),
             ),
           ],
@@ -487,12 +533,16 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
         children: [
           Icon(icon, size: 14, color: tint),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: tint,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: tint,
+              ),
             ),
           ),
         ],
@@ -546,42 +596,85 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 80),
       children: [
         // Header with + Add Scene button
-        Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 360;
+            if (isNarrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ambiance Scenes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '${scenes.length} coordinated presets',
+                    style:
+                        const TextStyle(fontSize: 12, color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    key: const Key('add_scene_button'),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('+ Add Scene'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => SceneEditorSheet.show(context),
+                  ),
+                ],
+              );
+            }
+            return Row(
               children: [
-                Text(
-                  'Ambiance Scenes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Ambiance Scenes',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        '${scenes.length} coordinated presets',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.muted),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  '${scenes.length} coordinated presets',
-                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                ElevatedButton.icon(
+                  key: const Key('add_scene_button'),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('+ Add Scene'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => SceneEditorSheet.show(context),
                 ),
               ],
-            ),
-            const Spacer(),
-            ElevatedButton.icon(
-              key: const Key('add_scene_button'),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('+ Add Scene'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () => SceneEditorSheet.show(context),
-            ),
-          ],
+            );
+          },
         ),
 
         const SizedBox(height: 16),
@@ -592,83 +685,146 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
             borderRadius: BorderRadius.circular(22),
             onLongPress: () => SceneEditorSheet.show(context, scene: scene),
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(color: AppColors.surfaceBorder),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(16),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 440;
+                  final actionButtons = <Widget>[
+                    IconButton(
+                      key: Key('preview_scene_${scene.id}'),
+                      icon: const Icon(Icons.visibility_outlined,
+                          size: 20, color: AppColors.cyan),
+                      tooltip: 'Preview Scene',
+                      onPressed: () => ScenePreviewDialog.show(
+                        context,
+                        actions: scene.actions,
+                        title: scene.name,
+                      ),
                     ),
-                    child: Icon(_sceneIcon(scene.iconName),
-                        color: AppColors.primary, size: 26),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
+                    IconButton(
+                      key: Key('edit_scene_${scene.id}'),
+                      icon: const Icon(Icons.edit_outlined,
+                          size: 20, color: AppColors.muted),
+                      tooltip: 'Edit Scene',
+                      onPressed: () =>
+                          SceneEditorSheet.show(context, scene: scene),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton.icon(
+                      key: Key('run_scene_${scene.id}'),
+                      onPressed: () => _runScene(scene),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                      label: const Text('Run Scene'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ];
+
+                  if (isNarrow) {
+                    return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          scene.name,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Icon(_sceneIcon(scene.iconName),
+                                  color: AppColors.primary, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    scene.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${scene.actions.length} automated steps',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${scene.actions.length} automated steps',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.muted,
-                          ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: actionButtons,
                         ),
                       ],
-                    ),
-                  ),
-                  IconButton(
-                    key: Key('preview_scene_${scene.id}'),
-                    icon: const Icon(Icons.visibility_outlined,
-                        size: 20, color: AppColors.cyan),
-                    tooltip: 'Preview Scene',
-                    onPressed: () => ScenePreviewDialog.show(
-                      context,
-                      actions: scene.actions,
-                      title: scene.name,
-                    ),
-                  ),
-                  IconButton(
-                    key: Key('edit_scene_${scene.id}'),
-                    icon: const Icon(Icons.edit_outlined,
-                        size: 20, color: AppColors.muted),
-                    tooltip: 'Edit Scene',
-                    onPressed: () =>
-                        SceneEditorSheet.show(context, scene: scene),
-                  ),
-                  const SizedBox(width: 6),
-                  ElevatedButton.icon(
-                    key: Key('run_scene_${scene.id}'),
-                    onPressed: () => _runScene(scene),
-                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                    label: const Text('Run Scene'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(_sceneIcon(scene.iconName),
+                            color: AppColors.primary, size: 26),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              scene.name,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${scene.actions.length} automated steps',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                      ...actionButtons,
+                    ],
+                  );
+                },
               ),
             ),
           ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../profile/state/user_profile_notifier.dart';
 import '../state/first_run_notifier.dart';
 
 /// A consumer-friendly, dark minimal first-run welcome experience for Lumivo.
@@ -23,33 +25,6 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-
-  final List<_FeatureHighlight> _features = const [
-    _FeatureHighlight(
-      title: 'Deterministic IoT Simulation',
-      subtitle:
-          'Bulbs, fans, climate AC, sockets, curtains, smart locks & environment sensors.',
-      icon: Icons.tune_rounded,
-      accentColor: AppColors.primary,
-      tag: 'SIMULATED HARDWARE',
-    ),
-    _FeatureHighlight(
-      title: 'Ambiance & Automated Routines',
-      subtitle:
-          'One-tap scenes, schedule-based triggers & threshold sensor automations.',
-      icon: Icons.auto_awesome_rounded,
-      accentColor: AppColors.cyan,
-      tag: 'SMART ORCHESTRATION',
-    ),
-    _FeatureHighlight(
-      title: 'Simulated Energy Telemetry',
-      subtitle:
-          'Live wattage consumption, historical telemetry & configurable tariffs.',
-      icon: Icons.bolt_rounded,
-      accentColor: AppColors.green,
-      tag: 'POWER ANALYTICS',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -73,6 +48,37 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isReduced = ref.watch(userProfileProvider).reducedMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+
+    final features = [
+      _FeatureHighlight(
+        title: l10n?.featureIotSimTitle ?? 'Deterministic IoT Simulation',
+        subtitle: l10n?.featureIotSimSubtitle ??
+            'Bulbs, fans, climate AC, sockets, curtains, smart locks & environment sensors.',
+        icon: Icons.tune_rounded,
+        accentColor: AppColors.primary,
+        tag: l10n?.featureIotSimTag ?? 'SIMULATED HARDWARE',
+      ),
+      _FeatureHighlight(
+        title: l10n?.featureAmbianceTitle ?? 'Ambiance & Automated Routines',
+        subtitle: l10n?.featureAmbianceSubtitle ??
+            'One-tap scenes, schedule-based triggers & threshold sensor automations.',
+        icon: Icons.auto_awesome_rounded,
+        accentColor: AppColors.cyan,
+        tag: l10n?.featureAmbianceTag ?? 'SMART ORCHESTRATION',
+      ),
+      _FeatureHighlight(
+        title: l10n?.featureEnergyTitle ?? 'Simulated Energy Telemetry',
+        subtitle: l10n?.featureEnergySubtitle ??
+            'Live wattage consumption, historical telemetry & configurable tariffs.',
+        icon: Icons.bolt_rounded,
+        accentColor: AppColors.green,
+        tag: l10n?.featureEnergyTag ?? 'POWER ANALYTICS',
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -108,10 +114,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Intelligent Living, Beautifully Simple',
+                  Text(
+                    l10n?.brandTagline ??
+                        'Intelligent Living, Beautifully Simple',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
@@ -122,17 +129,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   const SizedBox(height: 18),
 
                   // Swipeable Feature Highlights
-                  _buildFeatureCarousel(),
+                  _buildFeatureCarousel(features),
 
                   const SizedBox(height: 12),
 
                   // Carousel Page Indicator Dots
-                  _buildPageIndicators(),
+                  _buildPageIndicators(features.length, isReduced),
 
                   const SizedBox(height: 18),
 
                   // Prominent Demo Mode & Offline Smart Home Callout
-                  _buildDemoModeBadge(),
+                  _buildDemoModeBadge(l10n),
 
                   const SizedBox(height: 20),
 
@@ -152,21 +159,21 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const FittedBox(
+                      child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Enter Demo Mode',
-                              style: TextStyle(
+                              l10n?.enterDemoMode ?? 'Enter Demo Mode',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.3,
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward_rounded, size: 20),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_rounded, size: 20),
                           ],
                         ),
                       ),
@@ -188,9 +195,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        'Skip to Dashboard',
-                        style: TextStyle(
+                      child: Text(
+                        l10n?.skipToDashboard ?? 'Skip to Dashboard',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -244,15 +251,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     );
   }
 
-  Widget _buildFeatureCarousel() {
+  Widget _buildFeatureCarousel(List<_FeatureHighlight> features) {
     return SizedBox(
       height: 200,
       child: PageView.builder(
         controller: _pageController,
         onPageChanged: (idx) => setState(() => _currentPage = idx),
-        itemCount: _features.length,
+        itemCount: features.length,
         itemBuilder: (context, index) {
-          final feature = _features[index];
+          final feature = features[index];
 
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -347,30 +354,48 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     );
   }
 
-  Widget _buildPageIndicators() {
+  Widget _buildPageIndicators(int count, bool isReduced) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        _features.length,
+        count,
         (index) {
           final isSelected = index == _currentPage;
-          return GestureDetector(
-            key: Key('welcome_indicator_$index'),
-            onTap: () {
-              _pageController.animateToPage(
-                index,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: isSelected ? 24 : 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-                borderRadius: BorderRadius.circular(4),
+          return Semantics(
+            button: true,
+            selected: isSelected,
+            label: 'Page ${index + 1}',
+            child: GestureDetector(
+              key: Key('welcome_indicator_$index'),
+              onTap: () {
+                _pageController.animateToPage(
+                  index,
+                  duration: isReduced
+                      ? Duration.zero
+                      : const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 48,
+                  minHeight: 48,
+                ),
+                alignment: Alignment.center,
+                child: AnimatedContainer(
+                  duration: isReduced
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isSelected ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.surfaceBorder,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
               ),
             ),
           );
@@ -379,7 +404,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     );
   }
 
-  Widget _buildDemoModeBadge() {
+  Widget _buildDemoModeBadge(AppLocalizations? l10n) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -395,19 +420,20 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           width: 1.2,
         ),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
+          const Icon(
             Icons.offline_bolt_rounded,
             color: AppColors.cyan,
             size: 20,
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '✦ DEMO MODE • 100% OFFLINE SMART HOME — No hardware, cloud login, or external network required.',
-              style: TextStyle(
+              l10n?.demoModeCallout ??
+                  '✦ DEMO MODE • 100% OFFLINE SMART HOME — No hardware, cloud login, or external network required.',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
