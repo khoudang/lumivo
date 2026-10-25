@@ -51,6 +51,9 @@ class CommandPipeline {
   final Map<String, CommandResult> _completedResults = {};
   final Set<String> _cancelledRequestIds = {};
   final List<CommandRecord> _commandHistory = [];
+  bool _isDisposed = false;
+
+  bool get isDisposed => _isDisposed;
 
   final StreamController<CommandRecord> _recordController =
       StreamController<CommandRecord>.broadcast(sync: true);
@@ -116,6 +119,13 @@ class CommandPipeline {
     CommandExecutor? onExecute,
     String homeId = 'home-default',
   }) async {
+    if (_isDisposed) {
+      return CommandResult(
+        requestId: command.requestId,
+        status: CommandStatus.cancelled,
+        errorMessage: 'CommandPipeline is disposed',
+      );
+    }
     final reqId = command.requestId;
 
     // Deduplication 1: If command is already completed/confirmed, return existing result.
@@ -412,6 +422,17 @@ class CommandPipeline {
   }
 
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    for (final entry in _inFlight.entries) {
+      if (!entry.value.isCompleted) {
+        entry.value.complete(CommandResult(
+          requestId: entry.key,
+          status: CommandStatus.cancelled,
+          errorMessage: 'Command cancelled: CommandPipeline was disposed',
+        ));
+      }
+    }
     _inFlight.clear();
     _inFlightCommands.clear();
     _recordController.close();

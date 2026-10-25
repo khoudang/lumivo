@@ -116,14 +116,18 @@ class EnergyInsightsEngine {
         'Timestamp,Category,ID,Name,Power (W),Energy (kWh),Cost (\$),Tariff (\$/kWh)');
     final ts = report.generatedAt.toIso8601String();
 
+    String escapeCsv(String value) {
+      return '"${value.replaceAll('"', '""')}"';
+    }
+
     for (final item in report.deviceBreakdown) {
       buffer.writeln(
-          '$ts,device,${item.id},"${item.name}",${item.wattage.toStringAsFixed(2)},${item.kwh.toStringAsFixed(4)},${item.cost.toStringAsFixed(4)},${report.tariff.toStringAsFixed(4)}');
+          '$ts,device,${item.id},${escapeCsv(item.name)},${item.wattage.toStringAsFixed(2)},${item.kwh.toStringAsFixed(4)},${item.cost.toStringAsFixed(4)},${report.tariff.toStringAsFixed(4)}');
     }
 
     for (final item in report.roomBreakdown) {
       buffer.writeln(
-          '$ts,room,${item.id},"${item.name}",${item.wattage.toStringAsFixed(2)},${item.kwh.toStringAsFixed(4)},${item.cost.toStringAsFixed(4)},${report.tariff.toStringAsFixed(4)}');
+          '$ts,room,${item.id},${escapeCsv(item.name)},${item.wattage.toStringAsFixed(2)},${item.kwh.toStringAsFixed(4)},${item.cost.toStringAsFixed(4)},${report.tariff.toStringAsFixed(4)}');
     }
 
     buffer.writeln(

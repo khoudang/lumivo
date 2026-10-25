@@ -10,10 +10,24 @@ enum DeviceCommandType {
 enum CommandStatus {
   queued,
   pending,
+  executing,
   confirmed,
   failed,
   timedOut,
   cancelled,
+}
+
+extension CommandStatusExtension on CommandStatus {
+  bool get isInFlight =>
+      this == CommandStatus.queued ||
+      this == CommandStatus.pending ||
+      this == CommandStatus.executing;
+
+  bool get isTerminal =>
+      this == CommandStatus.confirmed ||
+      this == CommandStatus.failed ||
+      this == CommandStatus.timedOut ||
+      this == CommandStatus.cancelled;
 }
 
 class DeviceCommand {

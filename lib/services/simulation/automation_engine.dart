@@ -16,8 +16,10 @@ class AutomationEngine {
     this.onDispatchAction,
     this.onSendCommand,
     this.hysteresis = 0.5,
-    this.maxExecutionHistory = 200,
-  }) {
+    int maxExecutionHistory = 100,
+  }) : maxExecutionHistory = maxExecutionHistory > 100
+            ? 100
+            : (maxExecutionHistory <= 0 ? 100 : maxExecutionHistory) {
     if (initialRules != null) {
       for (final rule in initialRules) {
         addRule(rule, allowDuplicates: true);
@@ -535,12 +537,17 @@ class AutomationEngine {
       }
 
       CommandResult? result;
-      if (onDispatchAction != null) {
-        await onDispatchAction!(action);
-      } else if (onSendCommand != null) {
-        result = await onSendCommand!(command);
-      } else if (repository != null) {
-        result = await repository!.sendCommand(command);
+      try {
+        if (onDispatchAction != null) {
+          await onDispatchAction!(action);
+        } else if (onSendCommand != null) {
+          result = await onSendCommand!(command);
+        } else if (repository != null) {
+          result = await repository!.sendCommand(command);
+        }
+      } catch (e) {
+        hasFailure = true;
+        failureReason = 'Device ${action.deviceId} error: $e';
       }
 
       if (result != null && result.status == CommandStatus.failed) {
@@ -586,6 +593,9 @@ class AutomationEngine {
     );
 
     _activityHistory.add(event);
+    if (_activityHistory.length > maxExecutionHistory) {
+      _activityHistory.removeAt(0);
+    }
     if (!_activityController.isClosed) {
       _activityController.add(event);
     }

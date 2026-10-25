@@ -8,6 +8,7 @@ import 'device_simulator.dart';
 /// - Diurnal ambient temperature cycle (22°C - 31°C) based on hour of day.
 /// - Diurnal ambient humidity cycle (45% - 75%) inversely related to temperature.
 /// - Thermal coupling with room AC (pulls sensor readings toward AC cooling/heating).
+/// - Enforces strict physical telemetry bounds (temperature: 16-32°C, humidity: 20-90%).
 class SensorSimulator implements DeviceSimulator {
   SensorSimulator(SmartDevice device) : _device = device;
 
@@ -81,8 +82,12 @@ class SensorSimulator implements DeviceSimulator {
       }
     }
 
-    final roundedTemp = (temp * 100).roundToDouble() / 100.0;
-    final roundedHumidity = (humidity * 100).roundToDouble() / 100.0;
+    // Telemetry bounds audit: enforce 16.0 - 32.0 °C and 20.0 - 90.0 %
+    final clampedTemp = temp.clamp(16.0, 32.0);
+    final clampedHumidity = humidity.clamp(20.0, 90.0);
+
+    final roundedTemp = (clampedTemp * 100).roundToDouble() / 100.0;
+    final roundedHumidity = (clampedHumidity * 100).roundToDouble() / 100.0;
 
     _device = _device.copyWith(
       currentTemperature: roundedTemp,

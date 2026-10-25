@@ -155,7 +155,11 @@ class DefaultScenesService implements ScenesService {
         type: action.commandType,
         value: action.value,
       );
-      await repo.sendCommand(command);
+      try {
+        await repo.sendCommand(command);
+      } catch (e) {
+        // Safe handling of missing/deleted device or repository error
+      }
     }
 
     final event = ActivityEvent(
@@ -169,6 +173,9 @@ class DefaultScenesService implements ScenesService {
     );
 
     _activityHistory.add(event);
+    if (_activityHistory.length > 100) {
+      _activityHistory.removeAt(0);
+    }
     if (!_activityController.isClosed) {
       _activityController.add(event);
     }

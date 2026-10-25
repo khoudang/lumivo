@@ -19,7 +19,19 @@ class ScenePreviewItem {
   final Object? targetValue;
   final String propertyName;
 
-  bool get willChange => currentValue != targetValue;
+  /// Whether the target device is missing (deleted).
+  bool get isDeviceMissing => device == null;
+
+  /// Whether the target device is offline.
+  bool get isDeviceOffline =>
+      device != null && device!.connection == DeviceConnection.offline;
+
+  /// Whether the command action can be successfully executed.
+  bool get isExecutable =>
+      device != null && device!.connection == DeviceConnection.online;
+
+  /// Whether the device state is predicted to change upon scene execution.
+  bool get willChange => isExecutable && (currentValue != targetValue);
 }
 
 class ScenePreviewEngine {

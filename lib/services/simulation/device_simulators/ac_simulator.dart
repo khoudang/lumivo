@@ -7,6 +7,7 @@ import 'device_simulator.dart';
 /// Thermodynamics:
 /// - If AC is On, pulls room temperature toward [targetTemperature] by 0.05°C per virtual minute.
 /// - Power: 1200W when active (On), 5W standby (Off).
+/// - Enforces strict physical telemetry bounds (temperature: 16-32°C).
 class AcSimulator implements DeviceSimulator {
   AcSimulator(SmartDevice device) : _device = device;
 
@@ -73,8 +74,10 @@ class AcSimulator implements DeviceSimulator {
       }
     }
 
+    // Telemetry bounds audit: enforce 16.0 - 32.0 °C
+    final boundedTemp = current.clamp(16.0, 32.0);
     // Keep numerical precision clean to 4 decimal places
-    final roundedTemp = (current * 10000).roundToDouble() / 10000.0;
+    final roundedTemp = (boundedTemp * 10000).roundToDouble() / 10000.0;
 
     _device = _device.copyWith(
       currentTemperature: roundedTemp,
