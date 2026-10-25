@@ -10,9 +10,7 @@ class DashboardConfigNotifier extends StateNotifier<DashboardConfig> {
     DashboardConfig? initialConfig,
   })  : _homeId = homeId,
         _persistenceManager = persistenceManager,
-        super(initialConfig ??
-            persistenceManager.getDashboardConfig(homeId) ??
-            defaultWithAllSections(homeId));
+        super(initialConfig ?? persistenceManager.getDashboardConfig(homeId));
 
   final String _homeId;
   final HomePersistenceManager _persistenceManager;
@@ -50,7 +48,8 @@ class DashboardConfigNotifier extends StateNotifier<DashboardConfig> {
     saveLayout();
   }
 
-  void reorder(int oldIndex, int newIndex) => reorderSections(oldIndex, newIndex);
+  void reorder(int oldIndex, int newIndex) =>
+      reorderSections(oldIndex, newIndex);
 
   void toggleSectionVisibility(DashboardSection section, bool isVisible) {
     final updated = Map<DashboardSection, bool>.from(state.visibleSections);

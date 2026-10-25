@@ -436,9 +436,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             const SizedBox(height: 18),
 
+            // Quick Status Area: Smart Home Health & Demo Lab
+            if (dashboardConfig.isVisible(DashboardSection.health) ||
+                dashboardConfig.isVisible(DashboardSection.demoLab)) ...[
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  if (dashboardConfig.isVisible(DashboardSection.health))
+                    _buildHealthSection(l10n),
+                  if (dashboardConfig.isVisible(DashboardSection.demoLab))
+                    _buildDemoLabSection(l10n),
+                ],
+              ),
+              const SizedBox(height: 18),
+            ],
+
             // Dynamic Section Rendering based on DashboardConfig
             for (final section in dashboardConfig.sectionOrder)
-              if (dashboardConfig.isVisible(section)) ...[
+              if (dashboardConfig.isVisible(section) &&
+                  section != DashboardSection.health &&
+                  section != DashboardSection.demoLab) ...[
                 _buildDashboardSection(
                   section,
                   all: all,

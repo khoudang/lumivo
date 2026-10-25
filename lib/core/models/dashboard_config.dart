@@ -35,22 +35,22 @@ class DashboardConfig {
   factory DashboardConfig.defaultFor(String homeId) => DashboardConfig(
         homeId: homeId,
         sectionOrder: const [
-          DashboardSection.health,
-          DashboardSection.demoLab,
           DashboardSection.metrics,
+          DashboardSection.health,
           DashboardSection.favorites,
           DashboardSection.quickScenes,
           DashboardSection.devices,
           DashboardSection.activity,
+          DashboardSection.demoLab,
         ],
         visibleSections: const {
-          DashboardSection.health: true,
-          DashboardSection.demoLab: true,
           DashboardSection.metrics: true,
+          DashboardSection.health: true,
           DashboardSection.favorites: true,
           DashboardSection.quickScenes: true,
           DashboardSection.devices: true,
           DashboardSection.activity: true,
+          DashboardSection.demoLab: true,
         },
       );
 
