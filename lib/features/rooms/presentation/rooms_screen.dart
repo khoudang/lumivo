@@ -164,11 +164,13 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                 onPressed: () {
                   final name = nameController.text.trim();
                   if (name.isNotEmpty) {
+                    final currentHome = ref.read(currentHomeProvider);
                     ref.read(roomsProvider.notifier).addRoom(
                           Room(
                             id: 'room-${DateTime.now().millisecondsSinceEpoch}',
                             name: name,
                             iconName: selectedIcon,
+                            homeId: currentHome.id,
                           ),
                         );
                     Navigator.of(dialogCtx).pop();
@@ -328,9 +330,13 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final rooms = ref.watch(roomsProvider);
+    final currentHome = ref.watch(currentHomeProvider);
+    final allRooms = ref.watch(roomsProvider);
+    final rooms = allRooms.where((r) => r.homeId == currentHome.id).toList();
     final devicesAsync = ref.watch(devicesProvider);
-    final devices = devicesAsync.valueOrNull ?? const [];
+    final allDevices = devicesAsync.valueOrNull ?? const [];
+    final devices =
+        allDevices.where((d) => d.homeId == currentHome.id).toList();
     final l10n = ref.watch(appLocalizationsProvider);
 
     return LayoutBuilder(

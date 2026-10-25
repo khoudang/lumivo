@@ -12,8 +12,8 @@ import '../storage/home_persistence_manager.dart';
 /// Current backup schema version.
 const int backupSchemaVersion = 6;
 
-/// Maximum payload size allowed for import (10 MB).
-const int maxBackupPayloadBytes = 10 * 1024 * 1024;
+/// Maximum payload size allowed for import (5 MB).
+const int maxBackupPayloadBytes = 5 * 1024 * 1024;
 
 /// Engine for versioned, transactional, rollback-safe backup export and restore.
 class BackupRestoreService {
@@ -44,7 +44,9 @@ class BackupRestoreService {
     final sanitizedAutomations =
         state.automations.map((a) => _sanitizeMap(a.toJson())).toList();
     final dashboardConfigs = state.homes
-        .map((h) => _sanitizeMap(DashboardConfig.defaultFor(h.id).toJson()))
+        .map((h) => _sanitizeMap(
+            (state.dashboardConfigs[h.id] ?? DashboardConfig.defaultFor(h.id))
+                .toJson()))
         .toList();
     final sanitizedUserProfile = _sanitizeMap(state.userProfile.toJson());
 
@@ -70,15 +72,8 @@ class BackupRestoreService {
     return const JsonEncoder.withIndent('  ').convert(payload.toJson());
   }
 
-  /// Validates [jsonString] without applying changes and returns a [BackupPreviewSummary].
-  ///
-  /// Checks:
-  /// - Malformed JSON, empty payload, or oversized payload.
-  /// - Supported schema version (1 <= version <= 6).
-  /// - Duplicate IDs in homes, rooms, devices, scenes, automations.
-  /// - Entity reference integrity (e.g. scene actions and automation rules referencing valid devices).
-  Future<BackupPreviewSummary> validateAndPreviewBackup(
-      String jsonString) async {
+  /// Synchronously validates [jsonString] without applying changes and returns a [BackupPreviewSummary].
+  BackupPreviewSummary validateSync(String jsonString) {
     final errors = <String>[];
 
     if (jsonString.trim().isEmpty) {
@@ -103,7 +98,7 @@ class BackupRestoreService {
         deviceCount: 0,
         sceneCount: 0,
         automationCount: 0,
-        errors: ['Payload exceeds maximum allowed size (10MB).'],
+        errors: ['Payload exceeds maximum allowed size (5MB).'],
       );
     }
 
@@ -288,6 +283,12 @@ class BackupRestoreService {
     );
   }
 
+  /// Validates [jsonString] without applying changes and returns a [BackupPreviewSummary].
+  Future<BackupPreviewSummary> validateAndPreviewBackup(
+      String jsonString) async {
+    return validateSync(jsonString);
+  }
+
   /// Transactional, rollback-safe restore of [jsonString] into [persistenceManager].
   ///
   /// If validation fails, or if parsing/saving encounters an error, the previous
@@ -297,7 +298,7 @@ class BackupRestoreService {
     required HomePersistenceManager persistenceManager,
   }) async {
     // 1. Pre-validation
-    final preview = await validateAndPreviewBackup(jsonString);
+    final preview = validateSync(jsonString);
     if (!preview.isValid) {
       return false;
     }
@@ -324,6 +325,15 @@ class BackupRestoreService {
       final currentHomeId =
           homes.isNotEmpty ? homes.first.id : previousState.currentHomeId;
 
+      final configs = <String, DashboardConfig>{};
+      for (final cfgMap in payload.dashboardConfigs) {
+        final cfg = DashboardConfig.fromJson(cfgMap);
+        configs[cfg.homeId] = cfg;
+      }
+      for (final home in homes) {
+        configs.putIfAbsent(home.id, () => DashboardConfig.defaultFor(home.id));
+      }
+
       final restoredState = previousState.copyWith(
         homes: homes,
         rooms: rooms,
@@ -332,6 +342,7 @@ class BackupRestoreService {
         automations: automations,
         userProfile: userProfile,
         currentHomeId: currentHomeId,
+        dashboardConfigs: configs,
       );
 
       await persistenceManager.saveHomeState(restoredState);

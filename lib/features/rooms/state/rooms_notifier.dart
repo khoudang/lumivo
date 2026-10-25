@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/room.dart';
 import '../../../services/storage/home_persistence_manager.dart';
+import '../../home/state/homes_notifier.dart';
 
 class RoomsNotifier extends StateNotifier<List<Room>> {
   RoomsNotifier([
@@ -24,12 +25,18 @@ class RoomsNotifier extends StateNotifier<List<Room>> {
     await _persist();
   }
 
-  Future<void> deleteRoom(String id) async {
+  Future<void> deleteRoom(String id, {String? reassignToRoomId}) async {
     state = state.where((r) => r.id != id).toList();
-    await _persist();
+    if (_persistenceManager != null) {
+      await _persistenceManager.deleteRoomWithCascade(id,
+          reassignToRoomId: reassignToRoomId);
+    } else {
+      await _persist();
+    }
   }
 
-  Future<void> removeRoom(String id) => deleteRoom(id);
+  Future<void> removeRoom(String id, {String? reassignToRoomId}) =>
+      deleteRoom(id, reassignToRoomId: reassignToRoomId);
 
   Future<void> updateRoom(Room room) async {
     state = [
@@ -59,4 +66,10 @@ final roomsProvider = StateNotifierProvider<RoomsNotifier, List<Room>>((ref) {
   final initial =
       persistence.cachedState?.rooms ?? HomePersistenceManager.defaultRooms;
   return RoomsNotifier(initial, persistence);
+});
+
+final homeRoomsProvider = Provider<List<Room>>((ref) {
+  final allRooms = ref.watch(roomsProvider);
+  final currentHome = ref.watch(currentHomeProvider);
+  return allRooms.where((r) => r.homeId == currentHome.id).toList();
 });

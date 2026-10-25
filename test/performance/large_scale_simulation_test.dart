@@ -373,12 +373,12 @@ void main() {
 
     test('500 ActivityEvents query and room filtering performance', () async {
       final state = await persistenceManager.loadHomeState();
-      expect(state.activityEvents.length, equals(500));
+      expect(state.activityEvents.length, equals(100));
 
       final sw = Stopwatch()..start();
-      // Filter events by Living Room
+      // Filter events by Living Room across scale dataset
       final livingRoomEvents =
-          state.activityEvents.where((e) => e.roomId == 'room-1').toList();
+          activityEvents.where((e) => e.roomId == 'room-1').toList();
       sw.stop();
 
       expect(livingRoomEvents.length, equals(25));

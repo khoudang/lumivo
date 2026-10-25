@@ -199,14 +199,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _home(List<SmartDevice> all, AppLocalizations l10n) {
-    const rooms = ['Living Room', 'Bedroom', 'Kitchen'];
+    final currentHome = ref.watch(currentHomeProvider);
+    final homeDevices = all.where((d) => d.homeId == currentHome.id).toList();
+    final allRooms = ref.watch(roomsProvider);
+    final homeRoomNames = allRooms
+        .where((r) => r.homeId == currentHome.id)
+        .map((r) => r.name)
+        .toList();
+    final rooms = homeRoomNames.isNotEmpty
+        ? homeRoomNames
+        : const ['Living Room', 'Bedroom', 'Kitchen'];
+    if (!rooms.contains(room)) {
+      room = rooms.first;
+    }
 
     final roomCounts = <String, int>{};
     for (final r in rooms) {
-      roomCounts[r] = all.where((d) => d.roomId == r).length;
+      roomCounts[r] = homeDevices.where((d) => d.roomId == r).length;
     }
 
-    final visible = all.where((d) => d.roomId == room).toList();
+    final visible = homeDevices.where((d) => d.roomId == room).toList();
     final dashboardConfig = ref.watch(dashboardConfigProvider);
     final lights = visible.where((d) => d.type == DeviceType.light).toList();
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
@@ -459,7 +471,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   section != DashboardSection.demoLab) ...[
                 _buildDashboardSection(
                   section,
-                  all: all,
+                  all: homeDevices,
                   visible: visible,
                   lights: lights,
                   screenWidth: screenWidth,
@@ -664,8 +676,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildActivitySection(AppLocalizations l10n) {
-    final events = ref.watch(activityProvider);
-    final recentEvents = events.take(3).toList();
+    final currentHome = ref.watch(currentHomeProvider);
+    final allEvents = ref.watch(activityProvider);
+    final recentEvents = allEvents
+        .where((e) => e.homeId == null || e.homeId == currentHome.id)
+        .take(3)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,7 +864,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildQuickScenesSection(AppLocalizations l10n) {
-    final scenes = ref.watch(scenesProvider);
+    final currentHome = ref.watch(currentHomeProvider);
+    final allScenes = ref.watch(scenesProvider);
+    final scenes = allScenes.where((s) => s.homeId == currentHome.id).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

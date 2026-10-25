@@ -54,6 +54,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
             title: 'Scene "${scene.name}" Executed',
             description: '${scene.actions.length} commands applied to devices',
             timestamp: DateTime.now(),
+            homeId: scene.homeId,
             severity: ActivitySeverity.success,
             source: 'automation',
           ),
@@ -195,7 +196,9 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
   }
 
   Widget _buildAutomationsTab() {
-    final rules = ref.watch(automationRulesProvider);
+    final allRules = ref.watch(automationRulesProvider);
+    final currentHome = ref.watch(currentHomeProvider);
+    final rules = allRules.where((r) => r.homeId == currentHome.id).toList();
 
     if (rules.isEmpty) {
       return Center(
@@ -388,9 +391,11 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
             ),
             onPressed: () {
               Navigator.of(dialogContext).pop();
+              final currentHome = ref.read(currentHomeProvider);
               final duplicated = rule.copyWith(
                 id: '${rule.id}_copy_${DateTime.now().millisecondsSinceEpoch}',
                 name: '${rule.name} (Copy)',
+                homeId: currentHome.id,
               );
               ref.read(automationRulesProvider.notifier).addRule(duplicated);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -533,7 +538,9 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
   }
 
   Widget _buildScenesTab() {
-    final scenes = ref.watch(scenesProvider);
+    final allScenes = ref.watch(scenesProvider);
+    final currentHome = ref.watch(currentHomeProvider);
+    final scenes = allScenes.where((s) => s.homeId == currentHome.id).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 80),

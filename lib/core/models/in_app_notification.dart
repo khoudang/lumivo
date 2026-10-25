@@ -6,6 +6,7 @@ class InAppNotification {
     required this.title,
     required this.body,
     required this.timestamp,
+    this.homeId,
     this.isRead = false,
     this.severity = ActivitySeverity.info,
   });
@@ -14,6 +15,7 @@ class InAppNotification {
   final String title;
   final String body;
   final DateTime timestamp;
+  final String? homeId;
   final bool isRead;
   final ActivitySeverity severity;
 
@@ -22,6 +24,7 @@ class InAppNotification {
     String? title,
     String? body,
     DateTime? timestamp,
+    String? homeId,
     bool? isRead,
     ActivitySeverity? severity,
   }) =>
@@ -30,6 +33,7 @@ class InAppNotification {
         title: title ?? this.title,
         body: body ?? this.body,
         timestamp: timestamp ?? this.timestamp,
+        homeId: homeId ?? this.homeId,
         isRead: isRead ?? this.isRead,
         severity: severity ?? this.severity,
       );
@@ -39,6 +43,7 @@ class InAppNotification {
         'title': title,
         'body': body,
         'timestamp': timestamp.toIso8601String(),
+        'homeId': homeId,
         'isRead': isRead,
         'severity': severity.name,
       };
@@ -50,6 +55,7 @@ class InAppNotification {
         body: json['body'] as String,
         timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
             DateTime.now(),
+        homeId: json['homeId'] as String?,
         isRead: json['isRead'] as bool? ?? false,
         severity: ActivitySeverity.values.firstWhere(
           (e) => e.name == json['severity'],

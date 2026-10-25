@@ -6,13 +6,15 @@ class NotificationsNotifier extends StateNotifier<List<InAppNotification>> {
   NotificationsNotifier([
     List<InAppNotification>? initialNotifications,
     this._persistenceManager,
-  ]) : super(initialNotifications ??
-            HomePersistenceManager.defaultNotifications);
+  ]) : super((initialNotifications ??
+                HomePersistenceManager.defaultNotifications)
+            .take(100)
+            .toList());
 
   final HomePersistenceManager? _persistenceManager;
 
   void addNotification(InAppNotification notification) {
-    state = [notification, ...state];
+    state = [notification, ...state].take(100).toList();
     _persist();
   }
 
@@ -46,7 +48,7 @@ class NotificationsNotifier extends StateNotifier<List<InAppNotification>> {
   }
 
   void setNotifications(List<InAppNotification> notifications) {
-    state = List.of(notifications);
+    state = notifications.take(100).toList();
     _persist();
   }
 

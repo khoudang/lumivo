@@ -92,6 +92,25 @@ class SmartDevice {
         customIcon: customIcon ?? this.customIcon,
       );
 
+  static Map<String, dynamic> sanitizeCustomData(Map<String, dynamic> data) {
+    final sanitized = Map<String, dynamic>.from(data);
+    sanitized.removeWhere((key, _) {
+      final lower = key.toLowerCase();
+      return lower.contains('password') ||
+          lower.contains('secret') ||
+          lower.contains('passphrase') ||
+          lower.contains('token') ||
+          lower.contains('credential') ||
+          lower.contains('private_key') ||
+          lower.contains('privatekey') ||
+          lower.contains('api_key') ||
+          lower.contains('apikey') ||
+          lower.contains('wifi_pass') ||
+          lower.contains('auth');
+    });
+    return sanitized;
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -106,7 +125,7 @@ class SmartDevice {
         'position': position,
         'isLocked': isLocked,
         'powerUsageWatts': powerUsageWatts,
-        'customData': customData,
+        'customData': sanitizeCustomData(customData),
         'homeId': homeId,
         'isFavorite': isFavorite,
         'favoriteOrder': favoriteOrder,
@@ -136,7 +155,8 @@ class SmartDevice {
         isLocked: json['isLocked'] as bool? ?? true,
         powerUsageWatts: (json['powerUsageWatts'] as num?)?.toDouble() ?? 0.0,
         customData: json['customData'] is Map
-            ? Map<String, dynamic>.from(json['customData'] as Map)
+            ? sanitizeCustomData(
+                Map<String, dynamic>.from(json['customData'] as Map))
             : const {},
         homeId: json['homeId'] as String? ?? 'home-default',
         isFavorite: json['isFavorite'] as bool? ?? false,

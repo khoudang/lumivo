@@ -121,8 +121,10 @@ class HomeState {
         }).toList(),
         'automations': automations.map((a) => a.toJson()).toList(),
         'scenes': scenes.map((s) => s.toJson()).toList(),
-        'activityEvents': activityEvents.map((e) => e.toJson()).toList(),
-        'notifications': notifications.map((n) => n.toJson()).toList(),
+        'activityEvents':
+            activityEvents.take(100).map((e) => e.toJson()).toList(),
+        'notifications':
+            notifications.take(100).map((n) => n.toJson()).toList(),
         'commandRecords':
             commandRecords.take(100).map((c) => c.toJson()).toList(),
         'automationRecords':
@@ -167,11 +169,13 @@ class HomeState {
           const [],
       activityEvents: (json['activityEvents'] as List<dynamic>?)
               ?.map((e) => ActivityEvent.fromJson(e as Map<String, dynamic>))
+              .take(100)
               .toList() ??
           const [],
       notifications: (json['notifications'] as List<dynamic>?)
               ?.map(
                   (e) => InAppNotification.fromJson(e as Map<String, dynamic>))
+              .take(100)
               .toList() ??
           const [],
       commandRecords: (json['commandRecords'] as List<dynamic>?)
@@ -762,6 +766,11 @@ class HomePersistenceManager {
       }
 
       final version = parsed['schemaVersion'] as int? ?? 1;
+      if (version < 1 || version > schemaVersion) {
+        final demoState = createDemoState();
+        await saveHomeState(demoState);
+        return demoState;
+      }
       if (version < schemaVersion || isMigrating) {
         final migratedState = _migrateToV6(parsed);
         await saveHomeState(migratedState);
@@ -879,6 +888,7 @@ class HomePersistenceManager {
         (raw['activityEvents'] as List).isNotEmpty) {
       events = (raw['activityEvents'] as List)
           .map((e) => ActivityEvent.fromJson(e as Map<String, dynamic>))
+          .take(100)
           .toList();
     }
 
@@ -888,6 +898,7 @@ class HomePersistenceManager {
         (raw['notifications'] as List).isNotEmpty) {
       notifs = (raw['notifications'] as List)
           .map((e) => InAppNotification.fromJson(e as Map<String, dynamic>))
+          .take(100)
           .toList();
     }
 
@@ -1036,12 +1047,14 @@ class HomePersistenceManager {
 
   Future<void> saveActivityEvents(List<ActivityEvent> events) async {
     final current = await _getCurrentOrFallback();
-    await saveHomeState(current.copyWith(activityEvents: events));
+    await saveHomeState(
+        current.copyWith(activityEvents: events.take(100).toList()));
   }
 
   Future<void> saveNotifications(List<InAppNotification> notifications) async {
     final current = await _getCurrentOrFallback();
-    await saveHomeState(current.copyWith(notifications: notifications));
+    await saveHomeState(
+        current.copyWith(notifications: notifications.take(100).toList()));
   }
 
   List<CommandRecord> getCommandRecords({String? homeId}) {
@@ -1139,6 +1152,210 @@ class HomePersistenceManager {
     final updated = Map<String, DashboardConfig>.from(current.dashboardConfigs);
     updated[config.homeId] = config;
     await saveHomeState(current.copyWith(dashboardConfigs: updated));
+  }
+
+  Future<void> deleteDeviceWithCascade(String deviceId) async {
+    final current = await _getCurrentOrFallback();
+    final index = current.devices.indexWhere((d) => d.id == deviceId);
+    if (index < 0) return;
+
+    final removedDevice = current.devices[index];
+    final updatedDevices = List<SmartDevice>.from(current.devices)
+      ..removeAt(index);
+
+    // Prune and re-index favorites
+    final favs = updatedDevices.where((d) => d.isFavorite).toList()
+      ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
+    for (int i = 0; i < favs.length; i++) {
+      final devIdx = updatedDevices.indexWhere((d) => d.id == favs[i].id);
+      if (devIdx >= 0) {
+        updatedDevices[devIdx] =
+            updatedDevices[devIdx].copyWith(favoriteOrder: i);
+      }
+    }
+
+    // Prune actions from Scenes
+    final updatedScenes = current.scenes.map((scene) {
+      final prunedActions =
+          scene.actions.where((action) => action.deviceId != deviceId).toList();
+      return scene.copyWith(actions: prunedActions);
+    }).toList();
+
+    // Prune or disable AutomationRules
+    final updatedRules = current.automations.map((rule) {
+      final isSensorRef = rule.sensorDeviceId == deviceId;
+      final prunedActions =
+          rule.actions.where((action) => action.deviceId != deviceId).toList();
+      final shouldDisable = isSensorRef || prunedActions.isEmpty;
+      if (isSensorRef) {
+        return AutomationRule(
+          id: rule.id,
+          name: rule.name,
+          isEnabled: false,
+          triggerType: rule.triggerType,
+          timeOfDay: rule.timeOfDay,
+          daysOfWeek: rule.daysOfWeek,
+          sensorDeviceId: null,
+          sensorProperty: rule.sensorProperty,
+          operator: rule.operator,
+          thresholdValue: rule.thresholdValue,
+          actions: prunedActions,
+          lastExecutedAt: rule.lastExecutedAt,
+          homeId: rule.homeId,
+        );
+      }
+      return rule.copyWith(
+        actions: prunedActions,
+        isEnabled: shouldDisable ? false : rule.isEnabled,
+      );
+    }).toList();
+
+    // Cascade Event
+    final cascadeEvent = ActivityEvent(
+      id: 'evt-cascade-${DateTime.now().microsecondsSinceEpoch}',
+      title: 'Cascade Deletion: ${removedDevice.name}',
+      description:
+          'Device "$deviceId" removed. Pruned from scenes and automations.',
+      timestamp: DateTime.now(),
+      deviceId: deviceId,
+      homeId: removedDevice.homeId,
+      severity: ActivitySeverity.warning,
+      source: 'system',
+    );
+
+    final updatedEvents =
+        [cascadeEvent, ...current.activityEvents].take(100).toList();
+
+    await saveHomeState(current.copyWith(
+      devices: updatedDevices,
+      scenes: updatedScenes,
+      automations: updatedRules,
+      activityEvents: updatedEvents,
+    ));
+  }
+
+  Future<void> deleteRoomWithCascade(String roomId,
+      {String? reassignToRoomId}) async {
+    final current = await _getCurrentOrFallback();
+    final roomIdx = current.rooms.indexWhere((r) => r.id == roomId);
+    if (roomIdx < 0) return;
+
+    final targetRoom = current.rooms[roomIdx];
+    final remainingRooms = List<Room>.from(current.rooms)..removeAt(roomIdx);
+
+    // Reassign or remove associated devices
+    String? fallbackRoomId = reassignToRoomId;
+    if (fallbackRoomId == null) {
+      final otherRoomsInHome =
+          remainingRooms.where((r) => r.homeId == targetRoom.homeId).toList();
+      if (otherRoomsInHome.isNotEmpty) {
+        fallbackRoomId = otherRoomsInHome.first.id;
+      }
+    }
+
+    final updatedDevices = current.devices
+        .map((d) {
+          if (d.roomId == roomId) {
+            if (fallbackRoomId != null) {
+              return d.copyWith(roomId: fallbackRoomId);
+            }
+          }
+          return d;
+        })
+        .where((d) => fallbackRoomId != null || d.roomId != roomId)
+        .toList();
+
+    final cascadeEvent = ActivityEvent(
+      id: 'evt-room-cascade-${DateTime.now().microsecondsSinceEpoch}',
+      title: 'Room Deleted: ${targetRoom.name}',
+      description: fallbackRoomId != null
+          ? 'Room "$roomId" removed. Devices reassigned to "$fallbackRoomId".'
+          : 'Room "$roomId" removed. Associated devices removed.',
+      timestamp: DateTime.now(),
+      homeId: targetRoom.homeId,
+      severity: ActivitySeverity.warning,
+      source: 'system',
+    );
+
+    final updatedEvents =
+        [cascadeEvent, ...current.activityEvents].take(100).toList();
+
+    await saveHomeState(current.copyWith(
+      rooms: remainingRooms,
+      devices: updatedDevices,
+      activityEvents: updatedEvents,
+    ));
+  }
+
+  Future<void> deleteHomeWithCascade(String homeId) async {
+    final current = await _getCurrentOrFallback();
+    final remainingHomes = current.homes.where((h) => h.id != homeId).toList();
+
+    var nextCurrentId = current.currentHomeId;
+    if (current.currentHomeId == homeId) {
+      if (remainingHomes.any((h) => h.id == 'home-default')) {
+        nextCurrentId = 'home-default';
+      } else if (remainingHomes.isNotEmpty) {
+        nextCurrentId = remainingHomes.first.id;
+      } else {
+        nextCurrentId = 'home-default';
+      }
+    }
+
+    final updatedHomes = remainingHomes
+        .map((h) => h.copyWith(isCurrent: h.id == nextCurrentId))
+        .toList();
+
+    final updatedDevices =
+        current.devices.where((d) => d.homeId != homeId).toList();
+    final updatedRooms =
+        current.rooms.where((r) => r.homeId != homeId).toList();
+    final updatedScenes =
+        current.scenes.where((s) => s.homeId != homeId).toList();
+    final updatedAutomations =
+        current.automations.where((a) => a.homeId != homeId).toList();
+    final updatedDashboardConfigs =
+        Map<String, DashboardConfig>.from(current.dashboardConfigs)
+          ..remove(homeId);
+    final updatedHealth =
+        current.deviceHealthRecords.where((h) => h.homeId != homeId).toList();
+    final updatedCommands =
+        current.commandRecords.where((c) => c.homeId != homeId).toList();
+    final updatedAutoRecords =
+        current.automationRecords.where((a) => a.homeId != homeId).toList();
+    final updatedEvents = current.activityEvents
+        .where((e) => e.homeId != homeId)
+        .take(100)
+        .toList();
+    final updatedNotifs = current.notifications
+        .where((n) => n.homeId != homeId)
+        .take(100)
+        .toList();
+
+    final cascadeEvent = ActivityEvent(
+      id: 'evt-home-cascade-${DateTime.now().microsecondsSinceEpoch}',
+      title: 'Home Deleted: $homeId',
+      description:
+          'Home "$homeId" and all home-scoped data were purged cleanly.',
+      timestamp: DateTime.now(),
+      severity: ActivitySeverity.warning,
+      source: 'system',
+    );
+
+    await saveHomeState(current.copyWith(
+      homes: updatedHomes,
+      currentHomeId: nextCurrentId,
+      devices: updatedDevices,
+      rooms: updatedRooms,
+      scenes: updatedScenes,
+      automations: updatedAutomations,
+      dashboardConfigs: updatedDashboardConfigs,
+      deviceHealthRecords: updatedHealth,
+      commandRecords: updatedCommands,
+      automationRecords: updatedAutoRecords,
+      activityEvents: [cascadeEvent, ...updatedEvents].take(100).toList(),
+      notifications: updatedNotifs,
+    ));
   }
 
   static const String firstRunStorageKey = 'lumivo_first_run_completed';

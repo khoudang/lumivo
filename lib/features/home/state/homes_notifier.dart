@@ -90,7 +90,11 @@ class HomesNotifier extends StateNotifier<HomesState> {
       homes: updatedHomes,
       currentHomeId: nextCurrentId,
     );
-    _persist();
+    if (_persistenceManager != null) {
+      _persistenceManager.deleteHomeWithCascade(id);
+    } else {
+      _persist();
+    }
   }
 
   void setHomes(List<Home> homes, [String? currentHomeId]) {
