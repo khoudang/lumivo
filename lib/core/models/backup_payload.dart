@@ -118,3 +118,17 @@ class BackupPayload {
             : null,
       );
 }
+
+class BackupValidationResult {
+  const BackupValidationResult({
+    required this.isValid,
+    this.errors = const [],
+    this.warnings = const [],
+    this.previewSummary,
+  });
+
+  final bool isValid;
+  final List<String> errors;
+  final List<String> warnings;
+  final BackupPreviewSummary? previewSummary;
+}
