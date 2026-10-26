@@ -250,6 +250,46 @@ const Map<String, String> stringsEn = {
   'unread': 'New',
   'scanning_for_devices': 'Scanning for nearby BLE devices...',
   'devices_found': 'devices found',
+  // Phase 8 Privacy, Recovery & Enhanced Backup
+  'privacy_center': 'Privacy & Data Center',
+  'privacy_center_subtitle':
+      'Offline-first storage, telemetry governance & recovery',
+  'simulation_mode_status': 'Simulation Mode Status',
+  'simulation_mode_desc':
+      '100% offline, no cloud backend, no physical hardware connection',
+  'local_storage_title': 'Local Data Storage',
+  'local_storage_desc':
+      'All smart home configurations, telemetry data, and activity logs are stored entirely in local on-device persistence (SharedPreferences / Web LocalStorage). No data is transmitted to external servers.',
+  'storage_categories': 'Storage Categories Breakdown',
+  'storage_health': 'Storage Health',
+  'storage_health_optimal': 'Healthy · Optimal (Schema v6)',
+  'storage_usage_approx': 'Approximate Usage',
+  'last_saved_time': 'Last Saved',
+  'last_saved_never': 'Never',
+  'clear_activity_history': 'Clear Activity History',
+  'clear_notifications': 'Clear Notifications',
+  'open_recovery_center': 'Recovery Center',
+  'open_recovery_center_desc':
+      'State diagnosis, snapshot fallback & emergency restore',
+  'recovery_center': 'Recovery Center',
+  'recovery_subtitle': 'State diagnosis, snapshot fallback & emergency restore',
+  'recovery_retry_load': 'Retry Loading State',
+  'recovery_restore_snapshot': 'Restore Known-Good Snapshot',
+  'recovery_create_snapshot': 'Save Known-Good Snapshot',
+  'recovery_import_backup': 'Import Backup File',
+  'recovery_factory_reset': 'Factory Reset to Demo Data',
+  'recovery_no_snapshot': 'No snapshot available',
+  'recovery_snapshot_available': 'Snapshot available',
+  'recovery_state_reloaded': 'Home state reloaded successfully',
+  'recovery_snapshot_restored': 'Known-good snapshot restored successfully',
+  'recovery_snapshot_created': 'Snapshot created successfully',
+  'factory_reset_warning':
+      'Warning: Factory reset will wipe all current customizations, automations, scenes, and logs, reverting to initial demo data. Use as an explicit last resort.',
+  'confirm_factory_reset': 'Confirm Factory Reset',
+  'factory_reset_done': 'Demo environment reset to factory defaults',
+  'paste_backup_json': 'Paste Backup JSON',
+  'validate_and_preview': 'Validate & Preview',
+  'secrets_sanitized': 'Credentials & Secrets: None (Sanitized)',
   'pairing_timeout_desc':
       'Unable to establish BLE handshake or transfer credentials within the timeout window. Please verify Bluetooth proximity.',
 };

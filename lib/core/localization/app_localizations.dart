@@ -336,6 +336,44 @@ class AppLocalizations {
   String get scanningForDevices => translate('scanning_for_devices');
   String get devicesFound => translate('devices_found');
   String get pairingTimeoutDesc => translate('pairing_timeout_desc');
+
+  // Phase 8 Privacy, Recovery & Enhanced Backup
+  String get privacyCenter => translate('privacy_center');
+  String get privacyCenterSubtitle => translate('privacy_center_subtitle');
+  String get simulationModeStatus => translate('simulation_mode_status');
+  String get simulationModeDesc => translate('simulation_mode_desc');
+  String get localStorageTitle => translate('local_storage_title');
+  String get localStorageDesc => translate('local_storage_desc');
+  String get storageCategories => translate('storage_categories');
+  String get storageHealth => translate('storage_health');
+  String get storageHealthOptimal => translate('storage_health_optimal');
+  String get storageUsageApprox => translate('storage_usage_approx');
+  String get lastSavedTime => translate('last_saved_time');
+  String get lastSavedNever => translate('last_saved_never');
+  String get clearActivityHistory => translate('clear_activity_history');
+  String get clearNotifications => translate('clear_notifications');
+  String get openRecoveryCenter => translate('open_recovery_center');
+  String get openRecoveryCenterDesc => translate('open_recovery_center_desc');
+  String get recoveryCenter => translate('recovery_center');
+  String get recoverySubtitle => translate('recovery_subtitle');
+  String get recoveryRetryLoad => translate('recovery_retry_load');
+  String get recoveryRestoreSnapshot => translate('recovery_restore_snapshot');
+  String get recoveryCreateSnapshot => translate('recovery_create_snapshot');
+  String get recoveryImportBackup => translate('recovery_import_backup');
+  String get recoveryFactoryReset => translate('recovery_factory_reset');
+  String get recoveryNoSnapshot => translate('recovery_no_snapshot');
+  String get recoverySnapshotAvailable =>
+      translate('recovery_snapshot_available');
+  String get recoveryStateReloaded => translate('recovery_state_reloaded');
+  String get recoverySnapshotRestored =>
+      translate('recovery_snapshot_restored');
+  String get recoverySnapshotCreated => translate('recovery_snapshot_created');
+  String get factoryResetWarning => translate('factory_reset_warning');
+  String get confirmFactoryReset => translate('confirm_factory_reset');
+  String get factoryResetDone => translate('factory_reset_done');
+  String get pasteBackupJson => translate('paste_backup_json');
+  String get validateAndPreview => translate('validate_and_preview');
+  String get secretsSanitized => translate('secrets_sanitized');
 }
 
 /// LocalizationsDelegate for [AppLocalizations].

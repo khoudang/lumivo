@@ -252,6 +252,47 @@ const Map<String, String> stringsVi = {
   'unread': 'Mới',
   'scanning_for_devices': 'Đang quét thiết bị BLE lân cận...',
   'devices_found': 'thiết bị tìm thấy',
+  // Phase 8 Privacy, Recovery & Enhanced Backup
+  'privacy_center': 'Trung tâm Quyền riêng tư & Dữ liệu',
+  'privacy_center_subtitle':
+      'Lưu trữ ngoại tuyến, kiểm soát dữ liệu & phục hồi',
+  'simulation_mode_status': 'Trạng thái Chế độ Mô phỏng',
+  'simulation_mode_desc':
+      '100% ngoại tuyến, không có đám mây, không kết nối phần cứng vật lý',
+  'local_storage_title': 'Lưu trữ Dữ liệu Cục bộ',
+  'local_storage_desc':
+      'Toàn bộ cấu hình nhà thông minh, nhật ký hoạt động và dữ liệu đo đạc được lưu trữ hoàn toàn trong bộ nhớ cục bộ trên thiết bị. Không có dữ liệu nào được gửi ra máy chủ bên ngoài.',
+  'storage_categories': 'Phân loại Dữ liệu Lưu trữ',
+  'storage_health': 'Trạng thái Lưu trữ',
+  'storage_health_optimal': 'Khỏe mạnh · Tối ưu (Lược đồ v6)',
+  'storage_usage_approx': 'Dung lượng ước tính',
+  'last_saved_time': 'Lưu lần cuối',
+  'last_saved_never': 'Chưa lưu',
+  'clear_activity_history': 'Xóa Lịch sử Hoạt động',
+  'clear_notifications': 'Xóa Thông báo',
+  'open_recovery_center': 'Trung tâm Phục hồi',
+  'open_recovery_center_desc':
+      'Chẩn đoán trạng thái, dự phòng snapshot & khôi phục khẩn cấp',
+  'recovery_center': 'Trung tâm Phục hồi',
+  'recovery_subtitle':
+      'Chẩn đoán trạng thái, dự phòng snapshot & khôi phục khẩn cấp',
+  'recovery_retry_load': 'Tải lại Trạng thái',
+  'recovery_restore_snapshot': 'Khôi phục Snapshot Đã biết Tốt',
+  'recovery_create_snapshot': 'Lưu Snapshot Đã biết Tốt',
+  'recovery_import_backup': 'Nhập Tệp Sao lưu',
+  'recovery_factory_reset': 'Khôi phục Cài đặt Gốc Demo',
+  'recovery_no_snapshot': 'Chưa có bản snapshot nào',
+  'recovery_snapshot_available': 'Bản snapshot sẵn sàng',
+  'recovery_state_reloaded': 'Tải lại trạng thái nhà thành công',
+  'recovery_snapshot_restored': 'Khôi phục snapshot thành công',
+  'recovery_snapshot_created': 'Tạo snapshot thành công',
+  'factory_reset_warning':
+      'Cảnh báo: Khôi phục cài đặt gốc sẽ xóa tất cả tùy chỉnh, tự động hóa, ngữ cảnh và nhật ký hiện tại, trở về dữ liệu demo ban đầu. Chỉ sử dụng như phương án cuối cùng.',
+  'confirm_factory_reset': 'Xác nhận Khôi phục Gốc',
+  'factory_reset_done': 'Đã đặt lại môi trường demo về mặc định gốc',
+  'paste_backup_json': 'Dán mã JSON sao lưu',
+  'validate_and_preview': 'Xác thực & Xem trước',
+  'secrets_sanitized': 'Thông tin bí mật: Không có (Đã lọc sạch)',
   'pairing_timeout_desc':
       'Không thể thiết lập bắt tay BLE hoặc truyền thông tin xác thực trong thời gian chờ. Vui lòng kiểm tra khoảng cách Bluetooth.',
 };
