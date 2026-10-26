@@ -1,3 +1,5 @@
+import '../../services/security/secret_sanitizer.dart';
+
 enum DeviceType {
   light,
   fan,
@@ -93,22 +95,7 @@ class SmartDevice {
       );
 
   static Map<String, dynamic> sanitizeCustomData(Map<String, dynamic> data) {
-    final sanitized = Map<String, dynamic>.from(data);
-    sanitized.removeWhere((key, _) {
-      final lower = key.toLowerCase();
-      return lower.contains('password') ||
-          lower.contains('secret') ||
-          lower.contains('passphrase') ||
-          lower.contains('token') ||
-          lower.contains('credential') ||
-          lower.contains('private_key') ||
-          lower.contains('privatekey') ||
-          lower.contains('api_key') ||
-          lower.contains('apikey') ||
-          lower.contains('wifi_pass') ||
-          lower.contains('auth');
-    });
-    return sanitized;
+    return SecretSanitizer.sanitizeMap(data);
   }
 
   Map<String, dynamic> toJson() => {

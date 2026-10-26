@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../security/secret_sanitizer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/activity_event.dart';
 import '../../core/models/automation_rule.dart';
@@ -91,17 +92,26 @@ class HomeState {
   }
 
   static Map<String, dynamic> _sanitizeCustomData(Map<String, dynamic> data) {
-    final sanitized = Map<String, dynamic>.from(data);
-    sanitized.removeWhere((key, _) {
-      final lower = key.toLowerCase();
-      return lower.contains('password') ||
-          lower.contains('secret') ||
-          lower.contains('passphrase') ||
-          lower.contains('token') ||
-          lower.contains('credential') ||
-          lower.contains('wifi_pass');
-    });
-    return sanitized;
+    return SecretSanitizer.sanitizeMap(data);
+  }
+
+  static List<T> _safeListRecovery<T>(
+    dynamic rawList,
+    T Function(Map<String, dynamic>) parser,
+  ) {
+    if (rawList is! List) return const [];
+    final validItems = <T>[];
+    for (final item in rawList) {
+      if (item is Map) {
+        try {
+          final parsed = parser(Map<String, dynamic>.from(item));
+          validItems.add(parsed);
+        } catch (_) {
+          // Skip corrupt individual record and recover all other valid records
+        }
+      }
+    }
+    return validItems;
   }
 
   Map<String, dynamic> toJson() => {
@@ -137,73 +147,60 @@ class HomeState {
       };
 
   factory HomeState.fromJson(Map<String, dynamic> json) {
+    UserProfile userProfile = HomePersistenceManager.defaultUserProfile;
+    if (json['userProfile'] is Map) {
+      try {
+        userProfile = UserProfile.fromJson(
+            Map<String, dynamic>.from(json['userProfile'] as Map));
+      } catch (_) {}
+    }
+
+    final configs = <String, DashboardConfig>{};
+    if (json['dashboardConfigs'] is Map) {
+      final map = json['dashboardConfigs'] as Map;
+      for (final entry in map.entries) {
+        if (entry.value is Map) {
+          try {
+            configs[entry.key.toString()] = DashboardConfig.fromJson(
+                Map<String, dynamic>.from(entry.value as Map));
+          } catch (_) {}
+        }
+      }
+    }
+
     return HomeState(
       schemaVersion: json['schemaVersion'] as int? ?? 1,
-      homes: (json['homes'] as List<dynamic>?)
-              ?.map((e) => Home.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      homes: _safeListRecovery(json['homes'], (e) => Home.fromJson(e)),
       currentHomeId: json['currentHomeId'] as String? ?? 'home-default',
-      userProfile: json['userProfile'] is Map<String, dynamic>
-          ? UserProfile.fromJson(json['userProfile'] as Map<String, dynamic>)
-          : HomePersistenceManager.defaultUserProfile,
-      energySamples: (json['energySamples'] as List<dynamic>?)
-              ?.map((e) => EnergySample.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      rooms: (json['rooms'] as List<dynamic>?)
-              ?.map((e) => Room.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      devices: (json['devices'] as List<dynamic>?)
-              ?.map((e) => SmartDevice.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      automations: (json['automations'] as List<dynamic>?)
-              ?.map((e) => AutomationRule.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      scenes: (json['scenes'] as List<dynamic>?)
-              ?.map((e) => Scene.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      activityEvents: (json['activityEvents'] as List<dynamic>?)
-              ?.map((e) => ActivityEvent.fromJson(e as Map<String, dynamic>))
-              .take(100)
-              .toList() ??
-          const [],
-      notifications: (json['notifications'] as List<dynamic>?)
-              ?.map(
-                  (e) => InAppNotification.fromJson(e as Map<String, dynamic>))
-              .take(100)
-              .toList() ??
-          const [],
-      commandRecords: (json['commandRecords'] as List<dynamic>?)
-              ?.map((e) => CommandRecord.fromJson(e as Map<String, dynamic>))
-              .take(100)
-              .toList() ??
-          const [],
-      automationRecords: (json['automationRecords'] as List<dynamic>?)
-              ?.map((e) =>
-                  AutomationExecutionRecord.fromJson(e as Map<String, dynamic>))
-              .take(100)
-              .toList() ??
-          const [],
-      deviceHealthRecords: (json['deviceHealthRecords'] as List<dynamic>?)
-              ?.map((e) => DeviceHealth.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      userProfile: userProfile,
+      energySamples: _safeListRecovery(
+          json['energySamples'], (e) => EnergySample.fromJson(e)),
+      rooms: _safeListRecovery(json['rooms'], (e) => Room.fromJson(e)),
+      devices:
+          _safeListRecovery(json['devices'], (e) => SmartDevice.fromJson(e)),
+      automations: _safeListRecovery(
+          json['automations'], (e) => AutomationRule.fromJson(e)),
+      scenes: _safeListRecovery(json['scenes'], (e) => Scene.fromJson(e)),
+      activityEvents: _safeListRecovery(
+              json['activityEvents'], (e) => ActivityEvent.fromJson(e))
+          .take(100)
+          .toList(),
+      notifications: _safeListRecovery(
+              json['notifications'], (e) => InAppNotification.fromJson(e))
+          .take(100)
+          .toList(),
+      commandRecords: _safeListRecovery(
+              json['commandRecords'], (e) => CommandRecord.fromJson(e))
+          .take(100)
+          .toList(),
+      automationRecords: _safeListRecovery(json['automationRecords'],
+          (e) => AutomationExecutionRecord.fromJson(e)).take(100).toList(),
+      deviceHealthRecords: _safeListRecovery(
+          json['deviceHealthRecords'], (e) => DeviceHealth.fromJson(e)),
       simulatedModifications: json['simulatedModifications'] is Map
           ? Map<String, dynamic>.from(json['simulatedModifications'] as Map)
           : const {},
-      dashboardConfigs: json['dashboardConfigs'] is Map
-          ? (json['dashboardConfigs'] as Map<String, dynamic>).map(
-              (k, v) => MapEntry(
-                k,
-                DashboardConfig.fromJson(Map<String, dynamic>.from(v as Map)),
-              ),
-            )
-          : const {},
+      dashboardConfigs: configs,
     );
   }
 }
@@ -216,6 +213,10 @@ class HomePersistenceManager {
   static const int schemaVersion = 6;
   static const int currentSchemaVersion = 6;
   static const String storageKey = 'lumivo_home_state_v6';
+  static const String snapshotBackupKey =
+      'lumivo_home_state_v6_snapshot_backup';
+  static const String snapshotMetadataKey =
+      'lumivo_home_state_v6_snapshot_metadata';
   static const String v5StorageKey = 'lumivo_home_state_v5';
   static const String v4StorageKey = 'lumivo_home_state_v4';
   static const String v3StorageKey = 'lumivo_home_state_v3';
@@ -713,11 +714,55 @@ class HomePersistenceManager {
     );
   }
 
+  Future<void> saveSnapshotBackup(HomeState state) async {
+    try {
+      final jsonStr = jsonEncode(state.toJson());
+      await _storage.setString(snapshotBackupKey, jsonStr);
+      final meta = {
+        'savedAt': DateTime.now().toIso8601String(),
+        'schemaVersion': state.schemaVersion,
+        'deviceCount': state.devices.length,
+        'homeCount': state.homes.length,
+      };
+      await _storage.setString(snapshotMetadataKey, jsonEncode(meta));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> getSnapshotMetadata() async {
+    final raw = await _storage.getString(snapshotMetadataKey);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> saveHomeState([HomeState? state]) async {
     final toSave = state ?? _cachedState ?? createDemoState();
     _cachedState = toSave;
     final jsonStr = jsonEncode(toSave.toJson());
-    await _storage.setString(storageKey, jsonStr);
+    try {
+      await _storage.setString(storageKey, jsonStr);
+      await saveSnapshotBackup(toSave);
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('quota') || errStr.contains('disk')) {
+        // QuotaExceededError resilience: prune historical collections down to 10 entries and retry
+        final pruned = toSave.copyWith(
+          activityEvents: toSave.activityEvents.take(10).toList(),
+          commandRecords: toSave.commandRecords.take(10).toList(),
+          automationRecords: toSave.automationRecords.take(10).toList(),
+          notifications: toSave.notifications.take(10).toList(),
+        );
+        _cachedState = pruned;
+        final prunedJson = jsonEncode(pruned.toJson());
+        await _storage.setString(storageKey, prunedJson);
+        await saveSnapshotBackup(pruned);
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<HomeState> loadHomeState() async {
@@ -787,8 +832,21 @@ class HomePersistenceManager {
       return state;
     } catch (_) {
       // Robust Corrupted Storage Recovery:
-      // If local storage JSON is malformed, truncated, or invalid, catch the error
-      // and fallback to clean factory seed state without crashing the app or losing unrelated keys.
+      // 1. Check if snapshot backup is available for recovery
+      try {
+        final snapshotJson = await _storage.getString(snapshotBackupKey);
+        if (snapshotJson != null && snapshotJson.trim().isNotEmpty) {
+          final parsed = jsonDecode(snapshotJson);
+          if (parsed is Map<String, dynamic>) {
+            final recovered = HomeState.fromJson(parsed);
+            _cachedState = recovered;
+            await _storage.setString(storageKey, snapshotJson);
+            return recovered;
+          }
+        }
+      } catch (_) {}
+
+      // 2. Fallback to clean factory seed state without crashing
       final demoState = createDemoState();
       try {
         await saveHomeState(demoState);
@@ -801,9 +859,9 @@ class HomePersistenceManager {
     // 1. Homes: inject default homes if none present
     List<Home> homes = defaultHomes;
     if (raw['homes'] is List && (raw['homes'] as List).isNotEmpty) {
-      homes = (raw['homes'] as List)
-          .map((e) => Home.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final parsed =
+          HomeState._safeListRecovery(raw['homes'], (e) => Home.fromJson(e));
+      if (parsed.isNotEmpty) homes = parsed;
     }
     String currentHomeId = 'home-default';
     if (raw['currentHomeId'] is String &&
@@ -814,8 +872,8 @@ class HomePersistenceManager {
     // 2. Devices: preserve isFavorite, favoriteOrder, customIcon, and tag homeId
     List<SmartDevice> devices = allDemoDevices;
     if (raw['devices'] is List && (raw['devices'] as List).isNotEmpty) {
-      devices = (raw['devices'] as List).map((e) {
-        final devJson = Map<String, dynamic>.from(e as Map<String, dynamic>);
+      final parsed = HomeState._safeListRecovery(raw['devices'], (e) {
+        final devJson = Map<String, dynamic>.from(e);
         if (devJson['homeId'] == null ||
             (devJson['homeId'] as String).isEmpty) {
           devJson['homeId'] = 'home-default';
@@ -825,89 +883,97 @@ class HomePersistenceManager {
               Map<String, dynamic>.from(devJson['customData'] as Map));
         }
         return SmartDevice.fromJson(devJson);
-      }).toList();
+      });
+      if (parsed.isNotEmpty) devices = parsed;
     }
 
     // 3. Rooms: tag homeId
     List<Room> rooms = defaultRooms;
     if (raw['rooms'] is List && (raw['rooms'] as List).isNotEmpty) {
-      rooms = (raw['rooms'] as List).map((e) {
-        final roomJson = Map<String, dynamic>.from(e as Map<String, dynamic>);
+      final parsed = HomeState._safeListRecovery(raw['rooms'], (e) {
+        final roomJson = Map<String, dynamic>.from(e);
         if (roomJson['homeId'] == null ||
             (roomJson['homeId'] as String).isEmpty) {
           roomJson['homeId'] = 'home-default';
         }
         return Room.fromJson(roomJson);
-      }).toList();
+      });
+      if (parsed.isNotEmpty) rooms = parsed;
     }
 
     // 4. Scenes: tag homeId
     List<Scene> scenes = defaultScenes;
     if (raw['scenes'] is List && (raw['scenes'] as List).isNotEmpty) {
-      scenes = (raw['scenes'] as List).map((e) {
-        final scJson = Map<String, dynamic>.from(e as Map<String, dynamic>);
+      final parsed = HomeState._safeListRecovery(raw['scenes'], (e) {
+        final scJson = Map<String, dynamic>.from(e);
         if (scJson['homeId'] == null || (scJson['homeId'] as String).isEmpty) {
           scJson['homeId'] = 'home-default';
         }
         return Scene.fromJson(scJson);
-      }).toList();
+      });
+      if (parsed.isNotEmpty) scenes = parsed;
     }
 
     // 5. Automations: tag homeId
     List<AutomationRule> automations = defaultAutomations;
     if (raw['automations'] is List && (raw['automations'] as List).isNotEmpty) {
-      automations = (raw['automations'] as List).map((e) {
-        final autoJson = Map<String, dynamic>.from(e as Map<String, dynamic>);
+      final parsed = HomeState._safeListRecovery(raw['automations'], (e) {
+        final autoJson = Map<String, dynamic>.from(e);
         if (autoJson['homeId'] == null ||
             (autoJson['homeId'] as String).isEmpty) {
           autoJson['homeId'] = 'home-default';
         }
         return AutomationRule.fromJson(autoJson);
-      }).toList();
+      });
+      if (parsed.isNotEmpty) automations = parsed;
     }
 
     // 6. UserProfile: add default if not present
     UserProfile userProfile = defaultUserProfile;
     if (raw['userProfile'] is Map<String, dynamic>) {
-      userProfile =
-          UserProfile.fromJson(raw['userProfile'] as Map<String, dynamic>);
+      try {
+        userProfile =
+            UserProfile.fromJson(raw['userProfile'] as Map<String, dynamic>);
+      } catch (_) {}
     }
 
     // 7. Energy samples: add initial if not present
     List<EnergySample> energySamples = createDefaultEnergySamples();
     if (raw['energySamples'] is List &&
         (raw['energySamples'] as List).isNotEmpty) {
-      energySamples = (raw['energySamples'] as List)
-          .map((e) => EnergySample.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final parsed = HomeState._safeListRecovery(
+          raw['energySamples'], (e) => EnergySample.fromJson(e));
+      if (parsed.isNotEmpty) energySamples = parsed;
     }
 
     // 8. Activity events
     List<ActivityEvent> events = defaultActivityEvents;
     if (raw['activityEvents'] is List &&
         (raw['activityEvents'] as List).isNotEmpty) {
-      events = (raw['activityEvents'] as List)
-          .map((e) => ActivityEvent.fromJson(e as Map<String, dynamic>))
+      final parsed = HomeState._safeListRecovery(
+              raw['activityEvents'], (e) => ActivityEvent.fromJson(e))
           .take(100)
           .toList();
+      if (parsed.isNotEmpty) events = parsed;
     }
 
     // 9. Notifications
     List<InAppNotification> notifs = defaultNotifications;
     if (raw['notifications'] is List &&
         (raw['notifications'] as List).isNotEmpty) {
-      notifs = (raw['notifications'] as List)
-          .map((e) => InAppNotification.fromJson(e as Map<String, dynamic>))
+      final parsed = HomeState._safeListRecovery(
+              raw['notifications'], (e) => InAppNotification.fromJson(e))
           .take(100)
           .toList();
+      if (parsed.isNotEmpty) notifs = parsed;
     }
 
     // 10. Phase 5: Command Records (bounded up to 100)
     List<CommandRecord> commandRecords = const [];
     if (raw['commandRecords'] is List &&
         (raw['commandRecords'] as List).isNotEmpty) {
-      commandRecords = (raw['commandRecords'] as List)
-          .map((e) => CommandRecord.fromJson(e as Map<String, dynamic>))
+      commandRecords = HomeState._safeListRecovery(
+              raw['commandRecords'], (e) => CommandRecord.fromJson(e))
           .take(100)
           .toList();
     }
@@ -916,20 +982,16 @@ class HomePersistenceManager {
     List<AutomationExecutionRecord> automationRecords = const [];
     if (raw['automationRecords'] is List &&
         (raw['automationRecords'] as List).isNotEmpty) {
-      automationRecords = (raw['automationRecords'] as List)
-          .map((e) =>
-              AutomationExecutionRecord.fromJson(e as Map<String, dynamic>))
-          .take(100)
-          .toList();
+      automationRecords = HomeState._safeListRecovery(raw['automationRecords'],
+          (e) => AutomationExecutionRecord.fromJson(e)).take(100).toList();
     }
 
     // 12. Phase 5: Device Health Records
     List<DeviceHealth> deviceHealthRecords = const [];
     if (raw['deviceHealthRecords'] is List &&
         (raw['deviceHealthRecords'] as List).isNotEmpty) {
-      deviceHealthRecords = (raw['deviceHealthRecords'] as List)
-          .map((e) => DeviceHealth.fromJson(e as Map<String, dynamic>))
-          .toList();
+      deviceHealthRecords = HomeState._safeListRecovery(
+          raw['deviceHealthRecords'], (e) => DeviceHealth.fromJson(e));
     }
 
     // 13. Phase 5: Simulated Modifications
@@ -945,8 +1007,10 @@ class HomePersistenceManager {
       final map = raw['dashboardConfigs'] as Map<String, dynamic>;
       map.forEach((k, v) {
         if (v is Map) {
-          dashboardConfigs[k] =
-              DashboardConfig.fromJson(Map<String, dynamic>.from(v));
+          try {
+            dashboardConfigs[k] =
+                DashboardConfig.fromJson(Map<String, dynamic>.from(v));
+          } catch (_) {}
         }
       });
     }

@@ -7,7 +7,9 @@ import '../../core/models/home.dart';
 import '../../core/models/room.dart';
 import '../../core/models/smart_device.dart';
 import '../../core/models/user_profile.dart';
+import '../security/secret_sanitizer.dart';
 import '../storage/home_persistence_manager.dart';
+import 'backup_validation_service.dart';
 
 /// Current backup schema version.
 const int backupSchemaVersion = 6;
@@ -22,6 +24,16 @@ class BackupRestoreService {
   /// Supported schema version for export.
   static const int schemaVersion = backupSchemaVersion;
 
+  static bool _isRestoring = false;
+
+  /// Returns true if a restore operation is currently executing.
+  static bool get isRestoring => _isRestoring;
+
+  /// Resets the concurrency lock (for testing purposes).
+  static void resetConcurrencyLock() {
+    _isRestoring = false;
+  }
+
   /// Exports full configuration as a sanitized versioned JSON string.
   ///
   /// Backs up: Homes, Rooms, Devices, Favorites, DashboardConfigs,
@@ -33,22 +45,28 @@ class BackupRestoreService {
     final state = persistenceManager.cachedState ??
         await persistenceManager.loadHomeState();
 
-    final sanitizedHomes =
-        state.homes.map((h) => _sanitizeMap(h.toJson())).toList();
-    final sanitizedRooms =
-        state.rooms.map((r) => _sanitizeMap(r.toJson())).toList();
-    final sanitizedDevices =
-        state.devices.map((d) => _sanitizeMap(d.toJson())).toList();
-    final sanitizedScenes =
-        state.scenes.map((s) => _sanitizeMap(s.toJson())).toList();
-    final sanitizedAutomations =
-        state.automations.map((a) => _sanitizeMap(a.toJson())).toList();
+    final sanitizedHomes = state.homes
+        .map((h) => SecretSanitizer.sanitizeMap(h.toJson()))
+        .toList();
+    final sanitizedRooms = state.rooms
+        .map((r) => SecretSanitizer.sanitizeMap(r.toJson()))
+        .toList();
+    final sanitizedDevices = state.devices
+        .map((d) => SecretSanitizer.sanitizeMap(d.toJson()))
+        .toList();
+    final sanitizedScenes = state.scenes
+        .map((s) => SecretSanitizer.sanitizeMap(s.toJson()))
+        .toList();
+    final sanitizedAutomations = state.automations
+        .map((a) => SecretSanitizer.sanitizeMap(a.toJson()))
+        .toList();
     final dashboardConfigs = state.homes
-        .map((h) => _sanitizeMap(
+        .map((h) => SecretSanitizer.sanitizeMap(
             (state.dashboardConfigs[h.id] ?? DashboardConfig.defaultFor(h.id))
                 .toJson()))
         .toList();
-    final sanitizedUserProfile = _sanitizeMap(state.userProfile.toJson());
+    final sanitizedUserProfile =
+        SecretSanitizer.sanitizeMap(state.userProfile.toJson());
 
     final metadata = BackupMetadata(
       schemaVersion: backupSchemaVersion,
@@ -74,213 +92,18 @@ class BackupRestoreService {
 
   /// Synchronously validates [jsonString] without applying changes and returns a [BackupPreviewSummary].
   BackupPreviewSummary validateSync(String jsonString) {
-    final errors = <String>[];
-
-    if (jsonString.trim().isEmpty) {
-      return const BackupPreviewSummary(
-        schemaVersion: 0,
-        isValid: false,
-        homeCount: 0,
-        roomCount: 0,
-        deviceCount: 0,
-        sceneCount: 0,
-        automationCount: 0,
-        errors: ['Payload is empty.'],
-      );
-    }
-
-    if (jsonString.length > maxBackupPayloadBytes) {
-      return const BackupPreviewSummary(
-        schemaVersion: 0,
-        isValid: false,
-        homeCount: 0,
-        roomCount: 0,
-        deviceCount: 0,
-        sceneCount: 0,
-        automationCount: 0,
-        errors: ['Payload exceeds maximum allowed size (5MB).'],
-      );
-    }
-
-    dynamic decoded;
-    try {
-      decoded = jsonDecode(jsonString);
-    } catch (e) {
-      return BackupPreviewSummary(
-        schemaVersion: 0,
-        isValid: false,
-        homeCount: 0,
-        roomCount: 0,
-        deviceCount: 0,
-        sceneCount: 0,
-        automationCount: 0,
-        errors: ['Malformed JSON payload: $e'],
-      );
-    }
-
-    if (decoded is! Map<String, dynamic>) {
-      return const BackupPreviewSummary(
-        schemaVersion: 0,
-        isValid: false,
-        homeCount: 0,
-        roomCount: 0,
-        deviceCount: 0,
-        sceneCount: 0,
-        automationCount: 0,
-        errors: ['Root payload must be a JSON object.'],
-      );
-    }
-
-    // Schema version check
-    int? schemaVersion;
-    final metadata = decoded['metadata'];
-    if (metadata is Map) {
-      final v = metadata['schemaVersion'];
-      if (v is int) schemaVersion = v;
-    }
-    schemaVersion ??= decoded['schemaVersion'] as int?;
-
-    if (schemaVersion == null) {
-      errors.add('Missing schemaVersion in metadata.');
-    } else if (schemaVersion <= 0 || schemaVersion > backupSchemaVersion) {
-      errors.add(
-        'Unsupported schema version: $schemaVersion (supported: 1-$backupSchemaVersion).',
-      );
-    }
-
-    // Validate lists and duplicate IDs
-    final homesRaw = decoded['homes'];
-    final roomsRaw = decoded['rooms'];
-    final devicesRaw = decoded['devices'];
-    final scenesRaw = decoded['scenes'];
-    final automationsRaw = decoded['automations'];
-
-    final homeList = homesRaw is List ? homesRaw : const [];
-    final roomList = roomsRaw is List ? roomsRaw : const [];
-    final deviceList = devicesRaw is List ? devicesRaw : const [];
-    final sceneList = scenesRaw is List ? scenesRaw : const [];
-    final automationList = automationsRaw is List ? automationsRaw : const [];
-
-    if (homesRaw != null && homesRaw is! List) {
-      errors.add('Field "homes" must be a list.');
-    }
-    if (roomsRaw != null && roomsRaw is! List) {
-      errors.add('Field "rooms" must be a list.');
-    }
-    if (devicesRaw != null && devicesRaw is! List) {
-      errors.add('Field "devices" must be a list.');
-    }
-    if (scenesRaw != null && scenesRaw is! List) {
-      errors.add('Field "scenes" must be a list.');
-    }
-    if (automationsRaw != null && automationsRaw is! List) {
-      errors.add('Field "automations" must be a list.');
-    }
-
-    // Check duplicate home IDs
-    final homeIds = <String>{};
-    for (final item in homeList) {
-      if (item is Map && item['id'] != null) {
-        final id = item['id'].toString();
-        if (!homeIds.add(id)) {
-          errors.add('Duplicate home ID found: $id');
-        }
-      }
-    }
-
-    // Check duplicate room IDs
-    final roomIds = <String>{};
-    for (final item in roomList) {
-      if (item is Map && item['id'] != null) {
-        final id = item['id'].toString();
-        if (!roomIds.add(id)) {
-          errors.add('Duplicate room ID found: $id');
-        }
-      }
-    }
-
-    // Check duplicate device IDs
-    final deviceIds = <String>{};
-    for (final item in deviceList) {
-      if (item is Map && item['id'] != null) {
-        final id = item['id'].toString();
-        if (!deviceIds.add(id)) {
-          errors.add('Duplicate device ID found: $id');
-        }
-      }
-    }
-
-    // Check duplicate scene IDs and validate that actions reference valid device IDs
-    final sceneIds = <String>{};
-    for (final item in sceneList) {
-      if (item is Map) {
-        if (item['id'] != null) {
-          final id = item['id'].toString();
-          if (!sceneIds.add(id)) {
-            errors.add('Duplicate scene ID found: $id');
-          }
-        }
-        final actions = item['actions'];
-        if (actions is List) {
-          for (final act in actions) {
-            if (act is Map && act['deviceId'] != null) {
-              final devId = act['deviceId'].toString();
-              if (!deviceIds.contains(devId)) {
-                errors.add(
-                  'Scene "${item['id'] ?? item['name']}" references non-existent device: $devId',
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Check duplicate automation IDs and validate device action / sensor references
-    final automationIds = <String>{};
-    for (final item in automationList) {
-      if (item is Map) {
-        if (item['id'] != null) {
-          final id = item['id'].toString();
-          if (!automationIds.add(id)) {
-            errors.add('Duplicate automation ID found: $id');
-          }
-        }
-        final actions = item['actions'];
-        if (actions is List) {
-          for (final act in actions) {
-            if (act is Map && act['deviceId'] != null) {
-              final devId = act['deviceId'].toString();
-              if (!deviceIds.contains(devId)) {
-                errors.add(
-                  'Automation "${item['id'] ?? item['name']}" action references non-existent device: $devId',
-                );
-              }
-            }
-          }
-        }
-        final sensorDevId = item['sensorDeviceId'];
-        if (sensorDevId != null && sensorDevId.toString().isNotEmpty) {
-          final sId = sensorDevId.toString();
-          if (!deviceIds.contains(sId)) {
-            errors.add(
-              'Automation "${item['id'] ?? item['name']}" sensor references non-existent device: $sId',
-            );
-          }
-        }
-      }
-    }
-
-    return BackupPreviewSummary(
-      schemaVersion: schemaVersion ?? 0,
-      isValid: errors.isEmpty,
-      homeCount: homeList.length,
-      roomCount: roomList.length,
-      deviceCount: deviceList.length,
-      sceneCount: sceneList.length,
-      automationCount: automationList.length,
-      errors: List.unmodifiable(errors),
-    );
+    final result = BackupValidationService.validate(jsonString);
+    return result.previewSummary ??
+        BackupPreviewSummary(
+          schemaVersion: 0,
+          isValid: result.isValid,
+          homeCount: 0,
+          roomCount: 0,
+          deviceCount: 0,
+          sceneCount: 0,
+          automationCount: 0,
+          errors: result.errors,
+        );
   }
 
   /// Validates [jsonString] without applying changes and returns a [BackupPreviewSummary].
@@ -291,33 +114,92 @@ class BackupRestoreService {
 
   /// Transactional, rollback-safe restore of [jsonString] into [persistenceManager].
   ///
-  /// If validation fails, or if parsing/saving encounters an error, the previous
-  /// memory and storage state is preserved without partial updates.
+  /// Executes the 9-step atomic restore pipeline:
+  /// Concurrency Guard -> Pre-restore Snapshot -> Parse -> Validate -> Normalize ->
+  /// Verify references -> Build Candidate -> Apply -> Verify Integrity -> Commit (or Rollback on failure).
   Future<bool> restoreBackup({
     required String jsonString,
     required HomePersistenceManager persistenceManager,
   }) async {
-    // 1. Pre-validation
-    final preview = validateSync(jsonString);
-    if (!preview.isValid) {
+    // Concurrency Lock: Guard restore execution against concurrent state changes
+    if (_isRestoring) {
       return false;
     }
+    _isRestoring = true;
 
-    // 2. Snapshot current state for rollback safety
-    final previousState = persistenceManager.cachedState ??
-        await persistenceManager.loadHomeState();
+    // Pre-restore snapshot: take full snapshot before applying
+    HomeState? previousState;
+    try {
+      previousState = persistenceManager.cachedState ??
+          await persistenceManager.loadHomeState();
+    } catch (_) {
+      previousState = persistenceManager.createDemoState();
+    }
 
     try {
-      final parsed = jsonDecode(jsonString) as Map<String, dynamic>;
-      final payload = BackupPayload.fromJson(parsed);
+      await persistenceManager.saveSnapshotBackup(previousState);
 
-      final homes = payload.homes.map((h) => Home.fromJson(h)).toList();
-      final rooms = payload.rooms.map((r) => Room.fromJson(r)).toList();
-      final devices =
-          payload.devices.map((d) => SmartDevice.fromJson(d)).toList();
-      final scenes = payload.scenes.map((s) => Scene.fromJson(s)).toList();
-      final automations =
-          payload.automations.map((a) => AutomationRule.fromJson(a)).toList();
+      // Step 1: Parse
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(jsonString);
+      } catch (_) {
+        return false;
+      }
+      if (decoded is! Map<String, dynamic>) {
+        return false;
+      }
+
+      // Step 2: Validate using BackupValidationService
+      final validationResult = BackupValidationService.validate(jsonString);
+      if (!validationResult.isValid) {
+        return false;
+      }
+
+      // Step 3: Normalize (handle schemas V1 through V6)
+      final payload = BackupPayload.fromJson(decoded);
+
+      List<Home> homes = payload.homes.map((h) => Home.fromJson(h)).toList();
+      if (homes.isEmpty) {
+        homes = List.of(HomePersistenceManager.defaultHomes);
+      }
+
+      final rooms = payload.rooms.map((r) {
+        final rMap = Map<String, dynamic>.from(r);
+        if (rMap['homeId'] == null || (rMap['homeId'] as String).isEmpty) {
+          rMap['homeId'] = homes.first.id;
+        }
+        return Room.fromJson(rMap);
+      }).toList();
+
+      final devices = payload.devices.map((d) {
+        final dMap = Map<String, dynamic>.from(d);
+        if (dMap['homeId'] == null || (dMap['homeId'] as String).isEmpty) {
+          dMap['homeId'] = homes.first.id;
+        }
+        if (dMap['customData'] is Map) {
+          dMap['customData'] = SecretSanitizer.sanitizeMap(
+              Map<String, dynamic>.from(dMap['customData'] as Map));
+        }
+        return SmartDevice.fromJson(dMap);
+      }).toList();
+
+      final scenes = payload.scenes.map((s) {
+        final sMap = Map<String, dynamic>.from(s);
+        if (sMap['homeId'] == null || (sMap['homeId'] as String).isEmpty) {
+          sMap['homeId'] = homes.first.id;
+        }
+        return Scene.fromJson(sMap);
+      }).toList();
+
+      final automations = payload.automations.map((a) {
+        final aMap = Map<String, dynamic>.from(a);
+        if (aMap['homeId'] == null || (aMap['homeId'] as String).isEmpty) {
+          aMap['homeId'] = homes.first.id;
+        }
+        return AutomationRule.fromJson(aMap);
+      }).toList();
+
       final userProfile = payload.userProfile != null
           ? UserProfile.fromJson(payload.userProfile!)
           : previousState.userProfile;
@@ -334,7 +216,49 @@ class BackupRestoreService {
         configs.putIfAbsent(home.id, () => DashboardConfig.defaultFor(home.id));
       }
 
-      final restoredState = previousState.copyWith(
+      // Step 4: Verify references
+      final homeIdSet = homes.map((h) => h.id).toSet();
+      final roomIdSet = rooms.map((r) => r.id).toSet();
+      final deviceIdSet = devices.map((d) => d.id).toSet();
+
+      for (final dev in devices) {
+        if (!homeIdSet.contains(dev.homeId)) {
+          throw StateError(
+              'Device "${dev.id}" references invalid home: ${dev.homeId}');
+        }
+        if (roomIdSet.isNotEmpty && !roomIdSet.contains(dev.roomId)) {
+          throw StateError(
+              'Device "${dev.id}" references invalid room: ${dev.roomId}');
+        }
+      }
+
+      for (final scene in scenes) {
+        for (final act in scene.actions) {
+          if (!deviceIdSet.contains(act.deviceId)) {
+            throw StateError(
+                'Scene "${scene.id}" references invalid device: ${act.deviceId}');
+          }
+        }
+      }
+
+      for (final auto in automations) {
+        for (final act in auto.actions) {
+          if (!deviceIdSet.contains(act.deviceId)) {
+            throw StateError(
+                'Automation "${auto.id}" references invalid device: ${act.deviceId}');
+          }
+        }
+        if (auto.sensorDeviceId != null && auto.sensorDeviceId!.isNotEmpty) {
+          if (!deviceIdSet.contains(auto.sensorDeviceId)) {
+            throw StateError(
+                'Automation "${auto.id}" references invalid sensor: ${auto.sensorDeviceId}');
+          }
+        }
+      }
+
+      // Step 5: Build candidate state
+      final candidateState = previousState.copyWith(
+        schemaVersion: HomePersistenceManager.schemaVersion,
         homes: homes,
         rooms: rooms,
         devices: devices,
@@ -345,54 +269,29 @@ class BackupRestoreService {
         dashboardConfigs: configs,
       );
 
-      await persistenceManager.saveHomeState(restoredState);
+      // Step 6: Apply candidate state
+      await persistenceManager.saveHomeState(candidateState);
+
+      // Step 7: Verify integrity
+      final verified = persistenceManager.cachedState;
+      if (verified == null ||
+          verified.schemaVersion != HomePersistenceManager.schemaVersion ||
+          verified.homes.isEmpty) {
+        throw StateError(
+            'Integrity verification failed on applied candidate state.');
+      }
+
+      // Step 8: Commit
       return true;
     } catch (_) {
-      // 3. Rollback on failure
+      // Step 9: Compensating rollback on failure
       try {
         await persistenceManager.saveHomeState(previousState);
       } catch (_) {}
       return false;
+    } finally {
+      _isRestoring = false;
     }
-  }
-
-  /// Recursively cleans sensitive credentials and keys from serialized maps.
-  static Map<String, dynamic> _sanitizeMap(Map<String, dynamic> source) {
-    final result = <String, dynamic>{};
-    for (final entry in source.entries) {
-      final keyLower = entry.key.toLowerCase();
-      if (_isSensitiveKey(keyLower)) {
-        continue;
-      }
-      final value = entry.value;
-      if (value is Map) {
-        result[entry.key] = _sanitizeMap(Map<String, dynamic>.from(value));
-      } else if (value is List) {
-        result[entry.key] = value.map((item) {
-          if (item is Map) {
-            return _sanitizeMap(Map<String, dynamic>.from(item));
-          }
-          return item;
-        }).toList();
-      } else {
-        result[entry.key] = value;
-      }
-    }
-    return result;
-  }
-
-  static bool _isSensitiveKey(String key) {
-    return key.contains('password') ||
-        key.contains('secret') ||
-        key.contains('token') ||
-        key.contains('passphrase') ||
-        key.contains('credential') ||
-        key.contains('private_key') ||
-        key.contains('privatekey') ||
-        key.contains('api_key') ||
-        key.contains('apikey') ||
-        key.contains('wifi_pass') ||
-        key.contains('auth');
   }
 }
 
