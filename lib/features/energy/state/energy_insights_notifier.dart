@@ -110,6 +110,22 @@ class EnergyInsightsEngine {
     );
   }
 
+  /// Sanitizes string cells against CSV formula injection (CWE-1236).
+  static String sanitizeCsvCell(String value) {
+    if (value.isNotEmpty) {
+      final firstChar = value[0];
+      if (firstChar == '=' ||
+          firstChar == '+' ||
+          firstChar == '-' ||
+          firstChar == '@' ||
+          firstChar == '\t' ||
+          firstChar == '\r') {
+        return "'$value";
+      }
+    }
+    return value;
+  }
+
   static String exportToCsv(EnergyReport report) {
     final buffer = StringBuffer();
     buffer.writeln(
@@ -117,7 +133,8 @@ class EnergyInsightsEngine {
     final ts = report.generatedAt.toIso8601String();
 
     String escapeCsv(String value) {
-      return '"${value.replaceAll('"', '""')}"';
+      final sanitized = sanitizeCsvCell(value);
+      return '"${sanitized.replaceAll('"', '""')}"';
     }
 
     for (final item in report.deviceBreakdown) {

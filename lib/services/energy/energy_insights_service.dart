@@ -155,10 +155,28 @@ class EnergyInsightsService {
     );
   }
 
+  /// Sanitizes string cells against CSV formula injection (CWE-1236).
+  /// If a string starts with `=, +, -, @, \t, \r`, prepends `'` to neutralize formula execution.
+  static String sanitizeCsvCell(String value) {
+    if (value.isNotEmpty) {
+      final firstChar = value[0];
+      if (firstChar == '=' ||
+          firstChar == '+' ||
+          firstChar == '-' ||
+          firstChar == '@' ||
+          firstChar == '\t' ||
+          firstChar == '\r') {
+        return "'$value";
+      }
+    }
+    return value;
+  }
+
   /// Exports an [EnergyReport] as a standard RFC-4180 CSV document.
   ///
   /// Headers: `Period,Category,Name,Wattage_W,Consumption_kWh,Estimated_Cost,Tariff`
   /// Includes timestamp and notice that all figures are simulated estimates.
+  /// Neutralizes spreadsheet formula execution on string cells.
   String exportEnergyCsv(EnergyReport report) {
     final buffer = StringBuffer();
 
@@ -172,10 +190,14 @@ class EnergyInsightsService {
         'Period,Category,Name,Wattage_W,Consumption_kWh,Estimated_Cost,Tariff');
 
     String escapeCsv(String value) {
-      if (value.contains(',') || value.contains('"') || value.contains('\n')) {
-        return '"${value.replaceAll('"', '""')}"';
+      final sanitized = sanitizeCsvCell(value);
+      if (sanitized.contains(',') ||
+          sanitized.contains('"') ||
+          sanitized.contains('\n') ||
+          sanitized.contains('\r')) {
+        return '"${sanitized.replaceAll('"', '""')}"';
       }
-      return value;
+      return sanitized;
     }
 
     // Per-device rows

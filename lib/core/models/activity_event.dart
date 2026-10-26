@@ -59,10 +59,14 @@ class ActivityEvent {
       };
 
   factory ActivityEvent.fromJson(Map<String, dynamic> json) => ActivityEvent(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        description: json['description'] as String,
-        timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ??
+            json['deviceName'] as String? ??
+            'Event',
+        description: json['description'] as String? ?? '',
+        timestamp: (json['timestamp'] != null
+                ? DateTime.tryParse(json['timestamp'].toString())
+                : null) ??
             DateTime.now(),
         deviceId: json['deviceId'] as String?,
         roomId: json['roomId'] as String?,
