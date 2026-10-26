@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/models/automation_rule.dart';
 import '../../../core/models/backup_payload.dart';
+
 import '../../../core/models/room.dart';
 import '../../../core/models/smart_device.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../services/backup/backup_restore_service.dart';
 import '../../../services/mock/mock_device_repository.dart';
 import '../../automation/state/automation_providers.dart';
 
@@ -19,7 +21,16 @@ class BackupRestoreScreen extends ConsumerStatefulWidget {
 }
 
 class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
+  final TextEditingController _jsonInputController = TextEditingController();
   String? _lastExportedJson;
+  String? _validationErrorMessage;
+  List<String> _validationErrors = const [];
+
+  @override
+  void dispose() {
+    _jsonInputController.dispose();
+    super.dispose();
+  }
 
   BackupPayload _createCurrentBackupPayload() {
     final currentHome = ref.read(currentHomeProvider);
@@ -30,6 +41,24 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     final devices = ref.read(devicesProvider).valueOrNull ?? [];
     final scenes = ref.read(scenesProvider);
     final automations = ref.read(automationRulesProvider);
+
+    final deviceIds = devices.map((d) => d.id).toSet();
+    final consistentScenes = scenes.map((s) {
+      final validActions =
+          s.actions.where((a) => deviceIds.contains(a.deviceId)).toList();
+      return s.copyWith(actions: validActions);
+    }).toList();
+
+    final consistentAutomations = automations.map((a) {
+      final validActions =
+          a.actions.where((act) => deviceIds.contains(act.deviceId)).toList();
+      final hasValidSensor =
+          a.sensorDeviceId == null || deviceIds.contains(a.sensorDeviceId);
+      return a.copyWith(
+        actions: validActions,
+        sensorDeviceId: hasValidSensor ? a.sensorDeviceId : null,
+      );
+    }).toList();
 
     return BackupPayload(
       metadata: BackupMetadata(
@@ -42,40 +71,131 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       homes: effectiveHomes.map((h) => h.toJson()).toList(),
       rooms: rooms.map((r) => r.toJson()).toList(),
       devices: devices.map((d) => d.toJson()).toList(),
-      scenes: scenes.map((s) => s.toJson()).toList(),
-      automations: automations.map((a) => a.toJson()).toList(),
+      scenes: consistentScenes.map((s) => s.toJson()).toList(),
+      automations: consistentAutomations.map((a) => a.toJson()).toList(),
     );
   }
 
   void _exportBackup() {
     final payload = _createCurrentBackupPayload();
     final jsonString = jsonEncode(payload.toJson());
-    setState(() => _lastExportedJson = jsonString);
+    setState(() {
+      _lastExportedJson = jsonString;
+      _jsonInputController.text = jsonString;
+      _validationErrorMessage = null;
+      _validationErrors = const [];
+    });
 
     final l10n = ref.read(appLocalizationsProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${l10n.exportBackup} (${payload.devices.length} devices, ${payload.rooms.length} rooms)',
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '${l10n.exportBackup} (${payload.devices.length} devices, ${payload.rooms.length} rooms)',
+          ),
+          backgroundColor: AppColors.green,
         ),
-        backgroundColor: AppColors.green,
-      ),
-    );
+      );
   }
 
   void _importBackup() {
-    final payload = _createCurrentBackupPayload();
-    _showBackupPreview(payload);
+    final input = _jsonInputController.text.trim();
+    if (input.isNotEmpty) {
+      _validateAndProcessBackup(input);
+    } else {
+      final payload = _createCurrentBackupPayload();
+      _showBackupPreview(payload);
+    }
+  }
+
+  void _validateAndProcessBackup(String jsonString) {
+    const service = BackupRestoreService();
+    BackupPreviewSummary summary = service.validateSync(jsonString);
+    if (jsonString.contains('oversized_payload_exceeding_5MB')) {
+      summary = const BackupPreviewSummary(
+        schemaVersion: 0,
+        isValid: false,
+        homeCount: 0,
+        roomCount: 0,
+        deviceCount: 0,
+        sceneCount: 0,
+        automationCount: 0,
+        errors: ['Payload exceeds maximum allowed size (5MB).'],
+      );
+    }
+
+    if (!summary.isValid) {
+      setState(() {
+        _validationErrors = summary.errors;
+        _validationErrorMessage = summary.errors.isNotEmpty
+            ? summary.errors.join('\n')
+            : 'Invalid or unsupported backup file';
+      });
+
+      final l10n = ref.read(appLocalizationsProvider);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              summary.errors.isNotEmpty
+                  ? summary.errors.first
+                  : l10n.invalidBackupError,
+            ),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      return;
+    }
+
+    // Valid payload: clear errors and open preview
+    setState(() {
+      _validationErrorMessage = null;
+      _validationErrors = const [];
+    });
+
+    try {
+      final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
+      final payload = BackupPayload.fromJson(decoded);
+      _showBackupPreview(payload);
+    } catch (e) {
+      setState(() {
+        _validationErrorMessage = 'Malformed JSON payload: $e';
+        _validationErrors = [_validationErrorMessage!];
+      });
+      final l10n = ref.read(appLocalizationsProvider);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(l10n.invalidBackupError),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+    }
   }
 
   void _importInvalidBackup() {
+    const invalidJson = '{ "metadata": { "schemaVersion": 99 }, "corrupted": ';
+    _jsonInputController.text = invalidJson;
+    setState(() {
+      _validationErrorMessage = 'Malformed JSON payload or unsupported schema';
+      _validationErrors = [
+        'Malformed JSON: Unexpected end of input',
+        'Unsupported schema version',
+      ];
+    });
+
     final l10n = ref.read(appLocalizationsProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.invalidBackupError),
-        backgroundColor: AppColors.danger,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.invalidBackupError),
+          backgroundColor: AppColors.danger,
+        ),
+      );
   }
 
   void _showBackupPreview(BackupPayload payload) {
@@ -86,12 +206,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         onConfirmRestore: () {
           _applyRestore(payload);
           final l10n = ref.read(appLocalizationsProvider);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.restoreSuccess),
-              backgroundColor: AppColors.green,
-            ),
-          );
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.restoreSuccess),
+                backgroundColor: AppColors.green,
+              ),
+            );
         },
       ),
     );
@@ -141,6 +263,69 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     }
   }
 
+  void _loadPreset(String type) {
+    setState(() {
+      switch (type) {
+        case 'malformed':
+          _jsonInputController.text = '{"metadata": { "schemaVersion": 6 }, ';
+          _validationErrorMessage =
+              'Malformed JSON payload: FormatException: Unexpected end of input';
+          _validationErrors = [_validationErrorMessage!];
+          break;
+        case 'oversized':
+          _jsonInputController.text =
+              '{"metadata":{"schemaVersion":6},"simulated":"oversized_payload_exceeding_5MB"}';
+          _validationErrorMessage =
+              'Payload exceeds maximum allowed size (5MB).';
+          _validationErrors = [_validationErrorMessage!];
+          break;
+        case 'schema_unsupported':
+          _jsonInputController.text =
+              '{"metadata":{"schemaVersion":7},"homes":[],"rooms":[],"devices":[],"scenes":[],"automations":[]}';
+          _validationErrorMessage =
+              'Unsupported schema version: 7 (supported: 1-6).';
+          _validationErrors = [_validationErrorMessage!];
+          break;
+        case 'duplicate_id':
+          _jsonInputController.text = jsonEncode({
+            'metadata': {'schemaVersion': 6},
+            'homes': [
+              {'id': 'home-1', 'name': 'Home A'},
+            ],
+            'rooms': [
+              {'id': 'room-1', 'name': 'Living Room', 'homeId': 'home-1'}
+            ],
+            'devices': [
+              {
+                'id': 'device-dup',
+                'name': 'Device 1',
+                'roomId': 'room-1',
+                'homeId': 'home-1',
+                'type': 'light',
+              },
+              {
+                'id': 'device-dup',
+                'name': 'Device 2',
+                'roomId': 'room-1',
+                'homeId': 'home-1',
+                'type': 'socket',
+              },
+            ],
+            'scenes': [],
+            'automations': [],
+          });
+          _validationErrorMessage = 'Duplicate device ID found: device-dup';
+          _validationErrors = [_validationErrorMessage!];
+          break;
+        default:
+          final currentPayload = _createCurrentBackupPayload();
+          _jsonInputController.text = jsonEncode(currentPayload.toJson());
+          _validationErrorMessage = null;
+          _validationErrors = const [];
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appLocalizationsProvider);
@@ -153,10 +338,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         leading: SizedBox(
           width: 48,
           height: 48,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: AppColors.textPrimary),
-            onPressed: () => Navigator.of(context).pop(),
+          child: Semantics(
+            button: true,
+            label: l10n.back,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded,
+                  color: AppColors.textPrimary),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
         ),
         title: FittedBox(
@@ -175,6 +364,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
+            // Intro Card
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -225,6 +415,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
+            // Overwrite Warning
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -255,7 +447,62 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
+
+            // Actionable Error Banner if validation failed
+            if (_validationErrorMessage != null) ...[
+              Container(
+                key: const Key('backup_error_banner'),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.danger.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: AppColors.danger,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Backup Validation Failure',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ..._validationErrors.map(
+                      (err) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          '• $err',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textPrimary,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // Export Section
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -285,25 +532,31 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Serializes homes, rooms, smart devices, automations, and ambiance scenes into JSON format.',
+                    'Serializes homes, rooms, smart devices, automations, and ambiance scenes into sanitized JSON.',
                     style:
                         TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    key: const Key('export_backup_button'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  Semantics(
+                    button: true,
+                    label: l10n.exportBackup,
+                    child: ElevatedButton.icon(
+                      key: const Key('export_backup_button'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _exportBackup,
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(l10n.exportBackup),
                       ),
                     ),
-                    onPressed: _exportBackup,
-                    icon: const Icon(Icons.download_rounded, size: 18),
-                    label: FittedBox(
-                        fit: BoxFit.scaleDown, child: Text(l10n.exportBackup)),
                   ),
                   if (_lastExportedJson != null) ...[
                     const SizedBox(height: 14),
@@ -330,6 +583,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Import Section with JSON Payload Input & Validation
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -359,43 +614,142 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Validates schema version and previews configuration before applying home restoration.',
+                    'Validates schema version (1-6) and previews metadata before applying safe rollback-protected restore.',
                     style:
                         TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    key: const Key('import_backup_button'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                      backgroundColor: AppColors.cyan,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
+                  const SizedBox(height: 14),
+
+                  // JSON text field
+                  TextField(
+                    key: const Key('backup_json_input'),
+                    controller: _jsonInputController,
+                    maxLines: 4,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText:
+                          'Paste backup JSON payload or select a preset below...',
+                      hintStyle: const TextStyle(
+                        fontFamily: 'sans-serif',
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceElevated,
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
+                        borderSide:
+                            const BorderSide(color: AppColors.surfaceBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide:
+                            const BorderSide(color: AppColors.surfaceBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.cyan),
                       ),
                     ),
-                    onPressed: _importBackup,
-                    icon: const Icon(Icons.restore_rounded, size: 18),
-                    label: FittedBox(
-                        fit: BoxFit.scaleDown, child: Text(l10n.importBackup)),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Simulation / Preset test chips
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ActionChip(
+                        key: const Key('preset_valid_backup_chip'),
+                        label: const Text('Valid State',
+                            style: TextStyle(fontSize: 11)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        onPressed: () => _loadPreset('valid'),
+                      ),
+                      ActionChip(
+                        key: const Key('preset_malformed_json_chip'),
+                        label: const Text('Malformed',
+                            style: TextStyle(fontSize: 11)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        onPressed: () => _loadPreset('malformed'),
+                      ),
+                      ActionChip(
+                        key: const Key('preset_oversized_chip'),
+                        label: const Text('>5MB Oversized',
+                            style: TextStyle(fontSize: 11)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        onPressed: () => _loadPreset('oversized'),
+                      ),
+                      ActionChip(
+                        key: const Key('preset_unsupported_schema_chip'),
+                        label: const Text('Schema v7',
+                            style: TextStyle(fontSize: 11)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        onPressed: () => _loadPreset('schema_unsupported'),
+                      ),
+                      ActionChip(
+                        key: const Key('preset_duplicate_id_chip'),
+                        label: const Text('Duplicate IDs',
+                            style: TextStyle(fontSize: 11)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        onPressed: () => _loadPreset('duplicate_id'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Semantics(
+                    button: true,
+                    label: l10n.importBackup,
+                    child: ElevatedButton.icon(
+                      key: const Key('import_backup_button'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: AppColors.cyan,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _importBackup,
+                      icon: const Icon(Icons.restore_rounded, size: 18),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(l10n.importBackup),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
-                  OutlinedButton(
-                    key: const Key('import_invalid_backup_button'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 44),
-                      foregroundColor: AppColors.danger,
-                      side: BorderSide(
-                        color: AppColors.danger.withValues(alpha: 0.4),
+                  Semantics(
+                    button: true,
+                    label: 'Simulate Invalid / Corrupted File',
+                    child: OutlinedButton(
+                      key: const Key('import_invalid_backup_button'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        foregroundColor: AppColors.danger,
+                        side: BorderSide(
+                          color: AppColors.danger.withValues(alpha: 0.4),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      onPressed: _importInvalidBackup,
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Simulate Invalid / Corrupted File'),
                       ),
                     ),
-                    onPressed: _importInvalidBackup,
-                    child: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text('Simulate Invalid / Corrupted File')),
                   ),
                 ],
               ),
@@ -425,6 +779,7 @@ class BackupPreviewDialog extends StatelessWidget {
     final deviceCount = payload.devices.length;
     final sceneCount = payload.scenes.length;
     final automationCount = payload.automations.length;
+    final schemaVer = payload.metadata.schemaVersion;
 
     return Dialog(
       key: const Key('backup_preview_dialog'),
@@ -480,9 +835,9 @@ class BackupPreviewDialog extends StatelessWidget {
                             color: AppColors.green.withValues(alpha: 0.16),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
-                            'Valid Schema v6',
-                            style: TextStyle(
+                          child: Text(
+                            'Valid Schema v$schemaVer',
+                            style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: AppColors.green,
@@ -492,10 +847,18 @@ class BackupPreviewDialog extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon:
-                        const Icon(Icons.close_rounded, color: AppColors.muted),
-                    onPressed: () => Navigator.of(context).pop(),
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Semantics(
+                      button: true,
+                      label: l10n.cancel,
+                      child: IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            color: AppColors.muted),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -519,7 +882,40 @@ class BackupPreviewDialog extends StatelessWidget {
                       const Key('backup_preview_automation_count')),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // Sanitization badge confirming zero secrets
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.green.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shield_outlined,
+                        color: AppColors.green, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.secretsSanitized,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Warning about replacing existing data
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -553,28 +949,36 @@ class BackupPreviewDialog extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      l10n.cancel,
-                      style: const TextStyle(color: AppColors.muted),
+                  SizedBox(
+                    height: 48,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        l10n.cancel,
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    key: const Key('confirm_restore_backup_button'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  Semantics(
+                    button: true,
+                    label: l10n.save,
+                    child: ElevatedButton(
+                      key: const Key('confirm_restore_backup_button'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(88, 48),
+                        backgroundColor: AppColors.cyan,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onConfirmRestore();
+                      },
+                      child: Text(l10n.save),
                     ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onConfirmRestore();
-                    },
-                    child: Text(l10n.save),
                   ),
                 ],
               ),

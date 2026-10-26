@@ -1,4 +1,6 @@
 import '../../backup/presentation/backup_restore_screen.dart';
+import '../../privacy/presentation/privacy_center_screen.dart';
+import '../../privacy/presentation/recovery_center_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
@@ -300,6 +302,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const BackupRestoreScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.surfaceBorder, height: 16),
+                ListTile(
+                  key: const Key('settings_privacy_center_tile'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.green,
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    l10n.privacyCenter,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    l10n.privacyCenterSubtitle,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacyCenterScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.surfaceBorder, height: 16),
+                ListTile(
+                  key: const Key('settings_recovery_center_tile'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.healing_rounded,
+                      color: AppColors.warning,
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    l10n.recoveryCenter,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    l10n.recoverySubtitle,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const RecoveryCenterScreen(),
                       ),
                     );
                   },

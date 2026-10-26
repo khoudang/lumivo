@@ -222,6 +222,11 @@ class HomePersistenceManager {
   static const String v3StorageKey = 'lumivo_home_state_v3';
   static const String v2StorageKey = 'lumivo_home_state_v2';
   static const String legacyStorageKey = 'lumivo_home_state';
+  static const String snapshotStorageKey = 'lumivo_home_snapshot_v6';
+  static const String lastSavedAtStorageKey = 'lumivo_last_saved_at';
+
+  DateTime? _lastSavedAt;
+  DateTime? get lastSavedAt => _lastSavedAt;
 
   HomeState? _cachedState;
   HomeState? get cachedState => _cachedState;
@@ -745,6 +750,11 @@ class HomePersistenceManager {
     try {
       await _storage.setString(storageKey, jsonStr);
       await saveSnapshotBackup(toSave);
+      _lastSavedAt = DateTime.now();
+      try {
+        await _storage.setString(
+            lastSavedAtStorageKey, _lastSavedAt!.toIso8601String());
+      } catch (_) {}
     } catch (e) {
       final errStr = e.toString().toLowerCase();
       if (errStr.contains('quota') || errStr.contains('disk')) {
@@ -759,6 +769,11 @@ class HomePersistenceManager {
         final prunedJson = jsonEncode(pruned.toJson());
         await _storage.setString(storageKey, prunedJson);
         await saveSnapshotBackup(pruned);
+        _lastSavedAt = DateTime.now();
+        try {
+          await _storage.setString(
+              lastSavedAtStorageKey, _lastSavedAt!.toIso8601String());
+        } catch (_) {}
       } else {
         rethrow;
       }
@@ -767,6 +782,14 @@ class HomePersistenceManager {
 
   Future<HomeState> loadHomeState() async {
     try {
+      if (_lastSavedAt == null) {
+        try {
+          final lastStr = await _storage.getString(lastSavedAtStorageKey);
+          if (lastStr != null && lastStr.isNotEmpty) {
+            _lastSavedAt = DateTime.tryParse(lastStr);
+          }
+        } catch (_) {}
+      }
       var rawJson = await _storage.getString(storageKey);
       var isMigrating = false;
 
@@ -1051,6 +1074,50 @@ class HomePersistenceManager {
     final demoState = createDemoState();
     await saveHomeState(demoState);
     return demoState;
+  }
+
+  Future<void> saveSnapshot([HomeState? state]) async {
+    final toSave = state ?? _cachedState ?? await loadHomeState();
+    final jsonStr = jsonEncode(toSave.toJson());
+    await _storage.setString(snapshotStorageKey, jsonStr);
+  }
+
+  Future<bool> hasSnapshot() async {
+    final raw = await _storage.getString(snapshotStorageKey);
+    if (raw == null || raw.trim().isEmpty) return false;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic>;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<HomeState?> loadSnapshot() async {
+    try {
+      final raw = await _storage.getString(snapshotStorageKey);
+      if (raw == null || raw.trim().isEmpty) return null;
+      final parsed = jsonDecode(raw);
+      if (parsed is Map<String, dynamic>) {
+        return HomeState.fromJson(parsed);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> restoreSnapshot() async {
+    final snapshot = await loadSnapshot();
+    if (snapshot == null) return false;
+    await saveHomeState(snapshot);
+    return true;
+  }
+
+  int getApproximateStorageSizeBytes([HomeState? state]) {
+    final current = state ?? _cachedState ?? createDemoState();
+    final jsonStr = jsonEncode(current.toJson());
+    return utf8.encode(jsonStr).length;
   }
 
   Future<HomeState> _getCurrentOrFallback() async {
