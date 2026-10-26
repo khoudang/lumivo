@@ -750,11 +750,6 @@ class HomePersistenceManager {
     try {
       await _storage.setString(storageKey, jsonStr);
       await saveSnapshotBackup(toSave);
-      _lastSavedAt = DateTime.now();
-      try {
-        await _storage.setString(
-            lastSavedAtStorageKey, _lastSavedAt!.toIso8601String());
-      } catch (_) {}
     } catch (e) {
       final errStr = e.toString().toLowerCase();
       if (errStr.contains('quota') || errStr.contains('disk')) {
@@ -769,15 +764,15 @@ class HomePersistenceManager {
         final prunedJson = jsonEncode(pruned.toJson());
         await _storage.setString(storageKey, prunedJson);
         await saveSnapshotBackup(pruned);
-        _lastSavedAt = DateTime.now();
-        try {
-          await _storage.setString(
-              lastSavedAtStorageKey, _lastSavedAt!.toIso8601String());
-        } catch (_) {}
       } else {
         rethrow;
       }
     }
+    _lastSavedAt = DateTime.now();
+    try {
+      await _storage.setString(
+          lastSavedAtStorageKey, _lastSavedAt!.toIso8601String());
+    } catch (_) {}
   }
 
   Future<HomeState> loadHomeState() async {

@@ -98,6 +98,17 @@ class SmartDevice {
     return SecretSanitizer.sanitizeMap(data);
   }
 
+  static double _safeDouble(dynamic value,
+      {double defaultValue = 0.0, bool clampNonNegative = false}) {
+    if (value is num) {
+      if (value.isNaN || value.isInfinite) return defaultValue;
+      final d = value.toDouble();
+      if (clampNonNegative && d < 0.0) return 0.0;
+      return d;
+    }
+    return defaultValue;
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -121,7 +132,9 @@ class SmartDevice {
 
   factory SmartDevice.fromJson(Map<String, dynamic> json) => SmartDevice(
         id: json['id'] as String,
-        name: json['name'] as String,
+        name: ((json['name'] as String? ?? 'Device').length > 128
+            ? (json['name'] as String).substring(0, 128)
+            : (json['name'] as String? ?? 'Device')),
         roomId: json['roomId'] as String,
         type: DeviceType.values.firstWhere(
           (e) => e.name == json['type'],
@@ -134,13 +147,15 @@ class SmartDevice {
           orElse: () => DeviceConnection.online,
         ),
         targetTemperature:
-            (json['targetTemperature'] as num?)?.toDouble() ?? 24.0,
+            _safeDouble(json['targetTemperature'], defaultValue: 24.0),
         currentTemperature:
-            (json['currentTemperature'] as num?)?.toDouble() ?? 25.0,
-        currentHumidity: (json['currentHumidity'] as num?)?.toDouble() ?? 55.0,
+            _safeDouble(json['currentTemperature'], defaultValue: 25.0),
+        currentHumidity:
+            _safeDouble(json['currentHumidity'], defaultValue: 55.0),
         position: json['position'] as int? ?? 0,
         isLocked: json['isLocked'] as bool? ?? true,
-        powerUsageWatts: (json['powerUsageWatts'] as num?)?.toDouble() ?? 0.0,
+        powerUsageWatts: _safeDouble(json['powerUsageWatts'],
+            defaultValue: 0.0, clampNonNegative: true),
         customData: json['customData'] is Map
             ? sanitizeCustomData(
                 Map<String, dynamic>.from(json['customData'] as Map))
