@@ -38,7 +38,10 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     final effectiveHomes = homes.isNotEmpty ? homes : [currentHome];
 
     final rooms = ref.read(roomsProvider);
-    final devices = ref.read(devicesProvider).valueOrNull ?? [];
+    final repo = ref.read(deviceRepositoryProvider);
+    final repoDevices =
+        repo is MockDeviceRepository ? repo.devices : const <SmartDevice>[];
+    final devices = ref.read(devicesProvider).valueOrNull ?? repoDevices;
     final scenes = ref.read(scenesProvider);
     final automations = ref.read(automationRulesProvider);
 
@@ -53,10 +56,21 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       final validActions =
           a.actions.where((act) => deviceIds.contains(act.deviceId)).toList();
       final hasValidSensor =
-          a.sensorDeviceId == null || deviceIds.contains(a.sensorDeviceId);
-      return a.copyWith(
-        actions: validActions,
+          a.sensorDeviceId != null && deviceIds.contains(a.sensorDeviceId);
+      return AutomationRule(
+        id: a.id,
+        name: a.name,
+        isEnabled: a.isEnabled,
+        triggerType: a.triggerType,
+        timeOfDay: a.timeOfDay,
+        daysOfWeek: a.daysOfWeek,
         sensorDeviceId: hasValidSensor ? a.sensorDeviceId : null,
+        sensorProperty: a.sensorProperty,
+        operator: a.operator,
+        thresholdValue: a.thresholdValue,
+        actions: validActions,
+        lastExecutedAt: a.lastExecutedAt,
+        homeId: a.homeId,
       );
     }).toList();
 
