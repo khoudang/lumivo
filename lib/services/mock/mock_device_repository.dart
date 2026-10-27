@@ -32,6 +32,7 @@ class MockDeviceRepository implements DeviceRepository {
       _devices.clear();
       _devices.addAll(persistenceManager!.cachedState!.devices);
     }
+    _rebuildIndex();
   }
 
   final Duration responseDelay;
@@ -89,6 +90,39 @@ class MockDeviceRepository implements DeviceRepository {
   ];
 
   final List<SmartDevice> _devices = List.of(_defaultDevices);
+  final Map<String, int> _deviceIndex = {};
+
+  void _rebuildIndex() {
+    _deviceIndex.clear();
+    for (int i = 0; i < _devices.length; i++) {
+      _deviceIndex[_devices[i].id] = i;
+    }
+  }
+
+  int _findDeviceIndex(String id) {
+    final cached = _deviceIndex[id];
+    if (cached != null &&
+        cached < _devices.length &&
+        _devices[cached].id == id) {
+      return cached;
+    }
+    final idx = _devices.indexWhere((d) => d.id == id);
+    if (idx >= 0) {
+      _deviceIndex[id] = idx;
+    }
+    return idx;
+  }
+
+  /// O(1) indexed device query by id.
+  SmartDevice? getDeviceById(String id) {
+    final idx = _findDeviceIndex(id);
+    return idx >= 0 ? _devices[idx] : null;
+  }
+
+  /// Direct query for devices in a specific room.
+  List<SmartDevice> getDevicesForRoom(String roomId) {
+    return _devices.where((d) => d.roomId == roomId).toList();
+  }
 
   List<SmartDevice> get devices => List.unmodifiable(_devices);
 
@@ -133,7 +167,7 @@ class MockDeviceRepository implements DeviceRepository {
   Future<void> reorderFavorites(List<String> orderedDeviceIds) async {
     for (int i = 0; i < orderedDeviceIds.length; i++) {
       final id = orderedDeviceIds[i];
-      final idx = _devices.indexWhere((d) => d.id == id);
+      final idx = _findDeviceIndex(id);
       if (idx >= 0) {
         _devices[idx] = _devices[idx].copyWith(
           isFavorite: true,
@@ -141,6 +175,7 @@ class MockDeviceRepository implements DeviceRepository {
         );
       }
     }
+    _rebuildIndex();
     _notifyListeners();
     await _persist();
   }
@@ -152,7 +187,7 @@ class MockDeviceRepository implements DeviceRepository {
     bool? isFavorite,
     String? roomId,
   }) async {
-    final index = _devices.indexWhere((device) => device.id == deviceId);
+    final index = _findDeviceIndex(deviceId);
     if (index >= 0) {
       final current = _devices[index];
       _devices[index] = current.copyWith(
@@ -174,19 +209,20 @@ class MockDeviceRepository implements DeviceRepository {
         ..clear()
         ..addAll(reloaded.devices);
     } else {
-      final index = _devices.indexWhere((d) => d.id == deviceId);
+      final index = _findDeviceIndex(deviceId);
       if (index >= 0) {
         _devices.removeAt(index);
         final favs = _devices.where((d) => d.isFavorite).toList()
           ..sort((a, b) => a.favoriteOrder.compareTo(b.favoriteOrder));
         for (int i = 0; i < favs.length; i++) {
-          final devIdx = _devices.indexWhere((d) => d.id == favs[i].id);
+          final devIdx = _findDeviceIndex(favs[i].id);
           if (devIdx >= 0) {
             _devices[devIdx] = _devices[devIdx].copyWith(favoriteOrder: i);
           }
         }
       }
     }
+    _rebuildIndex();
     _notifyListeners();
   }
 
@@ -211,6 +247,7 @@ class MockDeviceRepository implements DeviceRepository {
         _devices.removeWhere((d) => d.roomId == roomId);
       }
     }
+    _rebuildIndex();
     _notifyListeners();
   }
 
@@ -224,30 +261,36 @@ class MockDeviceRepository implements DeviceRepository {
     } else {
       _devices.removeWhere((d) => d.homeId == homeId);
     }
+    _rebuildIndex();
     _notifyListeners();
   }
 
   void addDevice(SmartDevice device) {
-    final index = _devices.indexWhere((d) => d.id == device.id);
+    final index = _findDeviceIndex(device.id);
     if (index >= 0) {
       _devices[index] = device;
     } else {
       _devices.add(device);
+      _deviceIndex[device.id] = _devices.length - 1;
     }
     _notifyListeners();
     _persist();
   }
 
   void removeDevice(String deviceId) {
-    _devices.removeWhere((d) => d.id == deviceId);
-    _notifyListeners();
-    _persist();
+    final index = _findDeviceIndex(deviceId);
+    if (index >= 0) {
+      _devices.removeAt(index);
+      _rebuildIndex();
+      _notifyListeners();
+      _persist();
+    }
   }
 
   void deleteDevice(String deviceId) => removeDevice(deviceId);
 
   void updateDevice(SmartDevice device) {
-    final index = _devices.indexWhere((d) => d.id == device.id);
+    final index = _findDeviceIndex(device.id);
     if (index >= 0) {
       _devices[index] = device;
       _notifyListeners();
@@ -256,7 +299,7 @@ class MockDeviceRepository implements DeviceRepository {
   }
 
   void toggleDeviceConnection(String deviceId) {
-    final index = _devices.indexWhere((device) => device.id == deviceId);
+    final index = _findDeviceIndex(deviceId);
     if (index >= 0) {
       final current = _devices[index];
       final nextStatus = current.connection == DeviceConnection.online
@@ -269,7 +312,7 @@ class MockDeviceRepository implements DeviceRepository {
   }
 
   void forceDeviceOffline(String deviceId) {
-    final index = _devices.indexWhere((device) => device.id == deviceId);
+    final index = _findDeviceIndex(deviceId);
     if (index >= 0) {
       _devices[index] =
           _devices[index].copyWith(connection: DeviceConnection.offline);
@@ -279,7 +322,7 @@ class MockDeviceRepository implements DeviceRepository {
   }
 
   void reconnectDevice(String deviceId) {
-    final index = _devices.indexWhere((device) => device.id == deviceId);
+    final index = _findDeviceIndex(deviceId);
     if (index >= 0) {
       _devices[index] =
           _devices[index].copyWith(connection: DeviceConnection.online);
@@ -291,6 +334,7 @@ class MockDeviceRepository implements DeviceRepository {
   void resetToDefaults() {
     _devices.clear();
     _devices.addAll(_defaultDevices);
+    _rebuildIndex();
     _notifyListeners();
     _persist();
   }
@@ -298,6 +342,7 @@ class MockDeviceRepository implements DeviceRepository {
   void resetToDemo() {
     _devices.clear();
     _devices.addAll(HomePersistenceManager.allDemoDevices);
+    _rebuildIndex();
     _notifyListeners();
     _persist();
   }
@@ -308,6 +353,7 @@ class MockDeviceRepository implements DeviceRepository {
       if (homeState.devices.isNotEmpty) {
         _devices.clear();
         _devices.addAll(homeState.devices);
+        _rebuildIndex();
         _notifyListeners();
       }
     }
@@ -328,8 +374,7 @@ class MockDeviceRepository implements DeviceRepository {
     return commandPipeline.execute(
       command,
       onExecute: (cmd) async {
-        final index =
-            _devices.indexWhere((device) => device.id == cmd.deviceId);
+        final index = _findDeviceIndex(cmd.deviceId);
         if (index < 0) {
           return CommandResult(
             requestId: cmd.requestId,
@@ -426,6 +471,7 @@ class MockDeviceRepository implements DeviceRepository {
   @override
   Future<void> dispose() async {
     commandPipeline.dispose();
+    _deviceIndex.clear();
     if (!_updates.isClosed) {
       await _updates.close();
     }

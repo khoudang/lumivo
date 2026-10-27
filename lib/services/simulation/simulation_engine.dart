@@ -139,6 +139,9 @@ class SimulationEngine {
   StreamSubscription<List<SmartDevice>>? _repoSubscription;
   bool _isDisposed = false;
 
+  /// Whether the simulation engine has been disposed.
+  bool get isDisposed => _isDisposed;
+
   /// Current telemetry snapshot.
   SimulationSnapshot get currentSnapshot => _snapshot;
 
@@ -445,10 +448,17 @@ class SimulationEngine {
     if (_isDisposed) return;
     _isDisposed = true;
     _clockSubscription?.cancel();
+    _clockSubscription = null;
     _repoSubscription?.cancel();
+    _repoSubscription = null;
     healthAggregator.dispose();
     clock.dispose();
     automationEngine.dispose();
-    _snapshotController.close();
+    _devices.clear();
+    _simulators.clear();
+    _forcedOfflineDeviceIds.clear();
+    if (!_snapshotController.isClosed) {
+      _snapshotController.close();
+    }
   }
 }

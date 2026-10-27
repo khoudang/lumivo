@@ -307,18 +307,31 @@ class DefaultEnergyAnalyticsService implements EnergyAnalyticsService {
     }
   }
 
+  static const int maxStoredSamples = 5000;
+  static const int maxStoredDeviceSamples = 10000;
+
   void _pruneOldSamples() {
     if (_samples.isEmpty) return;
     final latest = _getLatestSampleTimestamp();
     final pruneCutoff = latest.subtract(const Duration(days: 35));
     _samples.removeWhere((s) => s.timestamp.isBefore(pruneCutoff));
     _deviceSamples.removeWhere((s) => s.timestamp.isBefore(pruneCutoff));
+
+    if (_samples.length > maxStoredSamples) {
+      _samples.removeRange(0, _samples.length - maxStoredSamples);
+    }
+    if (_deviceSamples.length > maxStoredDeviceSamples) {
+      _deviceSamples.removeRange(
+          0, _deviceSamples.length - maxStoredDeviceSamples);
+    }
   }
 
   void _notifySubscribers() {
     for (final period in EnergyPeriod.values) {
       final controller = _controllers[period];
-      if (controller != null && !controller.isClosed) {
+      if (controller != null &&
+          !controller.isClosed &&
+          controller.hasListener) {
         controller.add(getSummary(period));
       }
     }
@@ -326,9 +339,13 @@ class DefaultEnergyAnalyticsService implements EnergyAnalyticsService {
 
   @override
   void dispose() {
+    _samples.clear();
+    _deviceSamples.clear();
+    _deviceBreakdown.clear();
     for (final controller in _controllers.values) {
       controller.close();
     }
+    _controllers.clear();
   }
 }
 

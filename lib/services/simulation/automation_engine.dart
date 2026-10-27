@@ -57,6 +57,10 @@ class AutomationEngine {
 
   /// Recursion depth tracking
   int _recursionDepth = 0;
+  bool _isDisposed = false;
+
+  /// Whether the automation engine has been disposed.
+  bool get isDisposed => _isDisposed;
 
   List<AutomationRule> get rules => List.unmodifiable(_rules);
   List<ActivityEvent> get activityHistory =>
@@ -187,9 +191,14 @@ class AutomationEngine {
 
   void setRules(List<AutomationRule> rules) {
     _rules.clear();
+    final ruleIds = <String>{};
     for (final rule in rules) {
       addRule(rule, allowDuplicates: true);
+      ruleIds.add(rule.id);
     }
+    _lastExecutedScheduleMinute.removeWhere((k, _) => !ruleIds.contains(k));
+    _sensorActiveStates.removeWhere((k, _) => !ruleIds.contains(k));
+    _ruleTriggerTimestamps.removeWhere((k, _) => !ruleIds.contains(k));
   }
 
   /// Resets execution caches and hysteresis states.
@@ -630,8 +639,15 @@ class AutomationEngine {
   }
 
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
     _activityController.close();
     _commandController.close();
     _executionController.close();
+    _sensorActiveStates.clear();
+    _lastExecutedScheduleMinute.clear();
+    _ruleTriggerTimestamps.clear();
+    _activityHistory.clear();
+    _executionHistory.clear();
   }
 }

@@ -84,6 +84,9 @@ class CommandPipeline {
   Future<bool> cancelCommand(String requestId) async {
     if (_inFlight.containsKey(requestId)) {
       _cancelledRequestIds.add(requestId);
+      if (_cancelledRequestIds.length > maxHistoryEntries * 2) {
+        _cancelledRequestIds.remove(_cancelledRequestIds.first);
+      }
       final completer = _inFlight.remove(requestId)!;
       final command = _inFlightCommands.remove(requestId);
 
@@ -93,6 +96,9 @@ class CommandPipeline {
         errorMessage: 'Command cancelled',
       );
       _completedResults[requestId] = result;
+      if (_completedResults.length > maxHistoryEntries * 2) {
+        _completedResults.remove(_completedResults.keys.first);
+      }
 
       final record = CommandRecord(
         requestId: requestId,
@@ -396,6 +402,9 @@ class CommandPipeline {
     );
 
     _completedResults[command.requestId] = result;
+    if (_completedResults.length > maxHistoryEntries * 2) {
+      _completedResults.remove(_completedResults.keys.first);
+    }
     _inFlight.remove(command.requestId);
     _inFlightCommands.remove(command.requestId);
     _emitRecord(record);
@@ -435,6 +444,9 @@ class CommandPipeline {
     }
     _inFlight.clear();
     _inFlightCommands.clear();
+    _completedResults.clear();
+    _cancelledRequestIds.clear();
+    _commandHistory.clear();
     _recordController.close();
   }
 }

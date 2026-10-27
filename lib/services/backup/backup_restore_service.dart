@@ -71,7 +71,7 @@ class BackupRestoreService {
     final metadata = BackupMetadata(
       schemaVersion: backupSchemaVersion,
       exportedAt: DateTime.now(),
-      lumivoVersion: '0.6.0',
+      lumivoVersion: '1.0.0-rc.1',
       homeCount: sanitizedHomes.length,
       deviceCount: sanitizedDevices.length,
     );

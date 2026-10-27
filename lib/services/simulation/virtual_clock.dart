@@ -25,6 +25,9 @@ class VirtualClock {
   late final StreamController<DateTime> _tickController;
   bool _isDisposed = false;
 
+  /// Whether the clock has been disposed.
+  bool get isDisposed => _isDisposed;
+
   /// Current simulated virtual time.
   DateTime get now => _now;
 
