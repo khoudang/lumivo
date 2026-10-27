@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0-rc.1] - 2026-10-27 (Phase 10: Final Testing & Distribution Validation)
+
+### Added
+- **Phase 10 Release Validation Suite** (`test/unit/phase10_release_validation_test.dart`):
+  - Strict version check verifying exact `1.0.0-rc.1` across exported metadata and backup payloads.
+  - Memory-bounded buffer stress tests for `CommandPipeline`, `DefaultEnergyAnalyticsService`, and `HomePersistenceManager`.
+  - Process cold restart simulation verifying 100% state persistence across homes, rooms, devices, scenes, automations, and configurations.
+  - Simulation process lifecycle management (`SimulationLifecycleObserver`) with background suspension and deterministic virtual clock resynchronization.
+  - Comprehensive security audit covering recursive credential sanitization across 14+ key patterns and CWE-1236 CSV injection protection.
+  - Strict multi-home isolation validation preventing cross-boundary data leaks.
+  - 100% offline determinism guarantee with zero external network or socket dependencies.
+- **17 Critical User Journeys Final Acceptance Suite** (`test/widget/phase10_final_acceptance_test.dart`):
+  - End-to-end automated coverage for all 17 CUJs:
+    1. Welcome & Demo mode onboarding.
+    2. Multi-Home management & boundary isolation.
+    3. Room management & dynamic filtering.
+    4. Device discovery & BLE provisioning flow.
+    5. Comprehensive multi-type device controls (Light, AC, Lock, Socket).
+    6. Coordinated scene execution & timeline activity logging.
+    7. Automation rule evaluation & loop protection guard.
+    8. Offline simulation & reconnection storm recovery.
+    9. Energy telemetry breakdown & RFC-4180 CSV export.
+    10. Safe backup export with exact `1.0.0-rc.1` version and secret scrubbing.
+    11. Safe backup restore preview & atomic transactional rollback on corruption.
+    12. Recovery Center health diagnostics & snapshot restoration.
+    13. Privacy Center local storage audit & zero remote telemetry guarantee.
+    14. Bilingual localization parity across primary surfaces (EN/VI).
+    15. Accessibility compliance (WCAG 2.1 AA touch targets >= 48dp, Semantics & 2.0x font scaling).
+    16. Ultra-narrow mobile responsiveness (320x600 viewport across 8 primary screens).
+    17. App lifecycle transitions, bounded memory stability & cold restart persistence.
+- **Phase 10 Final QA Report & Release Documentation** (`docs/PHASE10_FINAL_REPORT.md`, `docs/FINAL_RELEASE_CHECKLIST.md`):
+  - Comprehensive release qualification sign-off covering all 614 automated tests (100% pass rate).
+  - Explicit platform release status matrix:
+    - Web Demo Release: **PASS** (100% offline, production build ready).
+    - Android Internal Beta: **BLOCKED** (Toolchain constraint: JDK 24 incompatibility + missing Android SDK cmdline-tools).
+    - iOS TestFlight Readiness: **BLOCKED** (Host environment constraint: requires macOS / Xcode toolchain).
+    - Public Stores (Google Play / App Store): **NOT SUBMITTED** (Pending beta resolution and portal provisioning).
+
+### Changed
+- Hardened all version matchers across the entire test suite to require exact `1.0.0-rc.1` matching.
+- Expanded total test coverage to 614 tests across unit, widget, service, and performance suites with zero failures and zero flakes.
+
+---
+
 ## [1.0.0-rc.1] - 2026-10-27 (Phase 9: Release Candidate & UX Freeze)
 
 ### Added
