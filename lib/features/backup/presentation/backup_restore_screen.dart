@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/models/automation_rule.dart';
 import '../../../core/models/backup_payload.dart';
+import '../../../core/models/home.dart';
 
 import '../../../core/models/room.dart';
 import '../../../core/models/smart_device.dart';
@@ -45,6 +46,34 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     final scenes = ref.read(scenesProvider);
     final automations = ref.read(automationRulesProvider);
 
+    final homesMap = {for (final h in effectiveHomes) h.id: h};
+    for (final d in devices) {
+      if (d.homeId.isNotEmpty && !homesMap.containsKey(d.homeId)) {
+        homesMap[d.homeId] = Home(
+          id: d.homeId,
+          name: d.homeId,
+          address: '',
+          role: 'Owner',
+          isCurrent: false,
+        );
+      }
+    }
+    final allHomes = homesMap.values.toList();
+
+    final roomsMap = {for (final r in rooms) r.id: r};
+    for (final d in devices) {
+      if (d.roomId.isNotEmpty && !roomsMap.containsKey(d.roomId)) {
+        roomsMap[d.roomId] = Room(
+          id: d.roomId,
+          name: d.roomId,
+          iconName: 'devices',
+          description: '',
+          homeId: d.homeId,
+        );
+      }
+    }
+    final allRooms = roomsMap.values.toList();
+
     final deviceIds = devices.map((d) => d.id).toSet();
     final consistentScenes = scenes.map((s) {
       final validActions =
@@ -78,12 +107,12 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       metadata: BackupMetadata(
         schemaVersion: 6,
         exportedAt: DateTime.now(),
-        lumivoVersion: '0.6.0',
-        homeCount: effectiveHomes.length,
+        lumivoVersion: '1.0.0-rc.1',
+        homeCount: allHomes.length,
         deviceCount: devices.length,
       ),
-      homes: effectiveHomes.map((h) => h.toJson()).toList(),
-      rooms: rooms.map((r) => r.toJson()).toList(),
+      homes: allHomes.map((h) => h.toJson()).toList(),
+      rooms: allRooms.map((r) => r.toJson()).toList(),
       devices: devices.map((d) => d.toJson()).toList(),
       scenes: consistentScenes.map((s) => s.toJson()).toList(),
       automations: consistentAutomations.map((a) => a.toJson()).toList(),
@@ -172,7 +201,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     try {
       final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
       final payload = BackupPayload.fromJson(decoded);
-      _showBackupPreview(payload);
+      _showBackupPreview(payload, jsonString);
     } catch (e) {
       setState(() {
         _validationErrorMessage = 'Malformed JSON payload: $e';
@@ -212,67 +241,82 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       );
   }
 
-  void _showBackupPreview(BackupPayload payload) {
+  void _showBackupPreview(BackupPayload payload, [String? jsonString]) {
+    final effectiveJson = jsonString ?? jsonEncode(payload.toJson());
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => BackupPreviewDialog(
         payload: payload,
-        onConfirmRestore: () {
-          _applyRestore(payload);
-          final l10n = ref.read(appLocalizationsProvider);
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(l10n.restoreSuccess),
-                backgroundColor: AppColors.green,
-              ),
-            );
+        onConfirmRestore: () async {
+          await _applyRestore(payload, jsonString: effectiveJson);
         },
       ),
     );
   }
 
-  void _applyRestore(BackupPayload payload) {
-    if (payload.rooms.isNotEmpty) {
-      final restoredRooms = payload.rooms.map((r) => Room.fromJson(r)).toList();
-      ref.read(roomsProvider.notifier).setRooms(restoredRooms);
-    }
+  Future<void> _applyRestore(
+    BackupPayload payload, {
+    String? jsonString,
+  }) async {
+    final effectiveJson = jsonString ?? jsonEncode(payload.toJson());
+    final persistenceManager = ref.read(homePersistenceProvider);
+    final restoreService = ref.read(backupRestoreServiceProvider);
 
-    if (payload.scenes.isNotEmpty) {
-      final restoredScenes =
-          payload.scenes.map((s) => Scene.fromJson(s)).toList();
-      ref.read(scenesProvider.notifier).setScenes(restoredScenes);
-    }
+    final success = await restoreService.restoreBackup(
+      jsonString: effectiveJson,
+      persistenceManager: persistenceManager,
+    );
 
-    if (payload.automations.isNotEmpty) {
-      final restoredRules =
-          payload.automations.map((a) => AutomationRule.fromJson(a)).toList();
-      for (final rule in restoredRules) {
-        ref.read(automationRulesProvider.notifier).addRule(rule);
+    final l10n = ref.read(appLocalizationsProvider);
+
+    if (success) {
+      final candidateState = persistenceManager.cachedState;
+      if (candidateState != null) {
+        final repo = ref.read(deviceRepositoryProvider);
+        if (repo is MockDeviceRepository) {
+          repo.replaceAllDevices(candidateState.devices);
+        }
+        await ref.read(roomsProvider.notifier).setRooms(candidateState.rooms);
+        ref.read(scenesProvider.notifier).setScenes(candidateState.scenes);
+        ref
+            .read(automationRulesProvider.notifier)
+            .setRules(candidateState.automations);
+        ref
+            .read(homesProvider.notifier)
+            .setHomes(candidateState.homes, candidateState.currentHomeId);
+        ref.read(homesProvider.notifier).switchHome(candidateState.currentHomeId);
+
+        ref
+            .read(userProfileProvider.notifier)
+            .updateProfile(candidateState.userProfile);
+
+        final activeConfig =
+            candidateState.dashboardConfigs[candidateState.currentHomeId];
+        if (activeConfig != null) {
+          ref.read(dashboardConfigProvider.notifier).setConfig(activeConfig);
+        }
       }
-    }
 
-    final repo = ref.read(deviceRepositoryProvider);
-    if (repo is MockDeviceRepository) {
-      for (final d in payload.devices) {
-        final dev = SmartDevice(
-          id: d['id'] as String,
-          name: d['name'] as String,
-          roomId: d['roomId'] as String? ?? 'Living Room',
-          type: DeviceType.values.firstWhere(
-            (e) => e.name == d['type'],
-            orElse: () => DeviceType.light,
-          ),
-          isOn: d['isOn'] as bool? ?? false,
-          brightness: d['brightness'] as int? ?? 100,
-          connection: DeviceConnection.values.firstWhere(
-            (e) => e.name == d['connection'],
-            orElse: () => DeviceConnection.online,
-          ),
-          isFavorite: d['isFavorite'] as bool? ?? false,
-        );
-        repo.updateDevice(dev);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(l10n.restoreSuccess),
+              backgroundColor: AppColors.green,
+            ),
+          );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(l10n.invalidBackupError),
+              backgroundColor: AppColors.danger,
+            ),
+          );
       }
     }
   }

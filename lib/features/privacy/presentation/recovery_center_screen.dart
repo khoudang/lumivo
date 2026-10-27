@@ -40,11 +40,7 @@ class _RecoveryCenterScreenState extends ConsumerState<RecoveryCenterScreen> {
 
     final repo = ref.read(deviceRepositoryProvider);
     if (repo is MockDeviceRepository) {
-      if (state.devices.isNotEmpty) {
-        for (final d in state.devices) {
-          repo.updateDevice(d);
-        }
-      }
+      repo.replaceAllDevices(state.devices);
     }
     if (state.rooms.isNotEmpty) {
       ref.read(roomsProvider.notifier).setRooms(state.rooms);
@@ -54,6 +50,10 @@ class _RecoveryCenterScreenState extends ConsumerState<RecoveryCenterScreen> {
     }
     if (state.automations.isNotEmpty) {
       ref.read(automationProvider.notifier).setRules(state.automations);
+    }
+    if (state.homes.isNotEmpty) {
+      ref.read(homesProvider.notifier).setHomes(state.homes, state.currentHomeId);
+      ref.read(homesProvider.notifier).switchHome(state.currentHomeId);
     }
 
     if (mounted) {
@@ -101,13 +101,13 @@ class _RecoveryCenterScreenState extends ConsumerState<RecoveryCenterScreen> {
       if (state != null) {
         final repo = ref.read(deviceRepositoryProvider);
         if (repo is MockDeviceRepository) {
-          for (final d in state.devices) {
-            repo.updateDevice(d);
-          }
+          repo.replaceAllDevices(state.devices);
         }
         ref.read(roomsProvider.notifier).setRooms(state.rooms);
         ref.read(scenesProvider.notifier).setScenes(state.scenes);
         ref.read(automationProvider.notifier).setRules(state.automations);
+        ref.read(homesProvider.notifier).setHomes(state.homes, state.currentHomeId);
+        ref.read(homesProvider.notifier).switchHome(state.currentHomeId);
       }
     }
 
