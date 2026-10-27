@@ -417,11 +417,12 @@ class BackupValidationService {
       final id = item['id'];
       if (id == null || id.toString().trim().isEmpty) {
         errors.add('Scene at index $i is missing required non-null "id".');
+      } else if (id is! String) {
+        errors.add('Scene ID must be a string, got ${id.runtimeType}.');
       } else {
-        final idStr = id.toString();
-        _checkStringLength('scene.id', idStr, errors);
-        if (!sceneIds.add(idStr)) {
-          errors.add('Duplicate scene ID found: $idStr');
+        _checkStringLength('scene.id', id, errors);
+        if (!sceneIds.add(id)) {
+          errors.add('Duplicate scene ID found: $id');
         }
       }
       final sceneId =
@@ -461,11 +462,12 @@ class BackupValidationService {
       final id = item['id'];
       if (id == null || id.toString().trim().isEmpty) {
         errors.add('Automation at index $i is missing required non-null "id".');
+      } else if (id is! String) {
+        errors.add('Automation ID must be a string, got ${id.runtimeType}.');
       } else {
-        final idStr = id.toString();
-        _checkStringLength('automation.id', idStr, errors);
-        if (!automationIds.add(idStr)) {
-          errors.add('Duplicate automation ID found: $idStr');
+        _checkStringLength('automation.id', id, errors);
+        if (!automationIds.add(id)) {
+          errors.add('Duplicate automation ID found: $id');
         }
       }
       final autoId =

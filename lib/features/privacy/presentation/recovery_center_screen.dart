@@ -55,6 +55,11 @@ class _RecoveryCenterScreenState extends ConsumerState<RecoveryCenterScreen> {
       ref.read(homesProvider.notifier).setHomes(state.homes, state.currentHomeId);
       ref.read(homesProvider.notifier).switchHome(state.currentHomeId);
     }
+    ref.read(userProfileProvider.notifier).updateProfile(state.userProfile);
+    final activeConfig = state.dashboardConfigs[state.currentHomeId];
+    if (activeConfig != null) {
+      ref.read(dashboardConfigProvider.notifier).setConfig(activeConfig);
+    }
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -108,6 +113,11 @@ class _RecoveryCenterScreenState extends ConsumerState<RecoveryCenterScreen> {
         ref.read(automationProvider.notifier).setRules(state.automations);
         ref.read(homesProvider.notifier).setHomes(state.homes, state.currentHomeId);
         ref.read(homesProvider.notifier).switchHome(state.currentHomeId);
+        ref.read(userProfileProvider.notifier).updateProfile(state.userProfile);
+        final activeConfig = state.dashboardConfigs[state.currentHomeId];
+        if (activeConfig != null) {
+          ref.read(dashboardConfigProvider.notifier).setConfig(activeConfig);
+        }
       }
     }
 

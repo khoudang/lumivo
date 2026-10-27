@@ -28,7 +28,9 @@ void main() {
       "schemaVersion": 6,
       "homes": [{"id": 123, "name": "Main Home"}],
       "rooms": [{"id": 456, "name": "Living", "homeId": "home-1"}],
-      "devices": [{"id": 789, "name": "Light", "roomId": "room-1"}]
+      "devices": [{"id": 789, "name": "Light", "roomId": "room-1"}],
+      "scenes": [{"id": 101, "name": "Night Mode"}],
+      "automations": [{"id": 202, "name": "Motion Sensor"}]
     }
     ''';
     final result = BackupValidationService.validate(payload);
@@ -36,6 +38,8 @@ void main() {
     expect(result.errors.any((e) => e.contains('Home ID must be a string')), isTrue);
     expect(result.errors.any((e) => e.contains('Room ID must be a string')), isTrue);
     expect(result.errors.any((e) => e.contains('Device ID must be a string')), isTrue);
+    expect(result.errors.any((e) => e.contains('Scene ID must be a string')), isTrue);
+    expect(result.errors.any((e) => e.contains('Automation ID must be a string')), isTrue);
   });
 
   test('Referential integrity: device home and room home mismatch', () {

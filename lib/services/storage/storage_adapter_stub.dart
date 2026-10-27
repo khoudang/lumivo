@@ -3,6 +3,10 @@ import 'dart:io';
 import 'storage_adapter.dart';
 
 String resolveAppStoragePath() {
+  final customDir = Platform.environment['LUMIVO_STORAGE_DIR'];
+  if (customDir != null && customDir.isNotEmpty) {
+    return customDir;
+  }
   if (Platform.isWindows) {
     final appData =
         Platform.environment['APPDATA'] ?? Platform.environment['LOCALAPPDATA'];
@@ -23,6 +27,15 @@ String resolveAppStoragePath() {
     if (home != null && home.isNotEmpty) {
       return '$home/.local/share/lumivo/storage';
     }
+  } else if (Platform.isAndroid) {
+    final androidData = Platform.environment['ANDROID_DATA'] ?? '/data';
+    return '$androidData/data/com.lumivo.app/files/storage';
+  } else if (Platform.isIOS) {
+    final home = Platform.environment['HOME'];
+    if (home != null && home.isNotEmpty) {
+      return '$home/Library/Application Support/Lumivo/storage';
+    }
+    return '/var/mobile/Containers/Data/Application/Lumivo/storage';
   }
   final fallbackUser =
       Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? '.';
