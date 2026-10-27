@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'storage_adapter.dart';
-import 'storage_adapter_stub.dart';
 import 'storage_exceptions.dart';
 
 /// Simple asynchronous FIFO lock for in-process key serialization.
@@ -34,7 +33,9 @@ class _AsyncLock {
 /// in-process mutex synchronization, explicit error reporting, and selective cleanup.
 class DurableStorageBackend implements StorageAdapter {
   DurableStorageBackend({String? storagePath})
-      : _storagePath = storagePath ?? resolveAppStoragePath();
+      : _storagePath = storagePath ??
+            Platform.environment['LUMIVO_STORAGE_DIR'] ??
+            '.lumivo/storage';
 
   final String _storagePath;
 
