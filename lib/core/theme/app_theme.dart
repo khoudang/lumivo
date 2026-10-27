@@ -112,6 +112,30 @@ abstract final class AppShadows {
   ];
 }
 
+/// Spacing tokens for consistent padding and margins across Lumivo
+abstract final class AppSpacing {
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 16.0;
+  static const double lg = 24.0;
+  static const double xl = 32.0;
+}
+
+/// Corner radius tokens for uniform container geometry
+abstract final class AppRadii {
+  static const double sm = 8.0;
+  static const double md = 12.0;
+  static const double lg = 16.0;
+  static const double card = 22.0;
+  static const double dialog = 24.0;
+  static const double sheet = 28.0;
+}
+
+/// Touch target accessibility minimums (WCAG 2.1 AA >= 48x48pt)
+abstract final class AppTouchTargets {
+  static const double min = 48.0;
+}
+
 abstract final class AppTheme {
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
@@ -148,7 +172,7 @@ abstract final class AppTheme {
           elevation: 0,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppRadii.card),
             side: const BorderSide(
               color: AppColors.surfaceBorder,
               width: 1,
@@ -198,10 +222,11 @@ abstract final class AppTheme {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            minimumSize: const Size(0, AppTouchTargets.min),
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -214,6 +239,7 @@ abstract final class AppTheme {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, AppTouchTargets.min),
             foregroundColor: AppColors.textPrimary,
             side: const BorderSide(color: AppColors.surfaceBorder),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -226,13 +252,29 @@ abstract final class AppTheme {
             ),
           ),
         ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(AppTouchTargets.min, AppTouchTargets.min),
+            foregroundColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            minimumSize: const Size(AppTouchTargets.min, AppTouchTargets.min),
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
         bottomSheetTheme: const BottomSheetThemeData(
           backgroundColor: AppColors.surface,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           modalBarrierColor: Color(0xBF000000),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(AppRadii.sheet)),
           ),
         ),
         dialogTheme: DialogThemeData(
@@ -240,7 +282,7 @@ abstract final class AppTheme {
           surfaceTintColor: Colors.transparent,
           elevation: 12,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppRadii.dialog),
             side: const BorderSide(color: AppColors.surfaceBorder),
           ),
         ),

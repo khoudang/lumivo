@@ -179,7 +179,7 @@ class _AutomationBuilderWizardState
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Automation "$name" created successfully!'),
+        content: Text(l10n.ruleCreated(name)),
         backgroundColor: AppColors.green,
       ),
     );
@@ -665,6 +665,7 @@ class _AutomationBuilderWizardState
   }
 
   Widget _buildScheduleTriggerControls() {
+    final l10n = ref.read(appLocalizationsProvider);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -701,9 +702,9 @@ class _AutomationBuilderWizardState
                 setState(() => _selectedTime = picked);
               }
             },
-            child: const FittedBox(
+            child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text('Change'),
+              child: Text(l10n.change),
             ),
           ),
         ],
@@ -712,6 +713,7 @@ class _AutomationBuilderWizardState
   }
 
   Widget _buildIfConditionControls() {
+    final l10n = ref.read(appLocalizationsProvider);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -724,9 +726,9 @@ class _AutomationBuilderWizardState
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Enable Condition Check',
+                  l10n.enableConditionCheck,
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary),
@@ -818,6 +820,7 @@ class _AutomationBuilderWizardState
   }
 
   Widget _buildThenActionControls(List<SmartDevice> devices) {
+    final l10n = ref.read(appLocalizationsProvider);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -831,7 +834,7 @@ class _AutomationBuilderWizardState
           // Command selector
           Row(
             children: [
-              const Text('Action:',
+              Text(l10n.actionLabel,
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary)),
@@ -843,16 +846,16 @@ class _AutomationBuilderWizardState
                     isExpanded: true,
                     value: _actionCommand,
                     dropdownColor: AppColors.surfaceElevated,
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                           value: DeviceCommandType.setPower,
-                          child: Text('Power (ON/OFF)')),
+                          child: Text(l10n.powerAction)),
                       DropdownMenuItem(
                           value: DeviceCommandType.setBrightness,
-                          child: Text('Set Brightness')),
+                          child: Text(l10n.setBrightnessAction)),
                       DropdownMenuItem(
                           value: DeviceCommandType.setTargetTemperature,
-                          child: Text('Set Temperature')),
+                          child: Text(l10n.setTempAction)),
                     ],
                     onChanged: (v) => setState(
                         () => _actionCommand = v ?? DeviceCommandType.setPower),
@@ -868,13 +871,13 @@ class _AutomationBuilderWizardState
             Row(
               children: [
                 ChoiceChip(
-                  label: const Text('Turn ON'),
+                  label: Text(l10n.turnOn),
                   selected: _actionPower,
                   onSelected: (s) => setState(() => _actionPower = true),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: const Text('Turn OFF'),
+                  label: Text(l10n.turnOff),
                   selected: !_actionPower,
                   onSelected: (s) => setState(() => _actionPower = false),
                 ),
@@ -917,7 +920,7 @@ class _AutomationBuilderWizardState
           const Divider(color: AppColors.surfaceBorder, height: 20),
 
           // Multi-device target picker
-          const Text('Target Devices:',
+          Text(l10n.targetDevicesLabel,
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

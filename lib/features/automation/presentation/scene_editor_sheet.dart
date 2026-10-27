@@ -72,13 +72,14 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
   }
 
   void _showAddActionDialog() {
+    final l10n = ref.read(appLocalizationsProvider);
     final devicesAsync = ref.read(devicesProvider);
     final devices = devicesAsync.valueOrNull ?? [];
 
     if (devices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No devices available to add to scene.'),
+        SnackBar(
+          content: Text(l10n.noDevicesAvailableScene),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -104,7 +105,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
               borderRadius: BorderRadius.circular(20),
               side: const BorderSide(color: AppColors.surfaceBorder),
             ),
-            title: const Row(
+            title: Row(
               children: [
                 Icon(Icons.add_task_rounded,
                     color: AppColors.primary, size: 22),
@@ -375,7 +376,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogCtx).pop(),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 key: const Key('confirm_add_action_button'),
@@ -397,7 +398,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
                   });
                   Navigator.of(dialogCtx).pop();
                 },
-                child: const Text('Add Action'),
+                child: Text(l10n.addAction),
               ),
             ],
           );
@@ -407,11 +408,12 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
   }
 
   void _saveScene() {
+    final l10n = ref.read(appLocalizationsProvider);
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a scene name.'),
+        SnackBar(
+          content: Text(l10n.pleaseEnterSceneName),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -437,7 +439,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Scene "$name" saved successfully!'),
+        content: Text(l10n.sceneSaved(name)),
         backgroundColor: AppColors.green,
       ),
     );
@@ -445,6 +447,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
 
   void _deleteScene() {
     if (widget.initialScene == null) return;
+    final l10n = ref.read(appLocalizationsProvider);
 
     showDialog<void>(
       context: context,
@@ -454,13 +457,13 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.surfaceBorder),
         ),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.warning_amber_rounded,
                 color: AppColors.danger, size: 24),
             SizedBox(width: 8),
             Text(
-              'Delete Scene?',
+              l10n.confirmDeleteSceneTitle,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -476,7 +479,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             key: const Key('confirm_delete_scene_button'),
@@ -495,7 +498,7 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
               Navigator.of(dialogCtx).pop(); // Close dialog
               Navigator.of(context).pop(); // Close sheet
             },
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -699,32 +702,42 @@ class _SceneEditorSheetState extends ConsumerState<SceneEditorSheet> {
               // Multi-Device Actions Section
               Row(
                 children: [
-                  const Text(
-                    'Device Actions',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Flexible(
+                          child: Text(
+                            'Device Actions',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${_actions.length}',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${_actions.length}',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
                   TextButton.icon(
                     key: const Key('scene_editor_add_action_button'),
                     icon: const Icon(Icons.add_rounded,

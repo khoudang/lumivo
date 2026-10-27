@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/home.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class HomeSelectorSheet extends ConsumerWidget {
   const HomeSelectorSheet({super.key});
@@ -17,6 +18,8 @@ class HomeSelectorSheet extends ConsumerWidget {
   }
 
   void _showAddHomeDialog(BuildContext context, WidgetRef ref) {
+    final l10n =
+        AppLocalizations.of(context) ?? AppLocalizations.fromLanguageCode('en');
     final nameCtrl = TextEditingController();
     final addressCtrl = TextEditingController();
     final tariffCtrl = TextEditingController(text: '0.16');
@@ -31,7 +34,7 @@ class HomeSelectorSheet extends ConsumerWidget {
             borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: AppColors.surfaceBorder),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.add_home_rounded, color: AppColors.primary, size: 24),
               SizedBox(width: 10),
@@ -142,7 +145,7 @@ class HomeSelectorSheet extends ConsumerWidget {
                 Row(
                   children: [
                     ChoiceChip(
-                      label: const Text('Owner'),
+                      label: Text(l10n.owner),
                       selected: selectedRole == 'Owner',
                       selectedColor: AppColors.primary.withValues(alpha: 0.25),
                       backgroundColor: AppColors.surfaceElevated,
@@ -158,7 +161,7 @@ class HomeSelectorSheet extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     ChoiceChip(
-                      label: const Text('Member'),
+                      label: Text(l10n.member),
                       selected: selectedRole == 'Member',
                       selectedColor: AppColors.primary.withValues(alpha: 0.25),
                       backgroundColor: AppColors.surfaceElevated,
@@ -180,7 +183,7 @@ class HomeSelectorSheet extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               key: const Key('confirm_add_home_button'),
@@ -211,12 +214,12 @@ class HomeSelectorSheet extends ConsumerWidget {
                 Navigator.of(dialogCtx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Home "$name" added successfully!'),
+                    content: Text(l10n.homeAdded(name)),
                     backgroundColor: AppColors.green,
                   ),
                 );
               },
-              child: const Text('Add Home'),
+              child: Text(l10n.addNewHome),
             ),
           ],
         ),
@@ -225,6 +228,8 @@ class HomeSelectorSheet extends ConsumerWidget {
   }
 
   void _showEditHomeDialog(BuildContext context, WidgetRef ref, Home home) {
+    final l10n =
+        AppLocalizations.of(context) ?? AppLocalizations.fromLanguageCode('en');
     final nameCtrl = TextEditingController(text: home.name);
     final addressCtrl = TextEditingController(text: home.address);
     final tariffCtrl = TextEditingController(text: home.tariffRate.toString());
@@ -239,7 +244,7 @@ class HomeSelectorSheet extends ConsumerWidget {
             borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: AppColors.surfaceBorder),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.edit_rounded, color: AppColors.primary, size: 24),
               SizedBox(width: 10),
@@ -331,7 +336,7 @@ class HomeSelectorSheet extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               key: const Key('confirm_edit_home_button'),
@@ -360,7 +365,7 @@ class HomeSelectorSheet extends ConsumerWidget {
                 ref.read(homesProvider.notifier).updateHome(updated);
                 Navigator.of(dialogCtx).pop();
               },
-              child: const Text('Save'),
+              child: Text(l10n.save),
             ),
           ],
         ),
@@ -370,6 +375,8 @@ class HomeSelectorSheet extends ConsumerWidget {
 
   void _showDeleteHomeConfirmation(
       BuildContext context, WidgetRef ref, Home home) {
+    final l10n =
+        AppLocalizations.of(context) ?? AppLocalizations.fromLanguageCode('en');
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -378,13 +385,13 @@ class HomeSelectorSheet extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.surfaceBorder),
         ),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.warning_amber_rounded,
                 color: AppColors.danger, size: 24),
             SizedBox(width: 10),
             Text(
-              'Delete Home?',
+              l10n.deleteHome,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -400,7 +407,7 @@ class HomeSelectorSheet extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             key: Key('confirm_delete_home_${home.id}'),
@@ -416,12 +423,12 @@ class HomeSelectorSheet extends ConsumerWidget {
               Navigator.of(dialogCtx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Home "${home.name}" deleted.'),
+                  content: Text(l10n.homeDeleted(home.name)),
                   backgroundColor: AppColors.danger,
                 ),
               );
             },
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

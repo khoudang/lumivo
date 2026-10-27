@@ -29,13 +29,14 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   };
 
   void _showAddRoomDialog([AppLocalizations? l10n]) {
+    final AppLocalizations loc = (l10n ?? ref.read(appLocalizationsProvider))!;
     final nameController = TextEditingController();
     String selectedIcon = 'living_room';
-    final titleText = l10n?.addNewRoom ?? 'Add New Room';
-    final nameLabel = l10n?.roomName ?? 'Room Name';
-    final cancelLabel = l10n?.cancel ?? 'Cancel';
+    final titleText = loc.addNewRoom;
+    final nameLabel = loc.roomName;
+    final cancelLabel = loc.cancel;
     final addLabel =
-        l10n?.locale.languageCode == 'vi' ? 'Thêm phòng' : 'Add Room';
+        loc.locale.languageCode == 'vi' ? 'Thêm phòng' : 'Add Room';
 
     showDialog<void>(
       context: context,
@@ -88,7 +89,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    l10n?.selectRoomIcon ?? 'Select Room Icon',
+                    loc.selectRoomIcon,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -176,7 +177,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                     Navigator.of(dialogCtx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Room "$name" added'),
+                        content: Text(loc.roomAdded(name)),
                         backgroundColor: AppColors.green,
                       ),
                     );
@@ -233,6 +234,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   }
 
   void _openRoomDevices(Room room, List<SmartDevice> devices) {
+    final l10n = ref.read(appLocalizationsProvider);
     final roomName = room.name;
     if (widget.onRoomSelected != null) {
       widget.onRoomSelected!(roomName);
@@ -361,7 +363,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                                         ),
                                       ),
                                       Text(
-                                        dev.isOn ? 'Active' : 'Off',
+                                        dev.isOn ? l10n.active : l10n.off,
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: AppColors.muted,
@@ -459,9 +461,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                             key: const Key('add_room_button'),
                             onPressed: () => _showAddRoomDialog(l10n),
                             icon: const Icon(Icons.add_rounded, size: 20),
-                            label: Text(l10n.locale.languageCode == 'vi'
-                                ? 'Thêm phòng'
-                                : 'Add Room'),
+                            label: Text(l10n.addRoom),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -485,35 +485,67 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                   screenWidth > 600 ? 32 : 20,
                   28,
                 ),
-                sliver: SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: crossAxisCount == 1 ? 2.2 : 1.35,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final room = rooms[index];
-                      final roomDevices =
-                          devices.where((d) => d.roomId == room.name).toList();
-                      final totalCount = roomDevices.length;
-                      final activeCount =
-                          roomDevices.where((d) => d.isOn).length;
-                      final iconData = roomIconMap[room.iconName]?.$1 ??
-                          Icons.weekend_rounded;
+                sliver: rooms.isEmpty
+                    ? SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 48,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.meeting_room_outlined,
+                                  size: 56,
+                                  color: AppColors.muted.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  l10n.noRooms,
+                                  key: const Key('rooms_empty_state_text'),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: crossAxisCount == 1 ? 2.2 : 1.35,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final room = rooms[index];
+                            final roomDevices = devices
+                                .where((d) => d.roomId == room.name)
+                                .toList();
+                            final totalCount = roomDevices.length;
+                            final activeCount =
+                                roomDevices.where((d) => d.isOn).length;
+                            final iconData = roomIconMap[room.iconName]?.$1 ??
+                                Icons.weekend_rounded;
 
-                      return _RoomCard(
-                        room: room,
-                        iconData: iconData,
-                        totalDevices: totalCount,
-                        activeDevices: activeCount,
-                        onTap: () => _openRoomDevices(room, devices),
-                      );
-                    },
-                    childCount: rooms.length,
-                  ),
-                ),
+                            return _RoomCard(
+                              room: room,
+                              iconData: iconData,
+                              totalDevices: totalCount,
+                              activeDevices: activeCount,
+                              onTap: () => _openRoomDevices(room, devices),
+                            );
+                          },
+                          childCount: rooms.length,
+                        ),
+                      ),
               ),
             ],
           ),

@@ -37,8 +37,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Text(l10n != null ? '${l10n.resetDemoData}?' : 'Reset Demo Data?'),
           ],
         ),
-        content: const Text(
-          'This will revert all devices, rooms, automations, activity logs and notifications to their initial factory demo states.',
+        content: Text(
+          l10n?.resetDemoDesc ??
+              'This will revert all devices, rooms, automations, activity logs and notifications to their initial factory demo states.',
           style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
@@ -63,8 +64,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Navigator.of(dialogCtx).pop();
 
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Demo environment reset to factory defaults'),
+                SnackBar(
+                  content: Text(l10n?.factoryResetDone ??
+                      'Demo environment reset to factory defaults'),
                   backgroundColor: AppColors.green,
                 ),
               );
@@ -612,12 +614,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 Icon(icon, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -636,10 +640,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
           ),
+          const SizedBox(width: 8),
           Text(
             value,
             style: const TextStyle(

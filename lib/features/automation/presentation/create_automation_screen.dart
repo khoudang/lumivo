@@ -43,6 +43,7 @@ class _CreateAutomationScreenState
   }
 
   void _saveRule() {
+    final l10n = ref.read(appLocalizationsProvider);
     if (!_formKey.currentState!.validate()) return;
 
     final targetId = _selectedDeviceId ?? 'light-1';
@@ -94,7 +95,7 @@ class _CreateAutomationScreenState
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Rule "${newRule.name}" created successfully!'),
+        content: Text(l10n.ruleCreated(newRule.name)),
         backgroundColor: AppColors.green,
       ),
     );
@@ -102,6 +103,7 @@ class _CreateAutomationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final devicesAsync = ref.watch(devicesProvider);
     final devices = devicesAsync.valueOrNull ?? const [];
 
@@ -112,7 +114,7 @@ class _CreateAutomationScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('New Automation Rule'),
+        title: Text(l10n.newAutomationRule),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
@@ -125,7 +127,7 @@ class _CreateAutomationScreenState
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
               // Step 1: Rule Name
-              _buildSectionHeader('1', 'Rule Details'),
+              _buildSectionHeader('1', l10n.ruleDetails),
               const SizedBox(height: 12),
               TextFormField(
                 key: const Key('automation_name_input'),
@@ -190,7 +192,7 @@ class _CreateAutomationScreenState
                 key: const Key('save_automation_button'),
                 onPressed: _saveRule,
                 icon: const Icon(Icons.check_rounded),
-                label: const Text('Save Automation Rule'),
+                label: Text(l10n.saveAutomationRule),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -227,12 +229,14 @@ class _CreateAutomationScreenState
           ),
         ),
         const SizedBox(width: 10),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],
@@ -310,12 +314,14 @@ class _CreateAutomationScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Trigger Time',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Trigger Time',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               InkWell(
@@ -370,41 +376,48 @@ class _CreateAutomationScreenState
             children: List.generate(7, (index) {
               final dayIndex = index + 1;
               final isSelected = _selectedDays.contains(dayIndex);
-              return InkWell(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      if (_selectedDays.length > 1) {
-                        _selectedDays.remove(dayIndex);
-                      }
-                    } else {
-                      _selectedDays.add(dayIndex);
-                    }
-                  });
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.surfaceElevated,
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          if (_selectedDays.length > 1) {
+                            _selectedDays.remove(dayIndex);
+                          }
+                        } else {
+                          _selectedDays.add(dayIndex);
+                        }
+                      });
+                    },
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.surfaceBorder,
-                    ),
-                  ),
-                  child: Text(
-                    dayNames[index],
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : AppColors.muted,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      height: 38,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.surfaceBorder,
+                        ),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          dayNames[index],
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected ? Colors.white : AppColors.muted,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -516,6 +529,7 @@ class _CreateAutomationScreenState
   }
 
   Widget _buildActionConfig(List<dynamic> devices) {
+    final l10n = ref.read(appLocalizationsProvider);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -545,26 +559,26 @@ class _CreateAutomationScreenState
             initialValue: _selectedCommand,
             dropdownColor: AppColors.surfaceElevated,
             decoration: const InputDecoration(labelText: 'Command'),
-            items: const [
+            items: [
               DropdownMenuItem(
                 value: DeviceCommandType.setPower,
-                child: Text('Turn Power On / Off'),
+                child: Text(l10n.commandTurnPower),
               ),
               DropdownMenuItem(
                 value: DeviceCommandType.setTargetTemperature,
-                child: Text('Set Target Temperature'),
+                child: Text(l10n.commandSetTemp),
               ),
               DropdownMenuItem(
                 value: DeviceCommandType.setBrightness,
-                child: Text('Set Brightness (80%)'),
+                child: Text(l10n.commandSetBrightness),
               ),
               DropdownMenuItem(
                 value: DeviceCommandType.setPosition,
-                child: Text('Open Curtain (100%)'),
+                child: Text(l10n.commandOpenCurtain),
               ),
               DropdownMenuItem(
                 value: DeviceCommandType.setLock,
-                child: Text('Engage Lock'),
+                child: Text(l10n.commandEngageLock),
               ),
             ],
             onChanged: (val) {
