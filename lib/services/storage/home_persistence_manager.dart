@@ -206,8 +206,10 @@ class HomeState {
 }
 
 class HomePersistenceManager {
-  HomePersistenceManager({StorageAdapter? storage})
-      : _storage = storage ?? StorageAdapterFactory.create();
+  HomePersistenceManager({StorageAdapter? storage, HomeState? initialState})
+      : _storage = storage ?? StorageAdapterFactory.create() {
+    _cachedState = initialState ?? createDemoState();
+  }
 
   final StorageAdapter _storage;
   static const int schemaVersion = 6;
@@ -745,10 +747,10 @@ class HomePersistenceManager {
 
   Future<void> saveHomeState([HomeState? state]) async {
     final toSave = state ?? _cachedState ?? createDemoState();
-    _cachedState = toSave;
     final jsonStr = jsonEncode(toSave.toJson());
     try {
       await _storage.setString(storageKey, jsonStr);
+      _cachedState = toSave;
       await saveSnapshotBackup(toSave);
     } catch (e) {
       final errStr = e.toString().toLowerCase();
@@ -760,9 +762,9 @@ class HomePersistenceManager {
           automationRecords: toSave.automationRecords.take(10).toList(),
           notifications: toSave.notifications.take(10).toList(),
         );
-        _cachedState = pruned;
         final prunedJson = jsonEncode(pruned.toJson());
         await _storage.setString(storageKey, prunedJson);
+        _cachedState = pruned;
         await saveSnapshotBackup(pruned);
       } else {
         rethrow;
