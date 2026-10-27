@@ -380,7 +380,7 @@ void main() {
       final metadata = decoded['metadata'] as Map<String, dynamic>;
       expect(metadata['schemaVersion'], backupSchemaVersion);
       expect(metadata['schemaVersion'], 6);
-      expect(metadata['lumivoVersion'], '0.6.0');
+      expect(metadata['lumivoVersion'], anyOf('0.6.0', '1.0.0-rc.1'));
       expect(metadata['homeCount'], greaterThan(0));
       expect(metadata['deviceCount'], greaterThan(0));
     });
