@@ -14,9 +14,7 @@ class StorageAdapterImpl implements StorageAdapter {
 
   @override
   Future<void> setString(String key, String value) async {
-    try {
-      html.window.localStorage[key] = value;
-    } catch (_) {}
+    html.window.localStorage[key] = value;
   }
 
   @override
