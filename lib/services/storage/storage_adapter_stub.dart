@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
+import 'durable_storage_backend.dart';
 import 'platform_storage_resolver.dart';
 import 'storage_adapter.dart';
 import 'storage_exceptions.dart';
@@ -24,6 +22,16 @@ class DurableStorageAdapter implements StorageAdapter {
 
   final String? _storagePath;
   String? _resolvedPath;
+  DurableStorageBackend? _backend;
+
+  Future<DurableStorageBackend> _getBackend() async {
+    final existing = _backend;
+    if (existing != null) return existing;
+    final path = await _getPath();
+    final backend = DurableStorageBackend(storagePath: path);
+    _backend = backend;
+    return backend;
+  }
 
   Future<String> _getPath() async {
     final configured = _storagePath;
@@ -44,86 +52,28 @@ class DurableStorageAdapter implements StorageAdapter {
     return asyncResolved;
   }
 
-  String _keyToFileName(String key) {
-    final bytes = utf8.encode(key);
-    final encoded = base64Url.encode(bytes).replaceAll('=', '');
-    return '$encoded.val';
-  }
-
   @override
   Future<String?> getString(String key) async {
-    final storagePath = await _getPath();
-    final file = File('$storagePath/${_keyToFileName(key)}');
-    if (!file.existsSync()) {
-      return null;
-    }
-    try {
-      return file.readAsStringSync();
-    } catch (_) {
-      return null;
-    }
+    final backend = await _getBackend();
+    return backend.getString(key);
   }
 
   @override
   Future<void> setString(String key, String value) async {
-    final storagePath = await _getPath();
-    final dir = Directory(storagePath);
-    if (!dir.existsSync()) {
-      dir.createSync(recursive: true);
-    }
-    final targetPath = '$storagePath/${_keyToFileName(key)}';
-    final tmpPath =
-        '$storagePath/${_keyToFileName(key)}.${DateTime.now().microsecondsSinceEpoch}.tmp';
-    final tmpFile = File(tmpPath);
-    tmpFile.writeAsStringSync(value, flush: true);
-    try {
-      tmpFile.renameSync(targetPath);
-    } catch (_) {
-      try {
-        final targetFile = File(targetPath);
-        if (targetFile.existsSync()) {
-          targetFile.deleteSync();
-        }
-      } catch (_) {}
-      try {
-        tmpFile.renameSync(targetPath);
-      } catch (_) {
-        File(targetPath).writeAsStringSync(value, flush: true);
-        try {
-          if (tmpFile.existsSync()) {
-            tmpFile.deleteSync();
-          }
-        } catch (_) {}
-      }
-    }
+    final backend = await _getBackend();
+    return backend.setString(key, value);
   }
 
   @override
   Future<void> remove(String key) async {
-    final storagePath = await _getPath();
-    final file = File('$storagePath/${_keyToFileName(key)}');
-    try {
-      if (file.existsSync()) {
-        file.deleteSync();
-      }
-    } catch (_) {}
+    final backend = await _getBackend();
+    return backend.remove(key);
   }
 
   @override
   Future<void> clear() async {
-    final storagePath = await _getPath();
-    final dir = Directory(storagePath);
-    if (dir.existsSync()) {
-      try {
-        for (final entity in dir.listSync()) {
-          if (entity is File) {
-            try {
-              entity.deleteSync();
-            } catch (_) {}
-          }
-        }
-      } catch (_) {}
-    }
+    final backend = await _getBackend();
+    return backend.clear();
   }
 }
 
