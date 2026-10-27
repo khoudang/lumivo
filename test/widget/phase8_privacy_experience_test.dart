@@ -10,6 +10,7 @@ import 'package:lumivo/features/privacy/presentation/privacy_center_screen.dart'
 import 'package:lumivo/features/privacy/presentation/recovery_center_screen.dart';
 import 'package:lumivo/features/settings/presentation/settings_screen.dart';
 import 'package:lumivo/services/mock/mock_device_repository.dart';
+import 'package:lumivo/services/storage/storage_adapter_stub.dart';
 
 void main() {
   group('Phase 8 Privacy, Recovery & Enhanced Backup Experience Test Suite',
@@ -53,6 +54,8 @@ void main() {
       return ProviderScope(
         overrides: [
           deviceRepositoryProvider.overrideWithValue(repository),
+          homePersistenceProvider.overrideWith(
+              (ref) => HomePersistenceManager(storage: StorageAdapterImpl())),
           userProfileProvider.overrideWith((ref) => UserProfileNotifier(
                 UserProfile(language: locale.languageCode),
               )),
