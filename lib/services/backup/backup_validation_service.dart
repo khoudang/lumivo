@@ -124,7 +124,14 @@ class BackupValidationService {
     final metadata = decoded['metadata'];
     if (metadata is Map) {
       final v = metadata['schemaVersion'];
-      if (v is int) schemaVersion = v;
+      if (v != null) {
+        if (v is int) {
+          schemaVersion = v;
+        } else {
+          errors.add(
+              'Field "schemaVersion" must be an integer, got: ${v.runtimeType}.');
+        }
+      }
       if (metadata['exportedAt'] != null) {
         final expStr = metadata['exportedAt'].toString();
         if (DateTime.tryParse(expStr) == null) {
@@ -133,7 +140,15 @@ class BackupValidationService {
         }
       }
     }
-    schemaVersion ??= decoded['schemaVersion'] as int?;
+    final topVer = decoded['schemaVersion'];
+    if (topVer != null) {
+      if (topVer is int) {
+        schemaVersion ??= topVer;
+      } else {
+        errors.add(
+            'Field "schemaVersion" must be an integer, got: ${topVer.runtimeType}.');
+      }
+    }
 
     if (schemaVersion == null) {
       errors.add('Missing schemaVersion in metadata.');
@@ -215,11 +230,12 @@ class BackupValidationService {
       final id = item['id'];
       if (id == null || id.toString().trim().isEmpty) {
         errors.add('Home at index $i is missing required non-null "id".');
+      } else if (id is! String) {
+        errors.add('Home ID must be a string, got ${id.runtimeType}.');
       } else {
-        final idStr = id.toString();
-        _checkStringLength('home.id', idStr, errors);
-        if (!homeIds.add(idStr)) {
-          errors.add('Duplicate home ID found: $idStr');
+        _checkStringLength('home.id', id, errors);
+        if (!homeIds.add(id)) {
+          errors.add('Duplicate home ID found: $id');
         }
       }
       final name = item['name'];
@@ -232,6 +248,7 @@ class BackupValidationService {
 
     // 10. Rooms validation & unique IDs
     final roomIds = <String>{};
+    final roomHomeMap = <String, String>{};
     for (int i = 0; i < roomList.length; i++) {
       final item = roomList[i];
       if (item is! Map) {
@@ -241,11 +258,12 @@ class BackupValidationService {
       final id = item['id'];
       if (id == null || id.toString().trim().isEmpty) {
         errors.add('Room at index $i is missing required non-null "id".');
+      } else if (id is! String) {
+        errors.add('Room ID must be a string, got ${id.runtimeType}.');
       } else {
-        final idStr = id.toString();
-        _checkStringLength('room.id', idStr, errors);
-        if (!roomIds.add(idStr)) {
-          errors.add('Duplicate room ID found: $idStr');
+        _checkStringLength('room.id', id, errors);
+        if (!roomIds.add(id)) {
+          errors.add('Duplicate room ID found: $id');
         }
       }
       final name = item['name'];
@@ -255,9 +273,12 @@ class BackupValidationService {
         _checkStringLength('room.name', name.toString(), errors);
       }
       // Check homeId reference if homes are defined
-      if (item['homeId'] != null && homeIds.isNotEmpty) {
+      if (item['homeId'] != null) {
         final hId = item['homeId'].toString();
-        if (!homeIds.contains(hId)) {
+        if (id is String) {
+          roomHomeMap[id] = hId;
+        }
+        if (homeIds.isNotEmpty && !homeIds.contains(hId)) {
           errors.add(
               'Room "${item['id'] ?? i}" references non-existent home: $hId');
         }
@@ -266,6 +287,7 @@ class BackupValidationService {
 
     // 11. Devices validation, unique IDs, numeric bounds, string lengths
     final deviceIds = <String>{};
+    final deviceHomeMap = <String, String>{};
     for (int i = 0; i < deviceList.length; i++) {
       final item = deviceList[i];
       if (item is! Map) {
@@ -275,11 +297,12 @@ class BackupValidationService {
       final id = item['id'];
       if (id == null || id.toString().trim().isEmpty) {
         errors.add('Device at index $i is missing required non-null "id".');
+      } else if (id is! String) {
+        errors.add('Device ID must be a string, got ${id.runtimeType}.');
       } else {
-        final idStr = id.toString();
-        _checkStringLength('device.id', idStr, errors);
-        if (!deviceIds.add(idStr)) {
-          errors.add('Duplicate device ID found: $idStr');
+        _checkStringLength('device.id', id, errors);
+        if (!deviceIds.add(id)) {
+          errors.add('Duplicate device ID found: $id');
         }
       }
       final devId = item['id']?.toString() ?? 'index-$i';
@@ -304,10 +327,25 @@ class BackupValidationService {
       }
 
       // Referential integrity: home reference
-      if (item['homeId'] != null && homeIds.isNotEmpty) {
+      if (item['homeId'] != null) {
         final hId = item['homeId'].toString();
-        if (!homeIds.contains(hId)) {
+        if (id is String) {
+          deviceHomeMap[id] = hId;
+        }
+        if (homeIds.isNotEmpty && !homeIds.contains(hId)) {
           errors.add('Device "$devId" references non-existent home: $hId');
+        }
+      }
+
+      // Referential integrity: device home vs room home
+      if (item['homeId'] != null && roomId != null) {
+        final devHome = item['homeId'].toString();
+        final rId = roomId.toString();
+        final roomHome = roomHomeMap[rId];
+        if (roomHome != null && roomHome != devHome) {
+          errors.add(
+            'Device "${item['id']}" belongs to home "$devHome" but references room "$rId" belonging to home "$roomHome".',
+          );
         }
       }
 
@@ -389,6 +427,7 @@ class BackupValidationService {
       final sceneId =
           item['id']?.toString() ?? item['name']?.toString() ?? 'index-$i';
 
+      final sceneHome = item['homeId']?.toString();
       final actions = item['actions'];
       if (actions is List) {
         for (final act in actions) {
@@ -397,6 +436,13 @@ class BackupValidationService {
             if (!deviceIds.contains(devId)) {
               errors.add(
                 'Scene "$sceneId" references non-existent device: $devId',
+              );
+            } else if (sceneHome != null &&
+                sceneHome.isNotEmpty &&
+                deviceHomeMap[devId] != null &&
+                deviceHomeMap[devId] != sceneHome) {
+              errors.add(
+                'Scene "$sceneId" belongs to home "$sceneHome" but action targets device "$devId" belonging to home "${deviceHomeMap[devId]}".',
               );
             }
           }
@@ -425,6 +471,7 @@ class BackupValidationService {
       final autoId =
           item['id']?.toString() ?? item['name']?.toString() ?? 'index-$i';
 
+      final autoHome = item['homeId']?.toString();
       final actions = item['actions'];
       if (actions is List) {
         for (final act in actions) {
@@ -433,6 +480,13 @@ class BackupValidationService {
             if (!deviceIds.contains(devId)) {
               errors.add(
                 'Automation "$autoId" action references non-existent device: $devId',
+              );
+            } else if (autoHome != null &&
+                autoHome.isNotEmpty &&
+                deviceHomeMap[devId] != null &&
+                deviceHomeMap[devId] != autoHome) {
+              errors.add(
+                'Automation "$autoId" belongs to home "$autoHome" but action targets device "$devId" belonging to home "${deviceHomeMap[devId]}".',
               );
             }
           }
@@ -445,6 +499,13 @@ class BackupValidationService {
         if (!deviceIds.contains(sId)) {
           errors.add(
             'Automation "$autoId" sensor references non-existent device: $sId',
+          );
+        } else if (autoHome != null &&
+            autoHome.isNotEmpty &&
+            deviceHomeMap[sId] != null &&
+            deviceHomeMap[sId] != autoHome) {
+          errors.add(
+            'Automation "$autoId" belongs to home "$autoHome" but sensor references device "$sId" belonging to home "${deviceHomeMap[sId]}".',
           );
         }
       }

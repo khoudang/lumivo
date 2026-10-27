@@ -13,7 +13,9 @@ class RoomsNotifier extends StateNotifier<List<Room>> {
 
   Future<void> addRoom(Room room) async {
     final index = state.indexWhere((r) =>
-        r.id == room.id || r.name.toLowerCase() == room.name.toLowerCase());
+        r.id == room.id ||
+        (r.homeId == room.homeId &&
+            r.name.toLowerCase() == room.name.toLowerCase()));
     if (index >= 0) {
       state = [
         for (int i = 0; i < state.length; i++)
