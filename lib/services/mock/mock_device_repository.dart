@@ -89,7 +89,7 @@ class MockDeviceRepository implements DeviceRepository {
     ),
   ];
 
-  final List<SmartDevice> _devices = List.of(_defaultDevices);
+  List<SmartDevice> _devices = List.of(_defaultDevices);
   final Map<String, int> _deviceIndex = {};
 
   void _rebuildIndex() {
@@ -125,6 +125,13 @@ class MockDeviceRepository implements DeviceRepository {
   }
 
   List<SmartDevice> get devices => List.unmodifiable(_devices);
+
+  void replaceAllDevices(List<SmartDevice> devices) {
+    _devices = List.of(devices);
+    _rebuildIndex();
+    _notifyListeners();
+    _persist();
+  }
 
   @override
   Stream<List<SmartDevice>> watchDevices() {
