@@ -21,8 +21,8 @@ class StorageIOException extends StorageException {
     this.operation,
     this.targetKey,
     this.targetPath,
-    super.cause,
-  });
+    Object? cause,
+  }) : super(cause);
 
   final String? operation;
   final String? targetKey;
