@@ -18,7 +18,19 @@ String resolveAppStoragePath() {
 
 /// Durable file-backed storage adapter for native platforms.
 class DurableStorageAdapter implements StorageAdapter {
-  DurableStorageAdapter({String? storagePath}) : _storagePath = storagePath;
+  DurableStorageAdapter({String? storagePath}) : _storagePath = storagePath {
+    final configured = _storagePath;
+    if (configured != null && configured.isNotEmpty) {
+      _resolvedPath = configured;
+      _backend = DurableStorageBackend(storagePath: configured);
+    } else {
+      final sync = PlatformStorageResolver.resolveSync();
+      if (sync != null && sync.isNotEmpty) {
+        _resolvedPath = sync;
+        _backend = DurableStorageBackend(storagePath: sync);
+      }
+    }
+  }
 
   final String? _storagePath;
   String? _resolvedPath;
@@ -53,27 +65,51 @@ class DurableStorageAdapter implements StorageAdapter {
   }
 
   @override
-  Future<String?> getString(String key) async {
-    final backend = await _getBackend();
-    return backend.getString(key);
+  Future<String?> getString(String key) {
+    final b = _backend;
+    if (b != null) return b.getString(key);
+    return _getStringAsync(key);
+  }
+
+  Future<String?> _getStringAsync(String key) async {
+    final b = await _getBackend();
+    return b.getString(key);
   }
 
   @override
-  Future<void> setString(String key, String value) async {
-    final backend = await _getBackend();
-    return backend.setString(key, value);
+  Future<void> setString(String key, String value) {
+    final b = _backend;
+    if (b != null) return b.setString(key, value);
+    return _setStringAsync(key, value);
+  }
+
+  Future<void> _setStringAsync(String key, String value) async {
+    final b = await _getBackend();
+    return b.setString(key, value);
   }
 
   @override
-  Future<void> remove(String key) async {
-    final backend = await _getBackend();
-    return backend.remove(key);
+  Future<void> remove(String key) {
+    final b = _backend;
+    if (b != null) return b.remove(key);
+    return _removeAsync(key);
+  }
+
+  Future<void> _removeAsync(String key) async {
+    final b = await _getBackend();
+    return b.remove(key);
   }
 
   @override
-  Future<void> clear() async {
-    final backend = await _getBackend();
-    return backend.clear();
+  Future<void> clear() {
+    final b = _backend;
+    if (b != null) return b.clear();
+    return _clearAsync();
+  }
+
+  Future<void> _clearAsync() async {
+    final b = await _getBackend();
+    return b.clear();
   }
 }
 

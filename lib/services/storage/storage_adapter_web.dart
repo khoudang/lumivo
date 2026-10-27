@@ -32,4 +32,4 @@ class StorageAdapterImpl implements StorageAdapter {
   }
 }
 
-StorageAdapter createStorageAdapter() => StorageAdapterImpl();
+StorageAdapter createStorageAdapter([String? storagePath]) => StorageAdapterImpl();

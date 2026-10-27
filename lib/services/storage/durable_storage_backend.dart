@@ -5,51 +5,66 @@ import 'dart:io';
 import 'storage_adapter.dart';
 import 'storage_exceptions.dart';
 
-/// Simple asynchronous FIFO lock for in-process key serialization.
+/// Per-key async FIFO mutex/queue to serialize concurrent writes on the same key.
 class _AsyncLock {
   Future<void>? _last;
 
-  Future<T> synchronized<T>(Future<T> Function() action) {
+  Future<T> synchronized<T>(FutureOr<T> Function() action) {
     final prev = _last;
+    if (prev == null) {
+      final completer = Completer<void>();
+      _last = completer.future;
+      try {
+        final result = action();
+        if (result is Future<T>) {
+          return result.whenComplete(() {
+            _last = null;
+            completer.complete();
+          });
+        } else {
+          _last = null;
+          completer.complete();
+          return Future.value(result);
+        }
+      } catch (e, st) {
+        _last = null;
+        completer.complete();
+        return Future.error(e, st);
+      }
+    }
+
     final completer = Completer<void>();
     _last = completer.future;
-
-    return Future.sync(() async {
-      if (prev != null) {
-        try {
-          await prev;
-        } catch (_) {}
-      }
-      try {
-        return await action();
-      } finally {
-        completer.complete();
-      }
+    return prev.then((_) => action(), onError: (_) => action()).whenComplete(() {
+      completer.complete();
     });
   }
 }
 
-/// Durable file-backed storage backend implementing crash-safe atomic staging,
-/// in-process mutex synchronization, explicit error reporting, and selective cleanup.
+/// Durable native storage backend implementing atomic file operations,
+/// safe temporary staging, crash/abort resilience, and in-process concurrency safety.
+///
+/// Multi-Process Limitation Note:
+/// In-process concurrency is strictly serialized via key-scoped mutex queues.
+/// Across separate OS processes, atomic file replacement (staging + rename) guarantees
+/// that readers will never observe truncated, partial, or malformed data.
+/// However, separate processes writing to the identical key simultaneously operate under
+/// "last-atomic-commit-wins" semantics. If multi-process distributed write coordination
+/// is required in future architectures, an OS-level file lock (e.g. flock / LockFileEx)
+/// or IPC coordinator should be layered on top of this backend.
 class DurableStorageBackend implements StorageAdapter {
   DurableStorageBackend({String? storagePath})
-      : _storagePath = storagePath ??
-            Platform.environment['LUMIVO_STORAGE_DIR'] ??
-            '.lumivo/storage';
+      : _storagePath = storagePath ?? _defaultStoragePath();
 
   final String _storagePath;
 
   /// Returns the resolved directory path backing this storage backend.
   String get storagePath => _storagePath;
 
-  /// Global in-process locks per key across all backend instances.
-  static final Map<String, _AsyncLock> _keyLocks = {};
-
-  /// Global in-process lock for directory-wide operations like clear().
-  static final Map<String, _AsyncLock> _dirLocks = {};
-
-  /// Process-level atomic counter to guarantee unique temp file names within a PID.
   static int _counter = 0;
+
+  static final Map<String, _AsyncLock> _keyLocks = {};
+  static final Map<String, _AsyncLock> _dirLocks = {};
 
   /// Lumivo committed file pattern: `<base64url_key>.val`
   static final RegExp _lumivoValPattern = RegExp(r'^[A-Za-z0-9_-]+\.val$');
@@ -66,16 +81,23 @@ class DurableStorageBackend implements StorageAdapter {
       'Cross-process writes to the same key race at filesystem atomic rename. '
       'Physical power-loss durability is bounded by underlying OS/filesystem write-back caching policies.';
 
-  /// Encodes arbitrary string keys into safe base64url file name components.
-  static String encodeKey(String key) {
-    final bytes = utf8.encode(key);
-    return base64Url.encode(bytes).replaceAll('=', '');
-  }
-
   /// Checks if a file name matches Lumivo's committed or temporary storage format.
   static bool isLumivoStorageFile(String fileName) {
     return _lumivoValPattern.hasMatch(fileName) ||
         _lumivoTmpPattern.hasMatch(fileName);
+  }
+
+  static String _defaultStoragePath() {
+    final envDir = Platform.environment['LUMIVO_STORAGE_DIR'];
+    if (envDir != null && envDir.trim().isNotEmpty) {
+      return envDir.trim();
+    }
+    return '.lumivo/storage';
+  }
+
+  /// Normalizes and canonicalizes a path for lock tracking.
+  static String canonicalize(String path) {
+    return path.replaceAll(r'\', '/').replaceAll(RegExp(r'/+'), '/');
   }
 
   /// Portable path join helper.
@@ -88,14 +110,14 @@ class DurableStorageBackend implements StorageAdapter {
     return '$cleanDir$sep$cleanFile';
   }
 
-  /// Portable basename helper.
+  /// Extracts the basename of a path.
   static String getBasename(String path) {
     final clean = path.replaceAll(RegExp(r'[\\/]+$'), '');
     final idx = clean.lastIndexOf(RegExp(r'[\\/]'));
     return idx == -1 ? clean : clean.substring(idx + 1);
   }
 
-  /// Portable dirname helper.
+  /// Extracts the dirname of a path.
   static String getDirname(String path) {
     final clean = path.replaceAll(RegExp(r'[\\/]+$'), '');
     final idx = clean.lastIndexOf(RegExp(r'[\\/]'));
@@ -104,10 +126,29 @@ class DurableStorageBackend implements StorageAdapter {
     return clean.substring(0, idx);
   }
 
-  /// Portable canonical path helper.
-  static String canonicalize(String path) {
-    final abs = Directory(path).absolute.path;
-    return Platform.isWindows ? abs.toLowerCase().replaceAll('\\', '/') : abs;
+  /// Encodes a logical key into a filesystem-safe base64url string.
+  static String encodeKey(String key) {
+    final bytes = utf8.encode(key);
+    return base64Url.encode(bytes).replaceAll('=', '');
+  }
+
+  /// Validates key name to guard against path traversal attacks.
+  static void validateKey(String key) {
+    if (key.trim().isEmpty) {
+      throw const StorageException('Storage key cannot be empty or blank');
+    }
+    if (key.contains('/') || key.contains('\\') || key.contains('..')) {
+      throw StorageException('Storage key contains invalid path characters: $key');
+    }
+  }
+
+  /// Generates a unique temporary staging filename in format:
+  /// `<encodedKey>.tmp.<pid>_<counter>_<microseconds>`
+  static String _generateTempFileName(String encodedKey) {
+    final currentPid = pid;
+    final currentCounter = ++_counter;
+    final currentTime = DateTime.now().microsecondsSinceEpoch;
+    return '$encodedKey.tmp.${currentPid}_${currentCounter}_$currentTime';
   }
 
   static _AsyncLock _getKeyLock(String storageDir, String encodedKey) {
@@ -120,24 +161,17 @@ class DurableStorageBackend implements StorageAdapter {
     return _dirLocks.putIfAbsent(canonical, () => _AsyncLock());
   }
 
-  static String _generateTempFileName(String encodedKey) {
-    final currentPid = pid;
-    final currentCounter = ++_counter;
-    final currentTime = DateTime.now().microsecondsSinceEpoch;
-    return '$encodedKey.tmp.${currentPid}_${currentCounter}_$currentTime';
-  }
-
   @override
-  Future<String?> getString(String key) async {
-    final encodedKey = encodeKey(key);
-    final targetFilePath = joinPath(_storagePath, '$encodedKey.val');
-    final file = File(targetFilePath);
-    final lock = _getKeyLock(_storagePath, encodedKey);
+  Future<String?> getString(String key) {
+    try {
+      validateKey(key);
+      final encodedKey = encodeKey(key);
+      final targetFilePath = joinPath(_storagePath, '$encodedKey.val');
+      final file = File(targetFilePath);
 
-    return await lock.synchronized(() async {
       FileSystemEntityType type;
       try {
-        type = await FileSystemEntity.type(targetFilePath, followLinks: false);
+        type = FileSystemEntity.typeSync(targetFilePath, followLinks: false);
       } catch (e) {
         throw StorageIOException(
           'Failed to check existence for key: $key',
@@ -149,7 +183,7 @@ class DurableStorageBackend implements StorageAdapter {
       }
 
       if (type == FileSystemEntityType.notFound) {
-        return null;
+        return Future.value(null);
       }
 
       if (type != FileSystemEntityType.file) {
@@ -162,7 +196,7 @@ class DurableStorageBackend implements StorageAdapter {
       }
 
       try {
-        return await file.readAsString();
+        return Future.value(file.readAsStringSync());
       } catch (e) {
         throw StorageIOException(
           'Failed to read storage key: $key',
@@ -172,7 +206,9 @@ class DurableStorageBackend implements StorageAdapter {
           cause: e,
         );
       }
-    });
+    } catch (e, st) {
+      return Future.error(e, st);
+    }
   }
 
   /// Convenience alias for [getString].
@@ -183,221 +219,245 @@ class DurableStorageBackend implements StorageAdapter {
     String key,
     String value, {
     FutureOr<void> Function(File tempFile)? onStaged,
-  }) async {
-    final encodedKey = encodeKey(key);
-    final lock = _getKeyLock(_storagePath, encodedKey);
+  }) {
+    try {
+      validateKey(key);
+      final encodedKey = encodeKey(key);
+      final lock = _getKeyLock(_storagePath, encodedKey);
 
-    return await lock.synchronized(() async {
-      // 1. Ensure storage directory exists
-      final dir = Directory(_storagePath);
-      try {
-        if (!await dir.exists()) {
-          await dir.create(recursive: true);
-        }
-      } catch (e) {
-        throw StorageIOException(
-          'Failed to create storage directory: $_storagePath',
-          operation: 'set',
-          targetKey: key,
-          targetPath: _storagePath,
-          cause: e,
-        );
-      }
-
-      // 2. Prepare staging file in the SAME directory
-      final tempFileName = _generateTempFileName(encodedKey);
-      final tempFilePath = joinPath(_storagePath, tempFileName);
-      final tempFile = File(tempFilePath);
-
-      final targetFileName = '$encodedKey.val';
-      final targetFilePath = joinPath(_storagePath, targetFileName);
-
-      try {
-        // 3. Write and flush staged temp file
+      return lock.synchronized(() async {
+        // 1. Ensure storage directory exists
+        final dir = Directory(_storagePath);
         try {
-          await tempFile.writeAsString(value, flush: true);
+          if (!dir.existsSync()) {
+            dir.createSync(recursive: true);
+          }
         } catch (e) {
           throw StorageIOException(
-            'Failed to stage data to temporary file: $tempFilePath',
+            'Failed to create storage directory: $_storagePath',
             operation: 'set',
             targetKey: key,
-            targetPath: tempFilePath,
+            targetPath: _storagePath,
             cause: e,
           );
         }
 
-        // 4. Staging hook (for child process probe testing or telemetry)
-        if (onStaged != null) {
+        // 2. Prepare staging file in the SAME directory
+        final tempFileName = _generateTempFileName(encodedKey);
+        final tempFilePath = joinPath(_storagePath, tempFileName);
+        final tempFile = File(tempFilePath);
+
+        final targetFileName = '$encodedKey.val';
+        final targetFilePath = joinPath(_storagePath, targetFileName);
+
+        try {
+          // 3. Write and flush staged temp file
           try {
-            await onStaged(tempFile);
+            tempFile.writeAsStringSync(value, flush: true);
           } catch (e) {
             throw StorageIOException(
-              'Staging verification hook failed: $e',
+              'Failed to stage data to temporary file: $tempFilePath',
               operation: 'set',
               targetKey: key,
               targetPath: tempFilePath,
               cause: e,
             );
           }
-        }
 
-        // 5. Atomic commit via rename
-        // If rename fails, NEVER delete or truncate the old committed value
-        try {
-          await tempFile.rename(targetFilePath);
-        } catch (renameError) {
+          // 4. Staging hook (for child process probe testing or telemetry)
+          if (onStaged != null) {
+            try {
+              await onStaged(tempFile);
+            } catch (e) {
+              throw StorageIOException(
+                'Staging verification hook failed: $e',
+                operation: 'set',
+                targetKey: key,
+                targetPath: tempFilePath,
+                cause: e,
+              );
+            }
+          }
+
+          // 5. Atomic commit via rename
+          try {
+            tempFile.renameSync(targetFilePath);
+          } catch (renameError) {
+            // On Windows, rename fails if target already exists (OS Error 183).
+            // Perform safe backup-and-swap so the old committed value is preserved if replacement fails.
+            final targetFile = File(targetFilePath);
+            if (targetFile.existsSync()) {
+              final backupPath = joinPath(
+                _storagePath,
+                '$encodedKey.val.bak_${DateTime.now().microsecondsSinceEpoch}',
+              );
+              File? backupFile;
+              try {
+                backupFile = targetFile.renameSync(backupPath);
+              } catch (_) {
+                throw StorageIOException(
+                  'Atomic replace failed: cannot stage old committed file for replacement',
+                  operation: 'set',
+                  targetKey: key,
+                  targetPath: targetFilePath,
+                  cause: renameError,
+                );
+              }
+
+              try {
+                tempFile.renameSync(targetFilePath);
+                // Successfully committed new value; clean up backup
+                try {
+                  backupFile.deleteSync();
+                } catch (_) {}
+              } catch (swapErr) {
+                // Replacement failed; restore old committed value immediately
+                try {
+                  backupFile.renameSync(targetFilePath);
+                } catch (_) {}
+                throw StorageIOException(
+                  'Atomic replace failed: preserved original committed file',
+                  operation: 'set',
+                  targetKey: key,
+                  targetPath: targetFilePath,
+                  cause: swapErr,
+                );
+              }
+            } else {
+              throw StorageIOException(
+                'Atomic replace failed to rename staged file to target file',
+                operation: 'set',
+                targetKey: key,
+                targetPath: targetFilePath,
+                cause: renameError,
+              );
+            }
+          }
+        } catch (originalException) {
+          // Clean owned temp file without hiding original exception
+          try {
+            if (tempFile.existsSync()) {
+              tempFile.deleteSync();
+            }
+          } catch (_) {}
+          if (originalException is StorageException) {
+            rethrow;
+          }
           throw StorageIOException(
-            'Atomic replace failed to rename staged file to target file',
+            'Storage operation failed: $originalException',
             operation: 'set',
             targetKey: key,
             targetPath: targetFilePath,
-            cause: renameError,
+            cause: originalException,
           );
         }
-      } catch (originalException) {
-        // Clean owned temp file without hiding original exception
-        try {
-          if (await tempFile.exists()) {
-            await tempFile.delete();
-          }
-        } catch (_) {}
-
-        if (originalException is StorageIOException) {
-          rethrow;
-        }
-        throw StorageIOException(
-          'Durable write failed for key: $key',
-          operation: 'set',
-          targetKey: key,
-          targetPath: targetFilePath,
-          cause: originalException,
-        );
-      }
-    });
+      });
+    } catch (e, st) {
+      return Future.error(e, st);
+    }
   }
 
   /// Convenience alias for [setString].
   Future<void> set(String key, String value) => setString(key, value);
 
   @override
-  Future<void> remove(String key) async {
-    final encodedKey = encodeKey(key);
-    final targetFilePath = joinPath(_storagePath, '$encodedKey.val');
-    final file = File(targetFilePath);
-    final lock = _getKeyLock(_storagePath, encodedKey);
+  Future<void> remove(String key) {
+    try {
+      validateKey(key);
+      final encodedKey = encodeKey(key);
+      final targetFilePath = joinPath(_storagePath, '$encodedKey.val');
+      final file = File(targetFilePath);
+      final lock = _getKeyLock(_storagePath, encodedKey);
 
-    await lock.synchronized(() async {
-      FileSystemEntityType type;
-      try {
-        type = await FileSystemEntity.type(targetFilePath, followLinks: false);
-      } catch (e) {
-        throw StorageIOException(
-          'Failed to check existence for remove: $key',
-          operation: 'remove',
-          targetKey: key,
-          targetPath: targetFilePath,
-          cause: e,
-        );
-      }
-
-      if (type == FileSystemEntityType.notFound) {
-        return;
-      }
-
-      try {
-        await file.delete();
-      } catch (e) {
-        throw StorageIOException(
-          'Failed to delete storage file for key: $key',
-          operation: 'remove',
-          targetKey: key,
-          targetPath: targetFilePath,
-          cause: e,
-        );
-      }
-    });
+      return lock.synchronized(() {
+        try {
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (e) {
+          throw StorageIOException(
+            'Failed to remove storage key: $key',
+            operation: 'remove',
+            targetKey: key,
+            targetPath: targetFilePath,
+            cause: e,
+          );
+        }
+      });
+    } catch (e, st) {
+      return Future.error(e, st);
+    }
   }
 
   @override
-  Future<void> clear() async {
-    final dir = Directory(_storagePath);
-    final dirLock = _getDirLock(_storagePath);
-
-    await dirLock.synchronized(() async {
-      bool exists;
+  Future<void> clear() {
+    final lock = _getDirLock(_storagePath);
+    return lock.synchronized(() {
+      final dir = Directory(_storagePath);
       try {
-        exists = await dir.exists();
+        if (!dir.existsSync()) {
+          return;
+        }
       } catch (e) {
         throw StorageIOException(
-          'Failed to check storage directory existence for clear',
+          'Failed to check storage directory for clear: $_storagePath',
           operation: 'clear',
           targetPath: _storagePath,
           cause: e,
         );
       }
 
-      if (!exists) {
-        return;
-      }
-
-      List<FileSystemEntity> entities;
       try {
-        entities = await dir.list().toList();
-      } catch (e) {
-        throw StorageIOException(
-          'Failed to list storage directory contents for clear',
-          operation: 'clear',
-          targetPath: _storagePath,
-          cause: e,
-        );
-      }
-
-      for (final entity in entities) {
-        if (entity is File) {
-          final fileName = getBasename(entity.path);
-          if (isLumivoStorageFile(fileName)) {
-            try {
-              await entity.delete();
-            } catch (e) {
-              throw StorageIOException(
-                'Failed to delete storage file during clear: $fileName',
-                operation: 'clear',
-                targetPath: entity.path,
-                cause: e,
-              );
+        final entities = dir.listSync();
+        for (final entity in entities) {
+          if (entity is File) {
+            final name = getBasename(entity.path);
+            if (name.endsWith('.val') || name.contains('.tmp.')) {
+              try {
+                entity.deleteSync();
+              } catch (e) {
+                throw StorageIOException(
+                  'Failed to delete storage file during clear: ${entity.path}',
+                  operation: 'clear',
+                  targetPath: entity.path,
+                  cause: e,
+                );
+              }
             }
           }
         }
+      } catch (e) {
+        if (e is StorageIOException) rethrow;
+        throw StorageIOException(
+          'Failed to list or clear storage directory: $_storagePath',
+          operation: 'clear',
+          targetPath: _storagePath,
+          cause: e,
+        );
       }
     });
   }
 
-  /// Cleans up any orphaned temp files (e.g. left by killed processes).
+  /// Removes any dangling temporary files (*.tmp.*) left by previous interrupted processes.
   Future<int> cleanDanglingTempFiles() async {
     final dir = Directory(_storagePath);
-    if (!await dir.exists()) {
-      return 0;
-    }
+    if (!dir.existsSync()) return 0;
 
-    var count = 0;
-    List<FileSystemEntity> entities;
+    int cleaned = 0;
     try {
-      entities = await dir.list().toList();
-    } catch (_) {
-      return 0;
-    }
-
-    for (final entity in entities) {
-      if (entity is File) {
-        final fileName = getBasename(entity.path);
-        if (_lumivoTmpPattern.hasMatch(fileName)) {
-          try {
-            await entity.delete();
-            count++;
-          } catch (_) {}
+      final entities = dir.listSync();
+      for (final entity in entities) {
+        if (entity is File) {
+          final name = getBasename(entity.path);
+          if (name.contains('.tmp.')) {
+            try {
+              entity.deleteSync();
+              cleaned++;
+            } catch (_) {}
+          }
         }
       }
-    }
-    return count;
+    } catch (_) {}
+    return cleaned;
   }
 }
