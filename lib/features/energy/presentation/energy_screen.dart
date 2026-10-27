@@ -597,17 +597,22 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Energy History',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  'Energy History',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 'Max: ${maxVal.toStringAsFixed(1)} kWh',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.cyan,
                   fontWeight: FontWeight.w600,

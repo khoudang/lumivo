@@ -511,38 +511,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // Simulation Mode Disclosure
             _buildSection(
-              title: 'Simulation Mode Disclosure',
+              title: l10n.simulationDisclosure,
               icon: Icons.info_outline_rounded,
               children: [
                 Container(
+                  key: const Key('settings_simulation_disclosure_card'),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.surfaceBorder),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.check_circle_rounded,
+                          const Icon(Icons.check_circle_rounded,
                               color: AppColors.green, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            'Mock Hardware Simulation Active',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.simulationModeStatus,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 6),
+                      const SizedBox(height: 6),
                       Text(
-                        'Lumivo is running against internal memory-backed state machines for simulated BLE provisioning, MQTT telemetry, and virtual environmental sensors. No real radio hardware required.',
-                        style: TextStyle(
+                        l10n.simulationModeDesc,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                           height: 1.4,
@@ -557,13 +560,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // App Info
             _buildSection(
-              title: 'About Lumivo',
+              title: l10n.aboutLumivo,
               icon: Icons.apps_rounded,
               children: [
-                _infoTile('Version', '7.0.0-phase7 (Build 2026.10)'),
+                _infoTile('Version', '1.0.0 (Build 2026.10)'),
+                _infoTile('Environment', '100% Offline Simulation Mode'),
                 _infoTile('Framework', 'Flutter 3.24+ / Riverpod 2.6'),
-                _infoTile('Architecture', 'Dark Minimal Consumer IoT UX'),
-                _infoTile('Workspace', 'D:\\app_iot\\lumivo_phase7_ui'),
+                _infoTile('Design System', 'Dark Minimal OLED'),
               ],
             ),
             const SizedBox(height: 24),
@@ -640,19 +643,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
+          Flexible(
+            flex: 4,
             child: Text(
               label,
               style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          Flexible(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],
