@@ -149,12 +149,12 @@ class _EnergyScreenState extends ConsumerState<EnergyScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 20),
-            tooltip: 'Refresh Telemetry',
+            tooltip: l10n.refreshTelemetry,
             onPressed: () {
               setState(() {});
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Simulated telemetry refreshed'),
+                SnackBar(
+                  content: Text(l10n.telemetryRefreshed),
                   backgroundColor: AppColors.primary,
                   duration: Duration(seconds: 1),
                 ),

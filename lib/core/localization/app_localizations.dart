@@ -374,6 +374,80 @@ class AppLocalizations {
   String get pasteBackupJson => translate('paste_backup_json');
   String get validateAndPreview => translate('validate_and_preview');
   String get secretsSanitized => translate('secrets_sanitized');
+
+  // Phase 9 UI Freeze & Localization Normalization
+  String get online => translate('online');
+  String get addRoom => translate('add_room');
+  String get noRooms => translate('no_rooms');
+  String roomAdded(String name) =>
+      translate('room_added').replaceAll('{name}', name);
+  String roomDeleted(String name) =>
+      translate('room_deleted').replaceAll('{name}', name);
+  String sceneExecuted(String name) =>
+      translate('scene_executed').replaceAll('{name}', name);
+  String sceneSaved(String name) =>
+      translate('scene_saved').replaceAll('{name}', name);
+  String sceneDeleted(String name) =>
+      translate('scene_deleted').replaceAll('{name}', name);
+  String get addScene => translate('add_scene');
+  String get runScene => translate('run_scene');
+  String ruleCreated(String name) =>
+      translate('rule_created').replaceAll('{name}', name);
+  String ruleDeleted(String name) =>
+      translate('rule_deleted').replaceAll('{name}', name);
+  String get newAutomationRule => translate('new_automation_rule');
+  String get saveAutomationRule => translate('save_automation_rule');
+  String get ruleDetails => translate('rule_details');
+  String deviceDeleted(String name) =>
+      translate('device_deleted').replaceAll('{name}', name);
+  String get deviceSettingsSaved => translate('device_settings_saved');
+  String homeAdded(String name) =>
+      translate('home_added').replaceAll('{name}', name);
+  String homeDeleted(String name) =>
+      translate('home_deleted').replaceAll('{name}', name);
+  String get telemetryRefreshed => translate('telemetry_refreshed');
+  String get curtainOpen => translate('curtain_open');
+  String get curtainStop => translate('curtain_stop');
+  String get curtainClose => translate('curtain_close');
+  String get pinFavorite => translate('pin_favorite');
+  String get unpinFavorite => translate('unpin_favorite');
+  String get deviceSettings => translate('device_settings');
+  String get presetValid => translate('preset_valid');
+  String get presetMalformed => translate('preset_malformed');
+  String get presetOversized => translate('preset_oversized');
+  String get presetSchemaV7 => translate('preset_schema_v7');
+  String get presetDuplicateIds => translate('preset_duplicate_ids');
+  String get simulateCorruptedFile => translate('simulate_corrupted_file');
+  String get electricityTariffSetting =>
+      translate('electricity_tariff_setting');
+  String get electricityTariffDesc => translate('electricity_tariff_desc');
+  String get resetDemoDesc => translate('reset_demo_desc');
+  String get noDevicesAvailableScene => translate('no_devices_available_scene');
+  String get pleaseEnterSceneName => translate('please_enter_scene_name');
+  String get actionLabel => translate('action_label');
+  String get targetDevicesLabel => translate('target_devices_label');
+  String get powerAction => translate('power_action');
+  String get setBrightnessAction => translate('set_brightness_action');
+  String get setTempAction => translate('set_temp_action');
+  String get enableConditionCheck => translate('enable_condition_check');
+  String get change => translate('change');
+  String get addAction => translate('add_action');
+  String get advance1Hour => translate('advance_1_hour');
+  String get jumpTo0700 => translate('jump_to_0700');
+  String get jumpTo2200 => translate('jump_to_2200');
+  String get ambientTemp => translate('ambient_temp');
+  String get fastForwardJump => translate('fast_forward_jump');
+  String get virtualClock => translate('virtual_clock');
+  String get ambientControls => translate('ambient_controls');
+  String get refreshTelemetry => translate('refresh_telemetry');
+  String get exportBackupDesc => translate('export_backup_desc');
+  String get backupIntroDesc => translate('backup_intro_desc');
+  String get backupValidationFailure => translate('backup_validation_failure');
+  String get commandTurnPower => translate('command_turn_power');
+  String get commandSetTemp => translate('command_set_temp');
+  String get commandSetBrightness => translate('command_set_brightness');
+  String get commandOpenCurtain => translate('command_open_curtain');
+  String get commandEngageLock => translate('command_engage_lock');
 }
 
 /// LocalizationsDelegate for [AppLocalizations].

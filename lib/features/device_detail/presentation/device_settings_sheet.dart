@@ -74,6 +74,7 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
   }
 
   void _confirmDelete() {
+    final l10n = ref.read(appLocalizationsProvider);
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -82,14 +83,14 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.surfaceBorder),
         ),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.warning_amber_rounded,
                 color: AppColors.danger, size: 24),
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Delete Device?',
+                l10n.confirmDeleteDeviceTitle,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -110,7 +111,7 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             key: const Key('confirm_delete_device_button'),
@@ -147,12 +148,12 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Device "${widget.device.name}" deleted.'),
+                  content: Text(l10n.deviceDeleted(widget.device.name)),
                   backgroundColor: AppColors.danger,
                 ),
               );
             },
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -160,6 +161,7 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
   }
 
   void _saveChanges() {
+    final l10n = ref.read(appLocalizationsProvider);
     final name = _nameController.text.trim();
     final updated = widget.device.copyWith(
       name: name.isEmpty ? widget.device.name : name,
@@ -177,8 +179,8 @@ class _DeviceSettingsSheetState extends ConsumerState<DeviceSettingsSheet> {
     Navigator.of(context).pop();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Device settings saved successfully!'),
+      SnackBar(
+        content: Text(l10n.deviceSettingsSaved),
         backgroundColor: AppColors.green,
       ),
     );

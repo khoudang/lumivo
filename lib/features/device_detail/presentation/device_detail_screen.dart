@@ -196,6 +196,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
       if (_pulseController.isAnimating) _pulseController.stop();
     }
     // Reactively watch device updates from repository
+    final l10n = ref.watch(appLocalizationsProvider);
     final devicesAsync = ref.watch(devicesProvider);
     final currentDevice = devicesAsync.valueOrNull?.firstWhere(
           (d) => d.id == _localDevice.id,
@@ -207,17 +208,21 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: l10n.back,
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(currentDevice.name),
+        title: Text(
+          currentDevice.name,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           // Favorite Star Toggle
           IconButton(
             key: const Key('device_detail_favorite_button'),
-            tooltip:
-                currentDevice.isFavorite ? 'Unpin Favorite' : 'Pin Favorite',
+            tooltip: currentDevice.isFavorite
+                ? l10n.unpinFavorite
+                : l10n.pinFavorite,
             icon: Icon(
               currentDevice.isFavorite
                   ? Icons.star_rounded
@@ -249,14 +254,14 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
               size: 20,
             ),
             tooltip: currentDevice.connection == DeviceConnection.online
-                ? 'Online'
-                : 'Offline',
+                ? l10n.online
+                : l10n.offline,
             onPressed: () {},
           ),
           // Settings Gear Icon
           IconButton(
             key: const Key('device_detail_settings_button'),
-            tooltip: 'Device Settings',
+            tooltip: l10n.deviceSettings,
             icon: const Icon(
               Icons.settings_outlined,
               color: AppColors.textPrimary,
@@ -308,6 +313,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
   }
 
   Widget _buildDeviceStatusHeader(SmartDevice device) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final isOnline = device.connection == DeviceConnection.online;
 
     return Container(
@@ -381,7 +387,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            isOnline ? 'Online' : 'Offline',
+                            isOnline ? l10n.online : l10n.offline,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -471,15 +477,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         children: [
           Row(
             children: [
-              const Text(
-                'Light Controls',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Light Controls',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Switch(
                 value: device.isOn,
                 activeThumbColor: AppColors.primary,
@@ -491,15 +499,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
           const SizedBox(height: 20),
           Row(
             children: [
-              const Text(
-                'Brightness',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+              const Expanded(
+                child: Text(
+                  'Brightness',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 '${device.brightness}%',
                 style: const TextStyle(
@@ -588,15 +598,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         children: [
           Row(
             children: [
-              const Text(
-                'Fan Speed Control',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Fan Speed Control',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Switch(
                 value: device.isOn,
                 activeThumbColor: AppColors.cyan,
@@ -692,15 +704,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         children: [
           Row(
             children: [
-              const Text(
-                'Climate Control',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Climate Control',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   'Current: ${device.currentTemperature.toStringAsFixed(1)}°C',
@@ -828,15 +842,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         children: [
           Row(
             children: [
-              const Text(
-                'Power & Energy',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Power & Energy',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Switch(
                 value: device.isOn,
                 activeThumbColor: AppColors.green,
@@ -941,6 +957,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
 
   // 5. Curtain Controls
   Widget _buildCurtainControls(SmartDevice device) {
+    final l10n = ref.read(appLocalizationsProvider);
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -953,15 +970,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         children: [
           Row(
             children: [
-              const Text(
-                'Curtain Position',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Curtain Position',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 '${device.position}% Open',
                 style: const TextStyle(
@@ -1001,7 +1020,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                   style:
                       OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.arrow_upward_rounded, size: 16),
-                  label: const Text('Open'),
+                  label: Text(l10n.curtainOpen),
                   onPressed: () =>
                       _sendCommand(DeviceCommandType.setPosition, 100),
                 ),
@@ -1012,7 +1031,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                   style:
                       OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.pause_rounded, size: 16),
-                  label: const Text('Stop'),
+                  label: Text(l10n.curtainStop),
                   onPressed: () => _sendCommand(
                       DeviceCommandType.setPosition, device.position),
                 ),
@@ -1023,7 +1042,7 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
                   style:
                       OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.arrow_downward_rounded, size: 16),
-                  label: const Text('Close'),
+                  label: Text(l10n.curtainClose),
                   onPressed: () =>
                       _sendCommand(DeviceCommandType.setPosition, 0),
                 ),
@@ -1136,15 +1155,17 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen>
         children: [
           Row(
             children: [
-              const Text(
-                'Environment Readout',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Environment Readout',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Row(
                 children: [
                   const Icon(Icons.battery_full_rounded,

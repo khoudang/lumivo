@@ -132,9 +132,8 @@ class _PrivacyCenterScreenState extends ConsumerState<PrivacyCenterScreen> {
                   ScaffoldMessenger.of(context)
                     ..clearSnackBars()
                     ..showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Demo environment reset to factory defaults'),
+                      SnackBar(
+                        content: Text(l10n.factoryResetDone),
                         backgroundColor: AppColors.green,
                       ),
                     );

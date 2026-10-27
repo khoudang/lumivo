@@ -37,6 +37,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
   }
 
   void _runScene(Scene scene) async {
+    final l10n = ref.read(appLocalizationsProvider);
     for (final action in scene.actions) {
       await ref.read(deviceRepositoryProvider).sendCommand(
             DeviceCommand(
@@ -63,7 +64,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Scene "${scene.name}" executed successfully!'),
+          content: Text(l10n.sceneExecuted(scene.name)),
           backgroundColor: AppColors.green,
           duration: const Duration(seconds: 2),
         ),
@@ -391,7 +392,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
               ref.read(automationRulesProvider.notifier).deleteRule(rule.id);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Rule "${rule.name}" deleted'),
+                  content: Text(l10n.ruleDeleted(rule.name)),
                   backgroundColor: AppColors.surfaceElevated,
                 ),
               );
@@ -588,6 +589,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
   }
 
   Widget _buildScenesTab() {
+    final l10n = ref.watch(appLocalizationsProvider);
     final allScenes = ref.watch(scenesProvider);
     final currentHome = ref.watch(currentHomeProvider);
     final scenes = allScenes.where((s) => s.homeId == currentHome.id).toList();
@@ -620,7 +622,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                   ElevatedButton.icon(
                     key: const Key('add_scene_button'),
                     icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('+ Add Scene'),
+                    label: Text(l10n.addScene),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -660,7 +662,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                 ElevatedButton.icon(
                   key: const Key('add_scene_button'),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('+ Add Scene'),
+                  label: Text(l10n.addScene),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -719,7 +721,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen>
                       key: Key('run_scene_${scene.id}'),
                       onPressed: () => _runScene(scene),
                       icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                      label: const Text('Run Scene'),
+                      label: Text(l10n.runScene),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,

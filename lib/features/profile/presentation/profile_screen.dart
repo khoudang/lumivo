@@ -30,7 +30,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.surfaceBorder),
         ),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.bolt_rounded, color: AppColors.primary, size: 24),
             SizedBox(width: 10),
@@ -49,7 +49,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Set simulated electricity cost rate (\$/kWh):',
+              l10n?.electricityTariffDesc ??
+                  'Set simulated electricity cost rate (\$/kWh):',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),

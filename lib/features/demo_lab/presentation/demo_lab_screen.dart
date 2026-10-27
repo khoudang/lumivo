@@ -15,6 +15,7 @@ class DemoLabScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final labState = ref.watch(demoLabProvider);
     final labNotifier = ref.read(demoLabProvider.notifier);
+    final l10n = ref.watch(appLocalizationsProvider);
     final devicesAsync = ref.watch(devicesProvider);
     final devices = devicesAsync.valueOrNull ?? const [];
 
@@ -41,28 +42,34 @@ class DemoLabScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'CURRENT VIRTUAL TIME',
-                            style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.muted,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'CURRENT VIRTUAL TIME',
+                              style: TextStyle(
+                                fontSize: 10,
+                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.muted,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatVirtualTime(labState.virtualTime),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                _formatVirtualTime(labState.virtualTime),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -138,8 +145,8 @@ class DemoLabScreen extends ConsumerWidget {
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Fast Forward & Jump',
+                  Text(
+                    l10n.fastForwardJump,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -154,19 +161,19 @@ class DemoLabScreen extends ConsumerWidget {
                       OutlinedButton.icon(
                         key: const Key('advance_1_hour_button'),
                         icon: const Icon(Icons.fast_forward_rounded, size: 16),
-                        label: const Text('Advance 1 Hour'),
+                        label: Text(l10n.advance1Hour),
                         onPressed: () => labNotifier.advanceHour(),
                       ),
                       OutlinedButton.icon(
                         key: const Key('jump_0700_button'),
                         icon: const Icon(Icons.wb_sunny_rounded, size: 16),
-                        label: const Text('Jump to 07:00'),
+                        label: Text(l10n.jumpTo0700),
                         onPressed: () => labNotifier.jumpToTime(7, 0),
                       ),
                       OutlinedButton.icon(
                         key: const Key('jump_2200_button'),
                         icon: const Icon(Icons.nights_stay_rounded, size: 16),
-                        label: const Text('Jump to 22:00'),
+                        label: Text(l10n.jumpTo2200),
                         onPressed: () => labNotifier.jumpToTime(22, 0),
                       ),
                     ],
@@ -186,12 +193,14 @@ class DemoLabScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Ambient Temperature',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
+                      Expanded(
+                        child: Text(
+                          l10n.ambientTemp,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
                       Text(
@@ -215,12 +224,14 @@ class DemoLabScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Ambient Humidity',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
+                      const Expanded(
+                        child: Text(
+                          'Ambient Humidity',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
                       Text(
@@ -483,12 +494,14 @@ class DemoLabScreen extends ConsumerWidget {
             children: [
               Icon(icon, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],

@@ -93,6 +93,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _runScene(Scene scene) async {
+    final l10n = ref.read(appLocalizationsProvider);
     for (final action in scene.actions) {
       await ref.read(deviceRepositoryProvider).sendCommand(
             DeviceCommand(
@@ -118,7 +119,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Scene "${scene.name}" executed!'),
+          content: Text(l10n.sceneExecuted(scene.name)),
           backgroundColor: AppColors.green,
           duration: const Duration(seconds: 2),
         ),

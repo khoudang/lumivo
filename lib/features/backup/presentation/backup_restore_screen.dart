@@ -414,8 +414,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Export your entire smart home setup or restore from an existing JSON backup payload.',
+                        Text(
+                          l10n.backupIntroDesc,
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.muted,
@@ -486,8 +486,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Backup Validation Failure',
+                        Text(
+                          l10n.backupValidationFailure,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -545,8 +545,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Serializes homes, rooms, smart devices, automations, and ambiance scenes into sanitized JSON.',
+                  Text(
+                    l10n.exportBackupDesc,
                     style:
                         TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
@@ -679,7 +679,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                     children: [
                       ActionChip(
                         key: const Key('preset_valid_backup_chip'),
-                        label: const Text('Valid State',
+                        label: Text(l10n.presetValid,
                             style: TextStyle(fontSize: 11)),
                         backgroundColor: AppColors.surfaceElevated,
                         side: const BorderSide(color: AppColors.surfaceBorder),
@@ -687,7 +687,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                       ),
                       ActionChip(
                         key: const Key('preset_malformed_json_chip'),
-                        label: const Text('Malformed',
+                        label: Text(l10n.presetMalformed,
                             style: TextStyle(fontSize: 11)),
                         backgroundColor: AppColors.surfaceElevated,
                         side: const BorderSide(color: AppColors.surfaceBorder),
@@ -695,7 +695,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                       ),
                       ActionChip(
                         key: const Key('preset_oversized_chip'),
-                        label: const Text('>5MB Oversized',
+                        label: Text(l10n.presetOversized,
                             style: TextStyle(fontSize: 11)),
                         backgroundColor: AppColors.surfaceElevated,
                         side: const BorderSide(color: AppColors.surfaceBorder),
@@ -703,7 +703,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                       ),
                       ActionChip(
                         key: const Key('preset_unsupported_schema_chip'),
-                        label: const Text('Schema v7',
+                        label: Text(l10n.presetSchemaV7,
                             style: TextStyle(fontSize: 11)),
                         backgroundColor: AppColors.surfaceElevated,
                         side: const BorderSide(color: AppColors.surfaceBorder),
@@ -711,7 +711,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                       ),
                       ActionChip(
                         key: const Key('preset_duplicate_id_chip'),
-                        label: const Text('Duplicate IDs',
+                        label: Text(l10n.presetDuplicateIds,
                             style: TextStyle(fontSize: 11)),
                         backgroundColor: AppColors.surfaceElevated,
                         side: const BorderSide(color: AppColors.surfaceBorder),
@@ -759,9 +759,9 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                         ),
                       ),
                       onPressed: _importInvalidBackup,
-                      child: const FittedBox(
+                      child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text('Simulate Invalid / Corrupted File'),
+                        child: Text(l10n.simulateCorruptedFile),
                       ),
                     ),
                   ),
