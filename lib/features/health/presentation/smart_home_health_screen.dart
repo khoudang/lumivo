@@ -137,6 +137,39 @@ class _SmartHomeHealthScreenState extends ConsumerState<SmartHomeHealthScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
+            // Simulation Disclosure Banner
+            Container(
+              key: const Key('health_simulation_disclosure_badge'),
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.cyan.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.offline_bolt_rounded,
+                      color: AppColors.cyan, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.simulationModeDesc,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.cyan,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Section 1: Health Score Dial
             _buildHealthDialSection(healthScore, l10n),
 

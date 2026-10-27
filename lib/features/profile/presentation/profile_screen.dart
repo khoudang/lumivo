@@ -148,7 +148,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 24),
 
             // App Info & Simulation Disclaimer
-            _buildDisclaimerCard(),
+            _buildDisclaimerCard(l10n),
           ],
         ),
       ),
@@ -596,7 +596,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildDisclaimerCard() {
+  Widget _buildDisclaimerCard([AppLocalizations? l10n]) {
     return Container(
       key: const Key('profile_simulation_disclaimer'),
       padding: const EdgeInsets.all(18),
@@ -605,35 +605,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.surfaceBorder),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline_rounded, color: AppColors.cyan, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Lumivo Smart Home Simulation • Phase 3',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Icon(Icons.info_outline_rounded,
+                  color: AppColors.cyan, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n?.simulationDisclosure ?? 'Simulation Mode Disclosure',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'All simulated telemetry, device states, energy consumption, and scheduled automations run locally on virtual simulated state machines. Designed for Dark Minimal smart home operation.',
-            style: TextStyle(
+            l10n?.simulationModeDesc ??
+                'All simulated telemetry, device states, energy consumption, and scheduled automations run locally on virtual simulated state machines. Designed for Dark Minimal smart home operation.',
+            style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
               height: 1.4,
             ),
           ),
-          SizedBox(height: 12),
-          Text(
-            'Build: 3.0.0-phase3 • Lumivo OS',
+          const SizedBox(height: 12),
+          const Text(
+            'Version 1.0.0 (Distribution Release) • 100% Offline Simulation',
             style: TextStyle(
               fontSize: 10,
               color: AppColors.muted,

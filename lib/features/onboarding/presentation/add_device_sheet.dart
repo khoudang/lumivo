@@ -343,6 +343,39 @@ class _AddDeviceSheetState extends ConsumerState<AddDeviceSheet>
       key: const ValueKey('scanning'),
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 100% Offline Simulation Mode Notice Badge
+        Container(
+          key: const Key('onboarding_simulation_notice'),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.cyan.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.cyan.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.offline_bolt_rounded,
+                  color: AppColors.cyan, size: 16),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  l10n?.simulationModeDesc ??
+                      '100% offline, no cloud backend, no physical hardware connection',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.cyan,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         // Radar Pulse Animation with Concentric Pulsating Rings
         SizedBox(
           height: 140,
