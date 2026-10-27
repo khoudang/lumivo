@@ -1,53 +1,48 @@
 import 'dart:convert';
 import 'dart:io';
-import 'storage_adapter.dart';
 
+import 'platform_storage_resolver.dart';
+import 'storage_adapter.dart';
+import 'storage_exceptions.dart';
+
+/// Synchronously resolves application persistent storage path.
+/// Throws [StoragePathException] if the platform requires asynchronous path_provider resolution.
 String resolveAppStoragePath() {
-  final customDir = Platform.environment['LUMIVO_STORAGE_DIR'];
-  if (customDir != null && customDir.isNotEmpty) {
-    return customDir;
+  final syncPath = PlatformStorageResolver.resolveSync();
+  if (syncPath != null) {
+    return syncPath;
   }
-  if (Platform.isWindows) {
-    final appData =
-        Platform.environment['APPDATA'] ?? Platform.environment['LOCALAPPDATA'];
-    if (appData != null && appData.isNotEmpty) {
-      return '$appData/Lumivo/storage';
-    }
-  } else if (Platform.isMacOS) {
-    final home = Platform.environment['HOME'];
-    if (home != null && home.isNotEmpty) {
-      return '$home/Library/Application Support/Lumivo/storage';
-    }
-  } else if (Platform.isLinux) {
-    final xdg = Platform.environment['XDG_DATA_HOME'];
-    if (xdg != null && xdg.isNotEmpty) {
-      return '$xdg/lumivo/storage';
-    }
-    final home = Platform.environment['HOME'];
-    if (home != null && home.isNotEmpty) {
-      return '$home/.local/share/lumivo/storage';
-    }
-  } else if (Platform.isAndroid) {
-    final androidData = Platform.environment['ANDROID_DATA'] ?? '/data';
-    return '$androidData/data/com.lumivo.app/files/storage';
-  } else if (Platform.isIOS) {
-    final home = Platform.environment['HOME'];
-    if (home != null && home.isNotEmpty) {
-      return '$home/Library/Application Support/Lumivo/storage';
-    }
-    return '/var/mobile/Containers/Data/Application/Lumivo/storage';
-  }
-  final fallbackUser =
-      Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? '.';
-  return '$fallbackUser/.lumivo/storage';
+  throw const StoragePathException(
+    'Failed to resolve platform storage path synchronously. '
+    'Asynchronous resolution via PlatformStorageResolver.resolve() is required on this platform.',
+  );
 }
 
 /// Durable file-backed storage adapter for native platforms.
 class DurableStorageAdapter implements StorageAdapter {
-  DurableStorageAdapter({String? storagePath})
-      : _storagePath = storagePath ?? resolveAppStoragePath();
+  DurableStorageAdapter({String? storagePath}) : _storagePath = storagePath;
 
-  final String _storagePath;
+  final String? _storagePath;
+  String? _resolvedPath;
+
+  Future<String> _getPath() async {
+    final configured = _storagePath;
+    if (configured != null && configured.isNotEmpty) {
+      return configured;
+    }
+    final cached = _resolvedPath;
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+    final sync = PlatformStorageResolver.resolveSync();
+    if (sync != null && sync.isNotEmpty) {
+      _resolvedPath = sync;
+      return sync;
+    }
+    final asyncResolved = await PlatformStorageResolver.resolve();
+    _resolvedPath = asyncResolved;
+    return asyncResolved;
+  }
 
   String _keyToFileName(String key) {
     final bytes = utf8.encode(key);
@@ -57,7 +52,8 @@ class DurableStorageAdapter implements StorageAdapter {
 
   @override
   Future<String?> getString(String key) async {
-    final file = File('$_storagePath/${_keyToFileName(key)}');
+    final storagePath = await _getPath();
+    final file = File('$storagePath/${_keyToFileName(key)}');
     if (!file.existsSync()) {
       return null;
     }
@@ -70,13 +66,14 @@ class DurableStorageAdapter implements StorageAdapter {
 
   @override
   Future<void> setString(String key, String value) async {
-    final dir = Directory(_storagePath);
+    final storagePath = await _getPath();
+    final dir = Directory(storagePath);
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
-    final targetPath = '$_storagePath/${_keyToFileName(key)}';
+    final targetPath = '$storagePath/${_keyToFileName(key)}';
     final tmpPath =
-        '$_storagePath/${_keyToFileName(key)}.${DateTime.now().microsecondsSinceEpoch}.tmp';
+        '$storagePath/${_keyToFileName(key)}.${DateTime.now().microsecondsSinceEpoch}.tmp';
     final tmpFile = File(tmpPath);
     tmpFile.writeAsStringSync(value, flush: true);
     try {
@@ -103,7 +100,8 @@ class DurableStorageAdapter implements StorageAdapter {
 
   @override
   Future<void> remove(String key) async {
-    final file = File('$_storagePath/${_keyToFileName(key)}');
+    final storagePath = await _getPath();
+    final file = File('$storagePath/${_keyToFileName(key)}');
     try {
       if (file.existsSync()) {
         file.deleteSync();
@@ -113,7 +111,8 @@ class DurableStorageAdapter implements StorageAdapter {
 
   @override
   Future<void> clear() async {
-    final dir = Directory(_storagePath);
+    final storagePath = await _getPath();
+    final dir = Directory(storagePath);
     if (dir.existsSync()) {
       try {
         for (final entity in dir.listSync()) {
@@ -138,6 +137,9 @@ class StorageAdapterImpl implements StorageAdapter {
   final Map<String, String> _memory = {};
   late final DurableStorageAdapter? _durable =
       storagePath != null ? DurableStorageAdapter(storagePath: storagePath) : null;
+
+  /// True when this adapter is operating in isolated in-memory mode without disk writes.
+  bool get isInMemory => _durable == null;
 
   @override
   Future<String?> getString(String key) async {
@@ -168,4 +170,5 @@ class StorageAdapterImpl implements StorageAdapter {
   }
 }
 
-StorageAdapter createStorageAdapter() => DurableStorageAdapter();
+StorageAdapter createStorageAdapter([String? storagePath]) =>
+    DurableStorageAdapter(storagePath: storagePath);
