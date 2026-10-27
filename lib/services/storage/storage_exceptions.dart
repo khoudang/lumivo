@@ -17,12 +17,12 @@ class StorageException implements Exception {
 /// Thrown when an underlying I/O, file system, or permission operation fails.
 class StorageIOException extends StorageException {
   const StorageIOException(
-    super.message, {
+    String message, {
     this.operation,
     this.targetKey,
     this.targetPath,
     Object? cause,
-  }) : super(cause);
+  }) : super(message, cause);
 
   final String? operation;
   final String? targetKey;
