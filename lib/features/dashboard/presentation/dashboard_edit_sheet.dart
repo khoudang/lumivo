@@ -12,7 +12,7 @@ class DashboardEditSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const DashboardEditSheet(),
+      builder: (_) => DashboardEditSheet(),
     );
   }
 
@@ -80,8 +80,8 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.dashboardCustomized),
-        backgroundColor: AppColors.green,
-        duration: const Duration(seconds: 2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        duration: Duration(seconds: 2),
       ),
     );
     Navigator.of(context).maybePop();
@@ -92,7 +92,7 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceElevated,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(l10n.resetDashboardLayout),
         content: Text(l10n.resetDashboardConfirmBody),
@@ -102,7 +102,7 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
-            key: const Key('confirm_reset_dashboard_layout_button'),
+            key: Key('confirm_reset_dashboard_layout_button'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
@@ -136,8 +136,8 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.resetLayout),
-        backgroundColor: AppColors.primary,
-        duration: const Duration(seconds: 2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -188,11 +188,12 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         border: Border(
-          top: BorderSide(color: AppColors.surfaceBorder, width: 1.5),
+          top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1.5),
         ),
       ),
       child: SafeArea(
@@ -201,52 +202,59 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag Handle Bar
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Container(
               width: 44,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.muted.withValues(alpha: 0.4),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.16),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.dashboard_customize_rounded,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           l10n.editDashboard,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           l10n.dragToReorder,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.muted,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -255,12 +263,12 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                   SizedBox(
                     height: 48,
                     child: TextButton(
-                      key: const Key('dashboard_done_editing_button'),
+                      key: Key('dashboard_done_editing_button'),
                       onPressed: () => Navigator.of(context).maybePop(),
                       child: Text(
                         l10n.doneEditing,
-                        style: const TextStyle(
-                          color: AppColors.primary,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -270,13 +278,15 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                 ],
               ),
             ),
-            const Divider(color: AppColors.surfaceBorder, height: 20),
+            Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 20),
 
             // Reorderable list
             Flexible(
               child: ReorderableListView.builder(
                 shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _draftOrder.length,
                 // ignore: deprecated_member_use
                 onReorder: _onReorder,
@@ -286,18 +296,22 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
 
                   return Container(
                     key: Key('dashboard_edit_item_${section.name}'),
-                    margin: const EdgeInsets.only(bottom: 8),
+                    margin: EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceElevated,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isVisible
-                            ? AppColors.primary.withValues(alpha: 0.25)
-                            : AppColors.surfaceBorder,
+                            ? Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.25)
+                            : Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 4,
                       ),
@@ -306,11 +320,14 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                         children: [
                           Icon(
                             _getSectionIcon(section),
-                            color:
-                                isVisible ? AppColors.primary : AppColors.muted,
+                            color: isVisible
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                             size: 20,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           // Accessibility Up/Down buttons
                           Column(
                             mainAxisSize: MainAxisSize.min,
@@ -323,7 +340,7 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                                   onTap:
                                       index > 0 ? () => _moveUp(index) : null,
                                   child: Container(
-                                    constraints: const BoxConstraints(
+                                    constraints: BoxConstraints(
                                       minWidth: 48,
                                       minHeight: 24,
                                     ),
@@ -332,8 +349,12 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                                       Icons.keyboard_arrow_up_rounded,
                                       size: 20,
                                       color: index > 0
-                                          ? AppColors.textPrimary
-                                          : AppColors.surfaceBorder,
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant,
                                     ),
                                   ),
                                 ),
@@ -347,7 +368,7 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                                       ? () => _moveDown(index)
                                       : null,
                                   child: Container(
-                                    constraints: const BoxConstraints(
+                                    constraints: BoxConstraints(
                                       minWidth: 48,
                                       minHeight: 24,
                                     ),
@@ -356,8 +377,12 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                                       Icons.keyboard_arrow_down_rounded,
                                       size: 20,
                                       color: index < _draftOrder.length - 1
-                                          ? AppColors.textPrimary
-                                          : AppColors.surfaceBorder,
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant,
                                     ),
                                   ),
                                 ),
@@ -372,8 +397,8 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: isVisible
-                              ? AppColors.textPrimary
-                              : AppColors.muted,
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       trailing: Row(
@@ -382,21 +407,24 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                           Switch(
                             key: Key('toggle_section_${section.name}'),
                             value: isVisible,
-                            activeTrackColor: AppColors.primary,
+                            activeTrackColor:
+                                Theme.of(context).colorScheme.primary,
                             onChanged: (val) {
                               setState(() {
                                 _draftVisibility[section] = val;
                               });
                             },
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           ReorderableDragStartListener(
                             index: index,
-                            child: const Padding(
+                            child: Padding(
                               padding: EdgeInsets.all(8),
                               child: Icon(
                                 Icons.drag_handle_rounded,
-                                color: AppColors.muted,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                                 size: 22,
                               ),
                             ),
@@ -411,35 +439,38 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
 
             // Bottom Actions: Save and Reset
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      key: const Key('reset_dashboard_layout_button'),
+                      key: Key('reset_dashboard_layout_button'),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                        foregroundColor: AppColors.muted,
-                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        minimumSize: Size(0, 48),
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                        side: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       onPressed: _reset,
-                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      icon: Icon(Icons.refresh_rounded, size: 18),
                       label: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(l10n.resetLayout),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      key: const Key('save_dashboard_layout_button'),
+                      key: Key('save_dashboard_layout_button'),
                       style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                        backgroundColor: AppColors.primary,
+                        minimumSize: Size(0, 48),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -447,7 +478,7 @@ class _DashboardEditSheetState extends ConsumerState<DashboardEditSheet> {
                         ),
                       ),
                       onPressed: _save,
-                      icon: const Icon(Icons.check_rounded, size: 18),
+                      icon: Icon(Icons.check_rounded, size: 18),
                       label: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(l10n.saveLayout),

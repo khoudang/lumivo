@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/smart_device.dart';
-import '../../../core/theme/app_theme.dart';
 
 /// An interactive card providing a slider to control the brightness level
 /// of a smart light, with a live percentage readout and quick preset shortcuts.
@@ -29,15 +28,17 @@ class BrightnessSliderCard extends StatelessWidget {
     final bool isLit = percent > 0 && device.isOn;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: AppColors.surfaceBorder.withValues(alpha: 0.8),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.8),
           width: 1,
         ),
-        boxShadow: AppShadows.cardGlow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,21 +48,25 @@ class BrightnessSliderCard extends StatelessWidget {
           Row(
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.all(8),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 250),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isLit
-                      ? const Color(0xFFE7C184).withValues(alpha: 0.16)
-                      : AppColors.surfaceElevated,
+                      ? Color(0xFFE7C184).withValues(alpha: 0.16)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   isLit ? Icons.wb_sunny_rounded : Icons.wb_sunny_outlined,
-                  color: isLit ? const Color(0xFFE7C184) : AppColors.muted,
+                  color: isLit
+                      ? Color(0xFFE7C184)
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,38 +78,46 @@ class BrightnessSliderCard extends StatelessWidget {
                         '${device.name} Brightness',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       device.roomId,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 200),
+                padding: EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: isLit
-                      ? AppColors.primary.withValues(alpha: 0.16)
-                      : AppColors.surfaceElevated,
+                      ? Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.16)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isLit
-                        ? AppColors.primary.withValues(alpha: 0.4)
+                        ? Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.4)
                         : Colors.transparent,
                   ),
                 ),
@@ -113,14 +126,16 @@ class BrightnessSliderCard extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: isLit ? AppColors.primary : AppColors.muted,
+                    color: isLit
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           // Slider with Semantics and comfortable touch height
           Semantics(
@@ -132,16 +147,19 @@ class BrightnessSliderCard extends StatelessWidget {
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 6,
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.surfaceElevated,
-                  thumbColor: AppColors.primary,
-                  overlayColor: AppColors.primary.withValues(alpha: 0.16),
-                  thumbShape: const RoundSliderThumbShape(
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                  inactiveTrackColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                  thumbColor: Theme.of(context).colorScheme.primary,
+                  overlayColor: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.16),
+                  thumbShape: RoundSliderThumbShape(
                     enabledThumbRadius: 8,
-                    pressedElevation: 4,
+                    pressedElevation: 0,
                   ),
-                  overlayShape:
-                      const RoundSliderOverlayShape(overlayRadius: 18),
+                  overlayShape: RoundSliderOverlayShape(overlayRadius: 18),
                 ),
                 child: Slider(
                   value: brightness.clamp(0.0, 100.0),
@@ -154,11 +172,12 @@ class BrightnessSliderCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
 
           // Quick Preset Shortcuts
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _presetChip(context, 25),
               _presetChip(context, 50),
@@ -187,20 +206,28 @@ class BrightnessSliderCard extends StatelessWidget {
                 onChangeEnd(target);
               },
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+          constraints: BoxConstraints(minHeight: 44, minWidth: 44),
           child: Center(
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.22)
-                    : AppColors.surfaceElevated,
+                    ? Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.22)
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.6)
-                      : AppColors.surfaceBorder,
+                      ? Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.6)
+                      : Theme.of(context).colorScheme.outlineVariant,
                   width: 1,
                 ),
               ),
@@ -209,8 +236,9 @@ class BrightnessSliderCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color:
-                      isSelected ? AppColors.primary : AppColors.textSecondary,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),

@@ -12,19 +12,18 @@ class LumivoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(userProfileProvider);
-    final theme = profile.themeMode == 'oled'
-        ? AppTheme.dark.copyWith(
-            scaffoldBackgroundColor: Colors.black,
-            colorScheme: AppTheme.dark.colorScheme.copyWith(
-              surface: const Color(0xFF080808),
-            ),
-          )
-        : AppTheme.dark;
+    final theme = switch (profile.themeMode) {
+      'oled' => AppTheme.oled,
+      'dark' => AppTheme.dark,
+      _ => AppTheme.light,
+    };
 
     return MaterialApp(
       title: 'Lumivo',
       debugShowCheckedModeBanner: false,
-      theme: theme,
+      // Legacy routes still contain immutable dark tokens. Keep them readable
+      // while the redesigned home opts into the user's semantic palette.
+      theme: profile.themeMode == 'oled' ? AppTheme.oled : AppTheme.dark,
       locale: Locale(profile.language),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -33,7 +32,16 @@ class LumivoApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const DashboardScreen(),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            disableAnimations: media.disableAnimations || profile.reducedMotion,
+          ),
+          child: child!,
+        );
+      },
+      home: Theme(data: theme, child: const DashboardScreen()),
     );
   }
 }

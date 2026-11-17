@@ -60,7 +60,9 @@ void main() {
       // Brand, Greeting, and Overview
       expect(find.text('LUMIVO'), findsOneWidget);
       expect(find.text('Welcome home ✦'), findsOneWidget);
-      expect(find.text('Your smart home is looking good.'), findsOneWidget);
+      // The calm dashboard identifies the selected home instead of a
+      // decorative marketing/status sentence.
+      expect(find.text(container.read(currentHomeProvider).name), findsWidgets);
 
       // Core Navigation tabs visible
       expect(find.byKey(const Key('nav_tab_0')), findsOneWidget);

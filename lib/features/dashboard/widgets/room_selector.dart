@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
 
 /// A horizontal scrolling chip bar for room selection featuring
 /// smooth animated glows and device count badges.
@@ -20,11 +19,11 @@ class RoomSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 28 + MediaQuery.textScalerOf(context).scale(20),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: rooms.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => SizedBox(width: 10),
         itemBuilder: (context, index) {
           final room = rooms[index];
           final isSelected = room == selectedRoom;
@@ -58,29 +57,21 @@ class _RoomChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.primary.withValues(alpha: 0.24)
-            : AppColors.surface,
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.7)
-              : AppColors.surfaceBorder,
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.7)
+              : Theme.of(context).colorScheme.outlineVariant,
           width: 1.2,
         ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppColors.primaryGlow.withValues(alpha: 0.3),
-                  blurRadius: 14,
-                  spreadRadius: -2,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -88,9 +79,9 @@ class _RoomChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+            constraints: BoxConstraints(minHeight: 48, minWidth: 48),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -100,22 +91,30 @@ class _RoomChip extends StatelessWidget {
                       fontSize: 13,
                       fontWeight:
                           isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color:
-                          isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   if (count != null) ...[
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      padding: const EdgeInsets.symmetric(
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 220),
+                      padding: EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.primary.withValues(alpha: 0.45)
-                            : AppColors.surfaceElevated,
+                            ? Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.45)
+                            : Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -125,7 +124,7 @@ class _RoomChip extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: isSelected
                               ? Colors.white
-                              : AppColors.textSecondary,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),

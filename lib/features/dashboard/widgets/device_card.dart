@@ -43,78 +43,9 @@ class DeviceCard extends StatelessWidget {
     }
   }
 
-  Color _iconTint() {
-    if (_isOffline) return AppColors.mutedDark;
-    if (!device.isOn) return AppColors.muted;
-    switch (device.type) {
-      case DeviceType.light:
-        return const Color(0xFFFFD572);
-      case DeviceType.fan:
-        return AppColors.cyan;
-      case DeviceType.security:
-        return AppColors.green;
-      case DeviceType.ac:
-        return AppColors.cyan;
-      case DeviceType.socket:
-        return AppColors.green;
-      case DeviceType.curtain:
-        return AppColors.primary;
-      case DeviceType.lock:
-        return const Color(0xFFFF9E79);
-      case DeviceType.sensor:
-        return const Color(0xFF72D2FF);
-    }
-  }
-
-  Gradient _backgroundGradient() {
-    if (_isOffline) {
-      return const LinearGradient(
-        colors: [Color(0xFF141923), Color(0xFF10141D)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-    }
-    if (!device.isOn) {
-      return const LinearGradient(
-        colors: [AppColors.surfaceElevated, AppColors.surface],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-    }
-    if (device.type == DeviceType.security) {
-      return AppGradients.activeSecurity;
-    }
-    return AppGradients.activeCard;
-  }
-
-  Border _cardBorder() {
-    if (device.isOn && !_isOffline) {
-      final borderColor = device.type == DeviceType.security
-          ? AppColors.green.withValues(alpha: 0.5)
-          : AppColors.primary.withValues(alpha: 0.55);
-      return Border.all(color: borderColor, width: 1.2);
-    }
-    return Border.all(
-      color: AppColors.surfaceBorder.withValues(alpha: 0.8),
-      width: 1,
-    );
-  }
-
-  List<BoxShadow> _cardShadow() {
-    if (device.isOn && !_isOffline) {
-      return [
-        BoxShadow(
-          color: device.type == DeviceType.security
-              ? AppColors.greenGlow.withValues(alpha: 0.25)
-              : AppColors.primaryGlow.withValues(alpha: 0.28),
-          blurRadius: 20,
-          spreadRadius: -4,
-          offset: const Offset(0, 8),
-        ),
-      ];
-    }
-    return AppShadows.cardGlow;
-  }
+  Color _iconTint(BuildContext context) => device.isOn && !_isOffline
+      ? Theme.of(context).colorScheme.primary
+      : Theme.of(context).colorScheme.onSurfaceVariant;
 
   @override
   Widget build(BuildContext context) {
@@ -124,13 +55,17 @@ class DeviceCard extends StatelessWidget {
       button: true,
       label: '${device.name}, $statusText',
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 260),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          gradient: _backgroundGradient(),
+          color: device.isOn && !_isOffline
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(22),
-          border: _cardBorder(),
-          boxShadow: _cardShadow(),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Material(
           color: Colors.transparent,
@@ -138,7 +73,7 @@ class DeviceCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             onTap: (_isOffline || isBusy) ? null : (onTap ?? onToggle),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -149,68 +84,66 @@ class DeviceCard extends StatelessWidget {
                     children: [
                       // Icon container with soft circular glow
                       AnimatedContainer(
-                        duration: const Duration(milliseconds: 260),
-                        padding: const EdgeInsets.all(10),
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : Duration(milliseconds: 180),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: device.isOn && !_isOffline
-                              ? _iconTint().withValues(alpha: 0.16)
-                              : AppColors.surfaceElevated
+                              ? _iconTint(context).withValues(alpha: 0.16)
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest
                                   .withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: device.isOn && !_isOffline
-                                ? _iconTint().withValues(alpha: 0.3)
+                                ? _iconTint(context).withValues(alpha: 0.3)
                                 : Colors.transparent,
                             width: 1,
                           ),
                         ),
                         child: Icon(
                           _deviceIcon(),
-                          color: _iconTint(),
+                          color: _iconTint(context),
                           size: 24,
                         ),
                       ),
-                      const Spacer(),
+                      Spacer(),
 
                       // Busy spinner or toggle interaction
                       if (isBusy)
-                        const SizedBox(
+                        SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.2,
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         )
                       else if (_isOffline)
-                        _offlineBadge()
+                        _offlineBadge(context)
                       else
-                        _powerToggleButton(),
+                        _powerToggleButton(context),
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Device Name
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      device.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: _isOffline
-                            ? AppColors.textDisabled
-                            : AppColors.textPrimary,
-                        letterSpacing: 0.2,
-                      ),
+                  Text(
+                    device.name,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _isOffline
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.onSurface,
+                      letterSpacing: 0.2,
                     ),
                   ),
 
-                  const SizedBox(height: 5),
+                  SizedBox(height: 5),
 
                   // Device status subtitle & room
                   Row(
@@ -221,36 +154,26 @@ class DeviceCard extends StatelessWidget {
                           height: 6,
                           decoration: BoxDecoration(
                             color: device.isOn
-                                ? AppColors.green
-                                : AppColors.mutedDark,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                             shape: BoxShape.circle,
-                            boxShadow: device.isOn
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.greenGlow,
-                                      blurRadius: 6,
-                                    ),
-                                  ]
-                                : null,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                       ],
                       Expanded(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            statusText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _isOffline
-                                  ? AppColors.textDisabled
-                                  : AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _isOffline
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -265,7 +188,7 @@ class DeviceCard extends StatelessWidget {
     );
   }
 
-  Widget _powerToggleButton() {
+  Widget _powerToggleButton(BuildContext context) {
     return Semantics(
       button: true,
       label: '${device.isOn ? 'Turn off' : 'Turn on'} ${device.name}',
@@ -275,10 +198,12 @@ class DeviceCard extends StatelessWidget {
         onTap: onToggle,
         behavior: HitTestBehavior.opaque,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          constraints: BoxConstraints(minWidth: 48, minHeight: 48),
           child: Center(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : Duration(milliseconds: 180),
               transitionBuilder: (child, anim) => ScaleTransition(
                 scale: anim,
                 child: child,
@@ -289,7 +214,9 @@ class DeviceCard extends StatelessWidget {
                     : Icons.toggle_off_rounded,
                 key: ValueKey<bool>(device.isOn),
                 size: 34,
-                color: device.isOn ? AppColors.green : AppColors.mutedDark,
+                color: device.isOn
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -298,15 +225,15 @@ class DeviceCard extends StatelessWidget {
     );
   }
 
-  Widget _offlineBadge() {
+  Widget _offlineBadge(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF231C21),
+        color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.cloud_off_rounded, size: 12, color: AppColors.danger),

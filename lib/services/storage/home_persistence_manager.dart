@@ -258,8 +258,8 @@ class HomePersistenceManager {
     email: 'alex.mercer@lumivo.io',
     avatarUrl: '',
     language: 'en',
-    themeMode: 'dark',
-    accentColor: 0xFF8B7CFF,
+    themeMode: 'light',
+    accentColor: 0xFF315D47,
     reducedMotion: false,
     temperatureUnit: 'C',
   );
@@ -946,8 +946,12 @@ class HomePersistenceManager {
       if (parsed.isNotEmpty) automations = parsed;
     }
 
-    // 6. UserProfile: add default if not present
-    UserProfile userProfile = defaultUserProfile;
+    // 6. UserProfile: preserve the historical dark default for migrated homes.
+    // Only a genuinely fresh installation adopts the new light appearance.
+    UserProfile userProfile = defaultUserProfile.copyWith(
+      themeMode: 'dark',
+      accentColor: 0xFF8B7CFF,
+    );
     if (raw['userProfile'] is Map<String, dynamic>) {
       try {
         userProfile =

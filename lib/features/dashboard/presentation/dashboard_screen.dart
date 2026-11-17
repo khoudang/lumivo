@@ -6,6 +6,7 @@ import '../../lab/presentation/demo_lab_sheet.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../energy/presentation/energy_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 
@@ -25,10 +26,9 @@ import '../../rooms/presentation/rooms_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../widgets/brightness_slider_card.dart';
 import '../widgets/device_card.dart';
-import '../widgets/metric_card.dart';
 import '../widgets/room_selector.dart';
 import '../widgets/favorites_section.dart';
-import '../../home/presentation/home_app_bar_title.dart';
+import '../../home/presentation/home_selector_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -38,6 +38,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  ColorScheme get palette => Theme.of(context).colorScheme;
+
   String room = 'Living Room';
   int selectedTab = 0;
   final Set<String> pending = {};
@@ -76,7 +78,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _openAddDeviceSheet() {
     AddDeviceSheet.show(
-      context,
+      Navigator.of(context).context,
       onDeviceAdded: (newDevice) {
         final repo = ref.read(deviceRepositoryProvider);
         if (repo is MockDeviceRepository) {
@@ -85,7 +87,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${newDevice.name} paired successfully!'),
-            backgroundColor: AppColors.green,
+            backgroundColor: palette.primary,
           ),
         );
       },
@@ -120,8 +122,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.sceneExecuted(scene.name)),
-          backgroundColor: AppColors.green,
-          duration: const Duration(seconds: 2),
+          backgroundColor: palette.primary,
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -140,19 +142,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               label: l10n.addDevice,
               child: FloatingActionButton(
                 heroTag: 'dashboard_fab',
-                key: const Key('dashboard_add_device_fab'),
+                key: Key('dashboard_add_device_fab'),
                 onPressed: _openAddDeviceSheet,
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: palette.primary,
+                foregroundColor: palette.onPrimary,
                 tooltip: l10n.addDevice,
-                child: const Icon(Icons.add_rounded, size: 28),
+                child: Icon(Icons.add_rounded, size: 28),
               ),
             )
           : null,
-      body: SafeArea(
-        child: Center(
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1080),
+            child: _navigation(l10n),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 1080),
             child: Column(
               children: [
                 Expanded(
@@ -162,35 +176,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       // Tab 0: Home
                       devices.when(
                         data: (all) => _home(all, l10n),
-                        loading: () => const Center(
+                        loading: () => Center(
                           child: CircularProgressIndicator(),
                         ),
                         error: (error, _) => Center(
                           child: Text(
                             'Error: $error',
-                            style: const TextStyle(color: AppColors.danger),
+                            style: TextStyle(color: AppColors.danger),
                           ),
                         ),
                       ),
                       // Tab 1: Rooms
-                      RoomsScreen(
-                        onRoomSelected: (selectedRoom) {
-                          setState(() {
-                            room = selectedRoom;
-                            selectedTab = 0;
-                          });
-                        },
-                      ),
+                      Theme(
+                          data: AppTheme.dark,
+                          child: RoomsScreen(
+                            onRoomSelected: (selectedRoom) {
+                              setState(() {
+                                room = selectedRoom;
+                                selectedTab = 0;
+                              });
+                            },
+                          )),
                       // Tab 2: Automation
-                      const AutomationScreen(),
+                      Theme(data: AppTheme.dark, child: AutomationScreen()),
                       // Tab 3: Activity
-                      const ActivityScreen(),
+                      Theme(data: AppTheme.dark, child: ActivityScreen()),
                       // Tab 4: Settings
-                      const SettingsScreen(),
+                      Theme(data: AppTheme.dark, child: SettingsScreen()),
                     ],
                   ),
                 ),
-                _navigation(l10n),
               ],
             ),
           ),
@@ -209,7 +224,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         .toList();
     final rooms = homeRoomNames.isNotEmpty
         ? homeRoomNames
-        : const ['Living Room', 'Bedroom', 'Kitchen'];
+        : ['Living Room', 'Bedroom', 'Kitchen'];
     if (!rooms.contains(room)) {
       room = rooms.first;
     }
@@ -221,6 +236,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final visible = homeDevices.where((d) => d.roomId == room).toList();
     final dashboardConfig = ref.watch(dashboardConfigProvider);
+    // Prioritize operation only for the untouched default composition.
+    // A saved user arrangement remains authoritative.
+    final sectionOrder = listEquals(dashboardConfig.sectionOrder,
+            DashboardConfig.defaultFor(currentHome.id).sectionOrder)
+        ? [
+            DashboardSection.devices,
+            ...dashboardConfig.sectionOrder
+                .where((s) => s != DashboardSection.devices)
+          ]
+        : dashboardConfig.sectionOrder;
     final lights = visible.where((d) => d.type == DeviceType.light).toList();
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
@@ -237,236 +262,185 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             24,
           ),
           children: [
-            // Top App Bar
-            Row(
-              children: [
-                Expanded(
+            // Identity and tools have independent space on narrow screens.
+            Row(children: [
+              Text('LUMIVO',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                      color: palette.onSurface)),
+              SizedBox(width: 12),
+              Expanded(
                   child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.home_rounded,
-                              color: AppColors.primary,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'LUMIVO',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 17,
-                              letterSpacing: 1.5,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const HomeAppBarTitle(),
-                        ],
-                      ),
-                    ),
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        key: const Key('home_app_bar_title_button'),
+                        onPressed: () => HomeSelectorSheet.show(
+                            Navigator.of(context).context),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Flexible(
+                              child: Text(currentHome.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis)),
+                          const Icon(Icons.expand_more_rounded, size: 18),
+                        ]),
+                      ))),
+            ]),
+            SizedBox(height: 8),
+            Wrap(alignment: WrapAlignment.end, children: [
+              if (dashboardConfig.isVisible(DashboardSection.health))
+                _buildHealthSection(l10n),
+              if (dashboardConfig.isVisible(DashboardSection.demoLab))
+                _buildDemoLabSection(l10n),
+              // Global Search Button
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: IconButton(
+                  key: Key('dashboard_search_button'),
+                  tooltip: l10n.searchDevices,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.search_rounded,
+                    color: palette.onSurface,
+                    size: 22,
                   ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DeviceSearchScreen(),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(width: 4),
-                if (screenWidth >= 380) ...[
-                  const Icon(
-                    Icons.wifi_rounded,
-                    color: AppColors.green,
-                    size: 18,
+              ),
+              // Edit Dashboard Button
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: IconButton(
+                  key: Key('dashboard_edit_mode_button'),
+                  tooltip: l10n.editDashboard,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.dashboard_customize_outlined,
+                    color: palette.onSurface,
+                    size: 22,
                   ),
-                  const SizedBox(width: 2),
-                ],
-                if (screenWidth >= 360)
-                  SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: IconButton(
-                      tooltip: l10n.addDevice,
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(
-                        Icons.add_circle_outline_rounded,
-                        color: AppColors.primary,
-                        size: 22,
+                  onPressed: () => DashboardEditSheet.show(context),
+                ),
+              ),
+              // Notifications Bell with Badge
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    Center(
+                      child: IconButton(
+                        key: Key('dashboard_notifications_button'),
+                        tooltip: 'Notifications',
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.notifications_none_rounded,
+                          color: palette.onSurface,
+                          size: 22,
+                        ),
+                        onPressed: () => NotificationsSheet.show(
+                            Navigator.of(context).context),
                       ),
-                      onPressed: _openAddDeviceSheet,
                     ),
-                  ),
-                // Global Search Button
-                SizedBox(
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: palette.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: l10n.userProfilePreferences,
+                child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: IconButton(
-                    key: const Key('dashboard_search_button'),
-                    tooltip: l10n.searchDevices,
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.search_rounded,
-                      color: AppColors.textPrimary,
-                      size: 22,
-                    ),
-                    onPressed: () {
+                  child: InkWell(
+                    key: Key('dashboard_profile_button'),
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const DeviceSearchScreen(),
+                          builder: (_) => ProfileScreen(),
                         ),
                       );
                     },
-                  ),
-                ),
-                // Edit Dashboard Button
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: IconButton(
-                    key: const Key('dashboard_edit_mode_button'),
-                    tooltip: l10n.editDashboard,
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.dashboard_customize_outlined,
-                      color: AppColors.textPrimary,
-                      size: 22,
-                    ),
-                    onPressed: () => DashboardEditSheet.show(context),
-                  ),
-                ),
-                // Notifications Bell with Badge
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      Center(
-                        child: IconButton(
-                          key: const Key('dashboard_notifications_button'),
-                          tooltip: 'Notifications',
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(
-                            Icons.notifications_none_rounded,
-                            color: AppColors.textPrimary,
-                            size: 22,
-                          ),
-                          onPressed: () => NotificationsSheet.show(context),
-                        ),
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Semantics(
-                  button: true,
-                  label: l10n.userProfilePreferences,
-                  child: SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: InkWell(
-                      key: const Key('dashboard_profile_button'),
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
-                          ),
-                        );
-                      },
-                      child: const Center(
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: AppColors.surfaceElevated,
-                          child: Icon(
-                            Icons.person_outline_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
+                    child: Center(
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: palette.surfaceContainerHighest,
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          color: palette.onSurface,
+                          size: 18,
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 28),
+              ),
+            ]),
+            SizedBox(height: 16),
 
             // Greeting & Date
             Text(
               _dateLabel(),
               style: TextStyle(
-                color: AppColors.muted.withValues(alpha: .9),
+                color: palette.onSurfaceVariant.withValues(alpha: .9),
                 fontSize: 11,
                 letterSpacing: 1.6,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               l10n.welcomeHome,
-              style: const TextStyle(
-                fontSize: 30,
+              style: TextStyle(
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: palette.onSurface,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
-              l10n.smartHomeLookingGood,
-              style: const TextStyle(
-                color: AppColors.muted,
+              currentHome.name,
+              style: TextStyle(
+                color: palette.onSurfaceVariant,
                 fontSize: 13,
               ),
             ),
 
-            const SizedBox(height: 18),
-
-            // Quick Status Area: Smart Home Health & Demo Lab
-            if (dashboardConfig.isVisible(DashboardSection.health) ||
-                dashboardConfig.isVisible(DashboardSection.demoLab)) ...[
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  if (dashboardConfig.isVisible(DashboardSection.health))
-                    _buildHealthSection(l10n),
-                  if (dashboardConfig.isVisible(DashboardSection.demoLab))
-                    _buildDemoLabSection(l10n),
-                ],
-              ),
-              const SizedBox(height: 18),
-            ],
+            SizedBox(height: 18),
 
             // Dynamic Section Rendering based on DashboardConfig
-            for (final section in dashboardConfig.sectionOrder)
+            for (final section in sectionOrder)
               if (dashboardConfig.isVisible(section) &&
                   section != DashboardSection.health &&
                   section != DashboardSection.demoLab) ...[
@@ -481,23 +455,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   roomCounts: roomCounts,
                   l10n: l10n,
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
               ],
 
             // Status footnote
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.check_circle_outline_rounded,
-                  color: AppColors.green,
+                  color: palette.primary,
                   size: 14,
                 ),
-                const SizedBox(width: 7),
+                SizedBox(width: 7),
                 Expanded(
                   child: Text(
                     l10n.demoModeFootnote,
-                    style: const TextStyle(
-                      color: AppColors.muted,
+                    style: TextStyle(
+                      color: palette.onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ),
@@ -582,99 +556,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  Widget _buildHealthSection(AppLocalizations l10n) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: InkWell(
+  Widget _buildHealthSection(AppLocalizations l10n) => IconButton(
         key: const Key('dashboard_health_button'),
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const SmartHomeHealthScreen(),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.green.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.favorite_rounded,
-                color: AppColors.green,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  l10n.healthDashboard,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+        tooltip: l10n.healthDashboard,
+        icon: Icon(Icons.favorite_border_rounded,
+            color: palette.onSurfaceVariant, size: 21),
+        onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SmartHomeHealthScreen())),
+      );
 
-  Widget _buildDemoLabSection(AppLocalizations l10n) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: InkWell(
+  Widget _buildDemoLabSection(AppLocalizations l10n) => IconButton(
         key: const Key('dashboard_demo_lab_button'),
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => DemoLabSheet.show(context),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.cyan.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.science_rounded,
-                color: AppColors.cyan,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  l10n.demoLab,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+        tooltip: l10n.demoLab,
+        icon: Icon(Icons.science_outlined,
+            color: palette.onSurfaceVariant, size: 21),
+        onPressed: () => DemoLabSheet.show(Navigator.of(context).context),
+      );
 
   Widget _buildActivitySection(AppLocalizations l10n) {
     final currentHome = ref.watch(currentHomeProvider);
@@ -689,61 +586,62 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         Row(
           children: [
-            Text(
+            Flexible(
+                child: Text(
               l10n.activityTimeline,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: palette.onSurface,
               ),
-            ),
-            const Spacer(),
+            )),
+            Spacer(),
             TextButton(
               onPressed: () => setState(() => selectedTab = 3),
               child: Text(l10n.seeAll),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         if (recentEvents.isEmpty)
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: palette.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.surfaceBorder),
+              border: Border.all(color: palette.outlineVariant),
             ),
             child: Text(
               l10n.noActivity,
-              style: const TextStyle(color: AppColors.muted, fontSize: 13),
+              style: TextStyle(color: palette.onSurfaceVariant, fontSize: 13),
             ),
           )
         else
           for (final ev in recentEvents)
             Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.surfaceBorder),
+                border: Border.all(color: palette.outlineVariant),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.history_rounded,
-                    color: AppColors.primary,
+                    color: palette.primary,
                     size: 18,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           ev.title,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: palette.onSurface,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -752,8 +650,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ev.description,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                          style: TextStyle(
+                            color: palette.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -781,13 +679,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // Room Filter Section
         Text(
           l10n.rooms,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 19,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: palette.onSurface,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         RoomSelector(
           rooms: rooms,
           selectedRoom: room,
@@ -795,32 +693,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           roomDeviceCounts: roomCounts,
         ),
 
-        const SizedBox(height: 28),
+        SizedBox(height: 28),
 
         // Devices Section Header
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
               l10n.devices,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: palette.onSurface,
               ),
             ),
-            const Spacer(),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: palette.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   l10n.devicesCount(visible.length),
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: palette.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -830,14 +730,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
 
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
 
         // Responsive Device Cards
         _buildResponsiveDeviceGrid(visible, screenWidth),
 
         // Brightness Control Section
         if (lights.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           for (final light in lights) ...[
             BrightnessSliderCard(
               device: light,
@@ -857,7 +757,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 }
               },
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
           ],
         ],
       ],
@@ -874,28 +774,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         Row(
           children: [
-            Text(
+            Flexible(
+                child: Text(
               l10n.quickScenes,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: palette.onSurface,
               ),
-            ),
-            const Spacer(),
+            )),
+            Spacer(),
             TextButton(
               onPressed: () => setState(() => selectedTab = 2),
               child: Text(l10n.seeAll),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         SizedBox(
           height: 104,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: scenes.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, __) => SizedBox(width: 12),
             itemBuilder: (context, index) {
               final scene = scenes[index];
               final icon = _sceneIcon(scene.iconName);
@@ -909,12 +810,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   borderRadius: BorderRadius.circular(18),
                   child: Container(
                     width: 154,
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: palette.surface,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.surfaceBorder),
-                      boxShadow: AppShadows.cardGlow,
+                      border: Border.all(color: palette.outlineVariant),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -923,17 +823,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(icon, color: AppColors.primary, size: 22),
+                            Icon(icon, color: palette.primary, size: 22),
                             Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: AppColors.surfaceElevated,
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: palette.surfaceContainerHighest,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
                                 size: 14,
-                                color: AppColors.cyan,
+                                color: palette.primary,
                               ),
                             ),
                           ],
@@ -945,10 +845,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             scene.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: palette.onSurface,
                             ),
                           ),
                         ),
@@ -984,84 +884,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool isCompact,
     AppLocalizations l10n,
   ) {
-    final tempCard = MetricCard(
-      icon: Icons.thermostat_outlined,
-      tint: AppColors.warning,
-      value: '26.5°C',
-      label: l10n.temperature,
-      statusBadge: 'Optimal',
+    return ListTile(
+      key: Key('dashboard_energy_metric_card'),
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.bolt_outlined, color: palette.primary),
+      title: Text(l10n.energyToday),
+      trailing: Icon(Icons.arrow_forward_rounded, size: 20),
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => EnergyScreen())),
     );
-
-    final humidityCard = MetricCard(
-      icon: Icons.water_drop_outlined,
-      tint: AppColors.blue,
-      value: '65%',
-      label: l10n.humidity,
-      statusBadge: 'Comfort',
-    );
-
-    final energyCard = InkWell(
-      key: const Key('dashboard_energy_metric_card'),
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const EnergyScreen(),
-          ),
-        );
-      },
-      child: MetricCard(
-        icon: Icons.bolt_rounded,
-        tint: AppColors.green,
-        value: '2.4 kWh',
-        label: l10n.energyToday,
-        statusBadge: 'Eco',
-      ),
-    );
-
-    if (screenWidth >= 640) {
-      return Row(
-        children: [
-          Expanded(child: tempCard),
-          const SizedBox(width: 14),
-          Expanded(child: humidityCard),
-          const SizedBox(width: 14),
-          Expanded(child: energyCard),
-        ],
-      );
-    } else {
-      return Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: tempCard),
-              const SizedBox(width: 12),
-              Expanded(child: humidityCard),
-            ],
-          ),
-          const SizedBox(height: 12),
-          energyCard,
-        ],
-      );
-    }
   }
 
   Widget _buildResponsiveDeviceGrid(
     List<SmartDevice> devices,
     double availableWidth,
   ) {
-    final int crossAxisCount;
-    if (availableWidth >= 880) {
-      crossAxisCount = 4;
-    } else if (availableWidth >= 580) {
-      crossAxisCount = 3;
-    } else {
-      crossAxisCount = availableWidth < 340 ? 1 : 2;
-    }
-
-    const double spacing = 12;
-    final double itemWidth =
-        (availableWidth - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
+    final contentWidth = availableWidth -
+        (availableWidth > 600 ? 64 : (availableWidth < 360 ? 28 : 44));
+    final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    final crossAxisCount = scale > 1.4 || contentWidth < 320
+        ? 1
+        : (contentWidth >= 800 ? 4 : (contentWidth >= 560 ? 3 : 2));
+    final double spacing = 12;
+    final itemWidth =
+        (contentWidth - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
 
     return Wrap(
       spacing: spacing,
@@ -1093,15 +939,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _navigation(AppLocalizations l10n) => Container(
-        padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
-        margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+        padding: EdgeInsets.fromLTRB(6, 4, 6, 4),
+        margin: EdgeInsets.fromLTRB(8, 0, 8, 0),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: palette.surface,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: AppColors.surfaceBorder.withValues(alpha: 0.8),
+            color: palette.outlineVariant.withValues(alpha: 0.8),
           ),
-          boxShadow: AppShadows.cardGlow,
         ),
         child: Row(
           children: [
@@ -1134,21 +979,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           borderRadius: BorderRadius.circular(16),
           onTap: () => setState(() => selectedTab = index),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 200),
+            padding: EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.18)
+                  ? palette.primary.withValues(alpha: 0.18)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.4)
+                    ? palette.primary.withValues(alpha: 0.4)
                     : Colors.transparent,
               ),
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
+              constraints: BoxConstraints(minHeight: 48),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1156,9 +1003,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Icon(
                     isSelected ? activeIcon : icon,
                     size: 20,
-                    color: isSelected ? AppColors.primary : AppColors.muted,
+                    color:
+                        isSelected ? palette.primary : palette.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
@@ -1169,7 +1017,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         fontSize: 10,
                         fontWeight:
                             isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : AppColors.muted,
+                        color: isSelected
+                            ? palette.primary
+                            : palette.onSurfaceVariant,
                       ),
                     ),
                   ),

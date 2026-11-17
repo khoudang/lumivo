@@ -1,5 +1,6 @@
 import 'storage_adapter.dart';
 import 'storage_adapter_stub.dart'
+    if (dart.library.io) 'storage_adapter_native.dart'
     if (dart.library.html) 'storage_adapter_web.dart';
 
 abstract final class StorageAdapterFactory {
@@ -9,7 +10,7 @@ abstract final class StorageAdapterFactory {
     _mockAdapter = adapter;
   }
 
-  static StorageAdapter create() {
-    return _mockAdapter ?? createStorageAdapter();
+  static StorageAdapter create({String? storagePath}) {
+    return _mockAdapter ?? createStorageAdapter(storagePath: storagePath);
   }
 }

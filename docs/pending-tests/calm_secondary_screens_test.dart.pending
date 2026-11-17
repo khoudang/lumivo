@@ -1,0 +1,89 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lumivo/app/providers.dart';
+import 'package:lumivo/core/models/smart_device.dart';
+import 'package:lumivo/features/automation/presentation/automation_screen.dart';
+import 'package:lumivo/features/device_detail/presentation/device_detail_screen.dart';
+import 'package:lumivo/features/profile/presentation/profile_screen.dart';
+import 'package:lumivo/features/rooms/presentation/rooms_screen.dart';
+import 'package:lumivo/features/settings/presentation/settings_screen.dart';
+import 'package:lumivo/services/mock/mock_device_repository.dart';
+import 'package:lumivo/services/storage/storage_adapter.dart';
+
+class _MemoryStorage implements StorageAdapter {
+  final values = <String, String>{};
+  @override
+  Future<String?> getString(String key) async => values[key];
+  @override
+  Future<void> setString(String key, String value) async => values[key] = value;
+  @override
+  Future<void> remove(String key) async => values.remove(key);
+  @override
+  Future<void> clear() async => values.clear();
+}
+
+void main() {
+  const light = SmartDevice(
+    id: 'calm-light', name: 'Reading light', roomId: 'Living Room',
+    type: DeviceType.light, isOn: true, brightness: 65,
+    connection: DeviceConnection.online,
+  );
+  final screens = <String, Widget>{
+    'settings': const SettingsScreen(),
+    'rooms': const RoomsScreen(),
+    'device': const DeviceDetailScreen(device: light),
+    'automation': const AutomationScreen(),
+    'profile': const ProfileScreen(),
+  };
+  for (final brightness in Brightness.values) {
+    for (final entry in screens.entries) {
+      testWidgets('${entry.key} uses calm ${brightness.name} surfaces at 320px / 2x text', (tester) async {
+        tester.view.physicalSize = const Size(320, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final repository = MockDeviceRepository(
+          responseDelay: Duration.zero, initialDevices: const [light],
+        );
+        addTearDown(repository.dispose);
+        final scheme = ColorScheme.fromSeed(
+          seedColor: const Color(0xFF305C46), brightness: brightness,
+        );
+        final theme = ThemeData(colorScheme: scheme, useMaterial3: true);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            deviceRepositoryProvider.overrideWithValue(repository),
+            homePersistenceProvider.overrideWithValue(
+              HomePersistenceManager(storage: _MemoryStorage()),
+            ),
+          ],
+          child: MaterialApp(
+            theme: theme,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: entry.value,
+          ),
+        ));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'Large text must not overflow');
+        final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+        expect(scaffold.backgroundColor ?? theme.scaffoldBackgroundColor,
+            theme.scaffoldBackgroundColor);
+        final decorations = tester.widgetList<Container>(find.byType(Container))
+            .map((widget) => widget.decoration).whereType<BoxDecoration>();
+        for (final decoration in decorations) {
+          expect(decoration.gradient, isNull, reason: 'Surfaces are flat, not dark gradient banners');
+          expect(decoration.boxShadow, anyOf(isNull, isEmpty), reason: 'No decorative glow');
+        }
+        final texts = tester.widgetList<Text>(find.byType(Text));
+        final bodyColors = texts.map((text) => text.style?.color).whereType<Color>();
+        expect(bodyColors, contains(scheme.onSurface), reason: 'Readable theme-aware primary text');
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      });
+    }
+  }
+}

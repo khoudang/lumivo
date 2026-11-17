@@ -27,8 +27,7 @@ class MockDeviceRepository implements DeviceRepository {
       _devices.clear();
       _devices.addAll(initialDevices);
     } else if (persistenceManager != null &&
-        persistenceManager!.cachedState != null &&
-        persistenceManager!.cachedState!.devices.isNotEmpty) {
+        persistenceManager!.cachedState != null) {
       _devices.clear();
       _devices.addAll(persistenceManager!.cachedState!.devices);
     }
@@ -350,12 +349,10 @@ class MockDeviceRepository implements DeviceRepository {
   Future<void> loadFromPersistence() async {
     if (persistenceManager != null) {
       final homeState = await persistenceManager!.loadHomeState();
-      if (homeState.devices.isNotEmpty) {
-        _devices.clear();
-        _devices.addAll(homeState.devices);
-        _rebuildIndex();
-        _notifyListeners();
-      }
+      _devices.clear();
+      _devices.addAll(homeState.devices);
+      _rebuildIndex();
+      _notifyListeners();
     }
   }
 

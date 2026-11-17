@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/models/smart_device.dart';
-import '../../../core/theme/app_theme.dart';
 
 class FavoritesSection extends StatelessWidget {
   const FavoritesSection({
@@ -27,90 +26,99 @@ class FavoritesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFD572).withValues(alpha: 0.16),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.star_rounded,
-                color: Color(0xFFFFD572),
+                color: Theme.of(context).colorScheme.primary,
                 size: 18,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Container(
-              key: const Key('favorites_count_badge'),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              key: Key('favorites_count_badge'),
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFD572).withValues(alpha: 0.18),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: const Color(0xFFFFD572).withValues(alpha: 0.35),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.35),
                   width: 1,
                 ),
               ),
               child: Text(
                 '${favoriteDevices.length}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD572),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            const Spacer(),
             if (favoriteDevices.isNotEmpty)
-              Flexible(
-                child: Text(
-                  dragText,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.muted,
-                    fontStyle: FontStyle.italic,
-                  ),
+              Text(
+                dragText,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
           ],
         ),
 
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         // Empty state vs Reorderable list
         if (favoriteDevices.isEmpty)
-          _buildEmptyState(l10n)
+          _buildEmptyState(context, l10n)
         else
           _buildFavoritesList(context),
       ],
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations? l10n) {
+  Widget _buildEmptyState(BuildContext context, AppLocalizations? l10n) {
     final emptyDesc = l10n?.noFavoritesPinned ??
         'No favorite devices pinned yet. Long press or tap settings on any device to add to favorites.';
     return Container(
-      key: const Key('favorites_empty_state'),
+      key: Key('favorites_empty_state'),
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.surfaceBorder,
+          color: Theme.of(context).colorScheme.outlineVariant,
           width: 1,
         ),
       ),
@@ -118,25 +126,26 @@ class FavoritesSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.surfaceBorder),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.star_border_rounded,
-              color: AppColors.muted,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               size: 28,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             emptyDesc,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.4,
             ),
           ),
@@ -147,7 +156,7 @@ class FavoritesSection extends StatelessWidget {
 
   Widget _buildFavoritesList(BuildContext context) {
     return SizedBox(
-      height: 144,
+      height: 144 + (MediaQuery.textScalerOf(context).scale(14) - 14) * 2,
       child: ReorderableListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: favoriteDevices.length,
@@ -162,8 +171,8 @@ class FavoritesSection extends StatelessWidget {
             key: Key('favorite_card_${device.id}'),
             index: index,
             child: Container(
-              margin: const EdgeInsets.only(right: 12, bottom: 4),
-              child: _buildFavoriteCard(device),
+              margin: EdgeInsets.only(right: 12, bottom: 4),
+              child: _buildFavoriteCard(context, device),
             ),
           );
         },
@@ -171,7 +180,7 @@ class FavoritesSection extends StatelessWidget {
     );
   }
 
-  Widget _buildFavoriteCard(SmartDevice device) {
+  Widget _buildFavoriteCard(BuildContext context, SmartDevice device) {
     final isOffline = device.connection == DeviceConnection.offline;
     final isOn = device.isOn && !isOffline;
 
@@ -183,27 +192,18 @@ class FavoritesSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: 160,
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: isOn
-                ? const LinearGradient(
-                    colors: [Color(0xFF282444), Color(0xFF171D29)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [AppColors.surfaceElevated, AppColors.surface],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+            color: isOn
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isOn
-                  ? AppColors.primary.withValues(alpha: 0.5)
-                  : AppColors.surfaceBorder,
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
+                  : Theme.of(context).colorScheme.outlineVariant,
               width: 1.2,
             ),
-            boxShadow: AppShadows.cardGlow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,45 +213,54 @@ class FavoritesSection extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isOn
-                          ? AppColors.primary.withValues(alpha: 0.2)
-                          : AppColors.surfaceElevated,
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.2)
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       _deviceIcon(device),
-                      color: isOn ? AppColors.primary : AppColors.muted,
+                      color: isOn
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       size: 20,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   // Star favorite indicator badge
                   Semantics(
                     label: 'Favorite star',
                     child: Container(
                       key: Key('favorite_badge_${device.id}'),
-                      padding: const EdgeInsets.all(4),
+                      padding: EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFD572).withValues(alpha: 0.16),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.16),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.star_rounded,
-                        color: Color(0xFFFFD572),
+                        color: Theme.of(context).colorScheme.primary,
                         size: 14,
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  Spacer(),
                   Semantics(
                     button: true,
                     label: '${isOn ? 'Turn off' : 'Turn on'} ${device.name}',
                     toggled: isOn,
                     child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(minWidth: 48, minHeight: 48),
+                      constraints: BoxConstraints(minWidth: 48, minHeight: 48),
                       child: Center(
                         child: GestureDetector(
                           key: Key('favorite_toggle_btn_${device.id}'),
@@ -264,7 +273,11 @@ class FavoritesSection extends StatelessWidget {
                                 ? Icons.toggle_on_rounded
                                 : Icons.toggle_off_rounded,
                             size: 30,
-                            color: isOn ? AppColors.green : AppColors.mutedDark,
+                            color: isOn
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -284,14 +297,14 @@ class FavoritesSection extends StatelessWidget {
                       device.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
@@ -299,9 +312,9 @@ class FavoritesSection extends StatelessWidget {
                       device.roomId,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
